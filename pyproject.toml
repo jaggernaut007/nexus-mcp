@@ -1,0 +1,75 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nexus-mcp"
+version = "0.1.0"
+description = "Unified MCP server with hybrid search, code graph analysis, and semantic memory"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Shreyas Jagannath" },
+]
+keywords = ["mcp", "code-search", "semantic-search", "code-graph", "vector-search"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Quality Assurance",
+]
+
+dependencies = [
+    "fastmcp>=2.0.0",
+    "lancedb>=0.4.0",
+    "onnxruntime>=1.16.0",
+    "sentence-transformers>=2.2.0",
+    "tree-sitter==0.21.3",
+    "tree-sitter-languages>=1.10.0",
+    "ast-grep-py>=0.28.0",
+    "rustworkx>=0.15.0",
+    "pathspec>=0.11.0",
+    "watchdog>=3.0.0",
+    "pyarrow>=14.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/shreyasjagannath/Nexus-MCP"
+Repository = "https://github.com/shreyasjagannath/Nexus-MCP"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.4.0",
+    "mypy>=1.0.0",
+]
+reranker = [
+    "flashrank>=0.2.0",
+]
+
+[project.scripts]
+nexus-mcp = "nexus_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nexus_mcp"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]

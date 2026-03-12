@@ -1,6 +1,6 @@
 # Nexus-MCP Self-Test Demo
 
-Verifies the Nexus-MCP installation by exercising **all 13 MCP tools** end-to-end, bypassing the MCP protocol layer to call tool functions directly.
+Verifies the Nexus-MCP installation by exercising **all 15 MCP tools** end-to-end, bypassing the MCP protocol layer to call tool functions directly.
 
 ## Quick Start
 

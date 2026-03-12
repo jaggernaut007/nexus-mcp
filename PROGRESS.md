@@ -76,7 +76,7 @@
 ## Phase 6: MCP Production Readiness — COMPLETE
 - [x] 6a: trust_remote_code mitigation — `config.py` defaults `trust_remote_code=False`, `embedding_service.py` respects it
 - [x] 6b: Tool permission model — READ/MUTATE/WRITE categories in `security/permissions.py`
-  - Static registry maps all 13 tools to categories
+  - Static registry maps all 15 tools to categories
   - PermissionPolicy with allowed/denied categories and per-tool overrides
   - Preset policies: DEFAULT_POLICY (read-only), FULL_ACCESS_POLICY
   - `NEXUS_PERMISSION_LEVEL=full` default for backward compat; `read` for restricted
@@ -107,7 +107,7 @@
 - [x] ADR-014: Rate Limiting
 
 ## Self-Test Demo — COMPLETE
-- [x] self_test/demo_mcp.py — End-to-end demo exercising all 13 MCP tools directly (bypasses transport)
+- [x] self_test/demo_mcp.py — End-to-end demo exercising all 15 MCP tools directly (bypasses transport)
 - [x] self_test/README.md — Usage guide, sample project description, troubleshooting
 - [x] 26/26 checks passing against built-in sample project
 - [x] Supports user-provided codebase path or auto-generated temp project

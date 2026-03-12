@@ -1,0 +1,54 @@
+# Smithery.ai marketplace configuration for Nexus-MCP
+# https://smithery.ai/docs/build/project-config/smithery-yaml
+
+runtime: "python"
+
+startCommand:
+  type: "stdio"
+  configSchema:
+    type: "object"
+    properties:
+      storage_dir:
+        type: "string"
+        description: "Storage directory for indexes (default: .nexus)"
+        default: ".nexus"
+      embedding_model:
+        type: "string"
+        description: "Embedding model: bge-small-en (50MB) or coderank (500MB)"
+        default: "bge-small-en"
+        enum:
+          - "bge-small-en"
+          - "coderank"
+      max_memory_mb:
+        type: "integer"
+        description: "Memory budget in MB"
+        default: 350
+      search_mode:
+        type: "string"
+        description: "Default search mode"
+        default: "hybrid"
+        enum:
+          - "hybrid"
+          - "vector"
+          - "bm25"
+      log_level:
+        type: "string"
+        description: "Logging level"
+        default: "INFO"
+        enum:
+          - "DEBUG"
+          - "INFO"
+          - "WARNING"
+          - "ERROR"
+  commandFunction: |-
+    (config) => ({
+      command: 'nexus-mcp',
+      args: [],
+      env: {
+        NEXUS_STORAGE_DIR: config.storage_dir || '.nexus',
+        NEXUS_EMBEDDING_MODEL: config.embedding_model || 'bge-small-en',
+        NEXUS_MAX_MEMORY_MB: String(config.max_memory_mb || 350),
+        NEXUS_SEARCH_MODE: config.search_mode || 'hybrid',
+        NEXUS_LOG_LEVEL: config.log_level || 'INFO'
+      }
+    })

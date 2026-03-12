@@ -1,7 +1,7 @@
 # Nexus-MCP Agent Guidelines
 
 ## Architecture
-Single MCP server consolidating CodeGrok + code-graph-mcp. 12 tools, <350MB RAM.
+Single MCP server consolidating CodeGrok + code-graph-mcp. 15 tools, <350MB RAM.
 
 ## Stack
 - **LanceDB**: vectors + FTS (replaces ChromaDB)

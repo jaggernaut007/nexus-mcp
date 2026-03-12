@@ -121,6 +121,26 @@ explain(symbol_name="Router", verbosity="detailed")
 
 Verbosity levels: "summary" (concise), "detailed" (default), "full" (everything).
 
+### Project Documentation Tools
+
+#### `overview`
+Get a high-level overview of the indexed project: file counts, language breakdown, symbol counts by type, directory structure, quality metrics, and top modules.
+
+```
+overview()
+```
+
+No parameters required. Returns a structured summary of the entire indexed project.
+
+#### `architecture`
+Document the architecture of the indexed project: layers, module dependencies, class hierarchies, entry points, hub symbols (highest connectivity), and complexity hotspots.
+
+```
+architecture()
+```
+
+No parameters required. Returns architectural analysis with layers, dependencies, classes, entry points, and structural insights.
+
 ### Memory Tools
 
 #### `remember`

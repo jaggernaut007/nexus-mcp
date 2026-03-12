@@ -15,9 +15,9 @@ Nexus-MCP consolidates two predecessor projects into a single server ([ADR-001](
                              │ MCP Protocol (stdio/SSE)
 ┌────────────────────────────┴────────────────────────────────┐
 │                    FastMCP Server (server.py)                │
-│  12 Tools: index, search, status, find_symbol, find_callers,│
-│  find_callees, analyze, impact, explain, remember, recall,  │
-│  forget                                                      │
+│  15 Tools: index, search, status, find_symbol, find_callers,│
+│  find_callees, analyze, impact, explain, overview,           │
+│  architecture, remember, recall, forget                      │
 ├─────────────────────────────────────────────────────────────┤
 │  Input Validation │ Graceful Shutdown │ JSON Logging         │
 ├─────────┬─────────┬─────────┬─────────┬─────────────────────┤

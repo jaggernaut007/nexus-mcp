@@ -26,10 +26,10 @@ def clean_state():
 
 
 def test_tool_categories_defined():
-    """All 12 tools should be registered."""
+    """All tools should be registered."""
     expected_tools = {
         "status", "search", "find_symbol", "find_callers", "find_callees",
-        "explain", "recall", "health",
+        "explain", "overview", "architecture", "recall", "health",
         "index", "analyze", "impact",
         "remember", "forget",
     }
@@ -39,7 +39,8 @@ def test_tool_categories_defined():
 def test_read_tools_classified():
     """Read-only tools are classified as READ."""
     read_tools = ["status", "search", "find_symbol", "find_callers",
-                  "find_callees", "explain", "recall", "health"]
+                  "find_callees", "explain", "overview", "architecture",
+                  "recall", "health"]
     for tool in read_tools:
         assert TOOL_PERMISSIONS[tool] == ToolCategory.READ, f"{tool} should be READ"
 

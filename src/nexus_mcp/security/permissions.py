@@ -26,6 +26,8 @@ TOOL_PERMISSIONS: dict[str, ToolCategory] = {
     "find_callers": ToolCategory.READ,
     "find_callees": ToolCategory.READ,
     "explain": ToolCategory.READ,
+    "overview": ToolCategory.READ,
+    "architecture": ToolCategory.READ,
     "recall": ToolCategory.READ,
     "health": ToolCategory.READ,
     # Mutating tools (triggers computation, disk writes)

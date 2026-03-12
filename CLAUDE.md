@@ -4,7 +4,7 @@ Unified MCP server: hybrid search + code graph + semantic memory. Target: <350MB
 
 ## Using Nexus-MCP Tools
 
-Nexus-MCP is registered as an MCP server (`nexus-mcp`). **Use its 13 tools actively** to understand, navigate, and work with codebases more effectively.
+Nexus-MCP is registered as an MCP server (`nexus-mcp`). **Use its 15 tools actively** to understand, navigate, and work with codebases more effectively.
 
 ### Workflow: Always index first
 
@@ -30,6 +30,8 @@ For subsequent sessions or after file changes, use incremental mode (auto-detect
 | `analyze` | Get code quality metrics: complexity, code smells, dependencies, maintainability. Use when reviewing or improving code. |
 | `impact` | **Before making changes**: assess transitive impact of modifying a symbol. Shows all affected symbols and files. |
 | `explain` | Get a combined graph + vector + analysis explanation of any symbol. Use for onboarding to unfamiliar code. |
+| `overview` | Get a high-level project overview: file counts, languages, symbol types, directory structure, quality metrics, top modules. Use when starting work on an unfamiliar project. |
+| `architecture` | Document the project architecture: layers, module dependencies, class hierarchies, entry points, hub symbols, complexity hotspots. Use for understanding system design. |
 | `remember` | Store project context, decisions, or notes as semantic memories with tags. Use to persist context across conversations. |
 | `recall` | Retrieve stored memories by semantic similarity. Check for existing context before starting new work. |
 | `forget` | Clean up outdated memories by ID, tags, or type. |
@@ -42,6 +44,8 @@ For subsequent sessions or after file changes, use incremental mode (auto-detect
 - **Store decisions with `remember`**: When making architectural decisions or noting important context, store it so future sessions have access.
 - **Check `recall` at session start**: Query memories for existing project context before asking the user to repeat information.
 - **Use `find_callers`/`find_callees` for dependency tracing**: These are more reliable than text search for understanding call graphs.
+- **Use `overview` when starting a new project**: Get a quick summary of project structure, languages, and quality before diving in.
+- **Use `architecture` for design understanding**: See layers, dependencies, entry points, and hub symbols to understand system design.
 - **Use `analyze` for code reviews**: Get objective quality metrics to guide review feedback.
 - **Re-index incrementally after changes**: Run `index` again after making significant edits — incremental mode only processes changed files.
 
@@ -49,7 +53,7 @@ For subsequent sessions or after file changes, use incremental mode (auto-detect
 
 ```
 src/nexus_mcp/
-├── server.py              # FastMCP server, 13 tools + health + input validation + graceful shutdown
+├── server.py              # FastMCP server, 15 tools + health + input validation + graceful shutdown
 ├── config.py              # Settings with NEXUS_ env prefix (security, audit, rate limit)
 ├── state.py               # Session state singleton + shutdown()
 ├── core/
@@ -91,7 +95,7 @@ src/nexus_mcp/
 └── persistence/
     └── store.py               # SQLite graph persistence
 self_test/
-├── demo_mcp.py            # End-to-end demo exercising all 13 tools (26 checks)
+├── demo_mcp.py            # End-to-end demo exercising all 15 tools
 └── README.md              # Usage, sample project, troubleshooting
 ```
 
@@ -104,7 +108,7 @@ pytest -v                  # Run tests (441 tests)
 pytest -m "not slow"       # Skip performance benchmarks
 ruff check .               # Lint
 nexus-mcp                  # Run server
-python self_test/demo_mcp.py  # Run self-test demo (all 13 tools)
+python self_test/demo_mcp.py  # Run self-test demo (all 15 tools)
 claude mcp add nexus-mcp -- nexus-mcp  # Add to Claude Code
 ```
 

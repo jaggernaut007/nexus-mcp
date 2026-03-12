@@ -791,6 +791,231 @@ def create_server():
         builder = ResponseBuilder(verbosity)
         return builder.build_explain_response(symbol_data, search_results, analysis)
 
+    @mcp.tool()
+    def overview() -> dict[str, Any]:
+        """Get a high-level overview of the indexed project.
+
+        Returns language breakdown, file count, symbol counts by type,
+        code quality summary, top-level modules, and key statistics.
+
+        Returns:
+            Project overview with structure, languages, quality, and key symbols.
+        """
+        guard_err = _guard("overview")
+        if guard_err:
+            return guard_err
+
+        state, err = _require_indexed()
+        if err:
+            return err
+
+        from nexus_mcp.analysis.code_analyzer import CodeAnalyzer
+        from nexus_mcp.core.graph_models import NodeType
+
+        graph = state.graph_engine
+        stats = graph.get_statistics()
+
+        # Language breakdown with file counts
+        languages = {}
+        for lang, count in stats.get("nodes_by_language", {}).items():
+            languages[lang] = count
+
+        # File listing grouped by directory
+        directories: dict[str, int] = {}
+        root = state.codebase_path
+        for fp in graph._file_nodes:
+            try:
+                rel = str(Path(fp).relative_to(root).parent)
+            except ValueError:
+                rel = "."
+            directories[rel] = directories.get(rel, 0) + 1
+
+        # Top-level modules (sorted by symbol count descending)
+        modules = graph.get_nodes_by_type(NodeType.MODULE)
+        module_summaries = []
+        for mod in modules:
+            rels = graph.get_relationships_from(mod.id)
+            child_count = len(rels)
+            mod_path = mod.location.file_path
+            if root:
+                try:
+                    mod_path = str(Path(mod_path).relative_to(root))
+                except ValueError:
+                    pass
+            module_summaries.append({
+                "name": mod.name,
+                "file": mod_path,
+                "symbols": child_count,
+                "lines": mod.line_count,
+            })
+        module_summaries.sort(key=lambda m: m["symbols"], reverse=True)
+
+        # Quality summary
+        analyzer = CodeAnalyzer(graph)
+        quality = analyzer.calculate_quality_metrics()
+
+        # Chunk count
+        chunk_count = 0
+        if state.vector_engine:
+            chunk_count = state.vector_engine.count()
+
+        return {
+            "project_path": str(root) if root else None,
+            "total_files": stats.get("total_files", 0),
+            "total_symbols": stats.get("total_nodes", 0),
+            "total_relationships": stats.get("total_relationships", 0),
+            "vector_chunks": chunk_count,
+            "symbols_by_type": stats.get("nodes_by_type", {}),
+            "languages": languages,
+            "directories": dict(sorted(directories.items())),
+            "quality": quality,
+            "top_modules": module_summaries[:20],
+        }
+
+    @mcp.tool()
+    def architecture() -> dict[str, Any]:
+        """Document the architecture of the indexed project.
+
+        Analyzes module dependencies, class hierarchies, key abstractions,
+        coupling metrics, circular dependencies, and entry points to
+        produce an architectural summary.
+
+        Returns:
+            Architectural documentation with layers, dependencies,
+            key abstractions, and structural insights.
+        """
+        guard_err = _guard("architecture")
+        if guard_err:
+            return guard_err
+
+        state, err = _require_indexed()
+        if err:
+            return err
+
+        from nexus_mcp.analysis.code_analyzer import CodeAnalyzer
+        from nexus_mcp.core.graph_models import NodeType, RelationshipType
+
+        graph = state.graph_engine
+        root = state.codebase_path
+        analyzer = CodeAnalyzer(graph)
+
+        # Module dependency analysis
+        dep_analysis = analyzer.analyze_dependencies()
+
+        # Class hierarchy: find inheritance relationships
+        classes = graph.get_nodes_by_type(NodeType.CLASS)
+        class_info = []
+        for cls in classes:
+            rels_out = graph.get_relationships_from(cls.id)
+            rels_in = graph.get_relationships_to(cls.id)
+            methods = sum(
+                1 for r in rels_out
+                if r.relationship_type == RelationshipType.CONTAINS
+            )
+            parents = [
+                graph.get_node(r.source_id)
+                for r in rels_in
+                if r.relationship_type == RelationshipType.CONTAINS
+            ]
+            parent_name = parents[0].name if parents else None
+
+            cls_path = cls.location.file_path
+            if root:
+                try:
+                    cls_path = str(Path(cls_path).relative_to(root))
+                except ValueError:
+                    pass
+
+            class_info.append({
+                "name": cls.name,
+                "file": cls_path,
+                "methods": methods,
+                "lines": cls.line_count,
+                "parent_module": parent_name,
+                "visibility": cls.visibility,
+            })
+        class_info.sort(key=lambda c: c["methods"], reverse=True)
+
+        # Identify architectural layers by directory
+        layers: dict[str, dict[str, Any]] = {}
+        modules = graph.get_nodes_by_type(NodeType.MODULE)
+        for mod in modules:
+            mod_path = mod.location.file_path
+            if root:
+                try:
+                    mod_path = str(Path(mod_path).relative_to(root))
+                except ValueError:
+                    pass
+            parts = Path(mod_path).parts
+            # Use top two directory levels as the layer key
+            if len(parts) >= 2:
+                layer = str(Path(parts[0]) / parts[1]) if len(parts) > 2 else parts[0]
+            else:
+                layer = parts[0] if parts else "root"
+
+            if layer not in layers:
+                layers[layer] = {"modules": [], "total_symbols": 0}
+            rels = graph.get_relationships_from(mod.id)
+            symbol_count = len(rels)
+            layers[layer]["modules"].append(mod.name)
+            layers[layer]["total_symbols"] += symbol_count
+
+        # Entry points: functions named main, run, start, handler, create_server
+        entry_patterns = {"main", "run", "start", "handler", "create_server", "app"}
+        functions = graph.get_nodes_by_type(NodeType.FUNCTION)
+        entry_points = []
+        for func in functions:
+            if func.name in entry_patterns:
+                fp = func.location.file_path
+                if root:
+                    try:
+                        fp = str(Path(fp).relative_to(root))
+                    except ValueError:
+                        pass
+                entry_points.append({
+                    "name": func.name,
+                    "file": fp,
+                    "line": func.location.start_line,
+                })
+
+        # Hub symbols: highest degree (most connections)
+        hub_symbols = []
+        for node in graph.nodes.values():
+            in_deg, out_deg = graph.get_node_degree(node.id)
+            total_deg = in_deg + out_deg
+            if total_deg >= 5:
+                fp = node.location.file_path
+                if root:
+                    try:
+                        fp = str(Path(fp).relative_to(root))
+                    except ValueError:
+                        pass
+                hub_symbols.append({
+                    "name": node.name,
+                    "type": node.node_type.value,
+                    "file": fp,
+                    "in_degree": in_deg,
+                    "out_degree": out_deg,
+                    "total_connections": total_deg,
+                })
+        hub_symbols.sort(key=lambda h: h["total_connections"], reverse=True)
+
+        # Complexity hotspots
+        complexity = analyzer.analyze_complexity()
+
+        return {
+            "layers": {k: v for k, v in sorted(layers.items())},
+            "dependencies": dep_analysis,
+            "classes": class_info[:30],
+            "entry_points": entry_points,
+            "hub_symbols": hub_symbols[:20],
+            "complexity_summary": {
+                "total_functions": complexity.get("total_functions", 0),
+                "average_complexity": complexity.get("average_complexity", 0),
+                "hotspots": complexity.get("high_complexity_functions", [])[:10],
+            },
+        }
+
     # --- Memory helpers ---
 
     def _get_memory_store():

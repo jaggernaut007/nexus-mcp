@@ -5,7 +5,7 @@
 
 ## Context
 
-The MCP specification recommends security-first defaults for tool access control. As Nexus-MCP exposes 13 tools with varying side effects — from read-only queries (`search`, `status`) to disk-writing operations (`index`, `remember`) — a permission model is needed to let operators restrict which tools a client can invoke.
+The MCP specification recommends security-first defaults for tool access control. As Nexus-MCP exposes 15 tools with varying side effects — from read-only queries (`search`, `status`) to disk-writing operations (`index`, `remember`) — a permission model is needed to let operators restrict which tools a client can invoke.
 
 The primary transport today is stdio (local process), where full trust is reasonable. However, future HTTP/SSE transport will expose the server to untrusted clients, requiring tighter defaults.
 
@@ -13,7 +13,7 @@ The primary transport today is stdio (local process), where full trust is reason
 
 Classify all tools into three categories with a static registry:
 
-- **READ** — Query-only, no side effects: `status`, `search`, `find_symbol`, `find_callers`, `find_callees`, `explain`, `recall`, `health`
+- **READ** — Query-only, no side effects: `status`, `search`, `find_symbol`, `find_callers`, `find_callees`, `explain`, `overview`, `architecture`, `recall`, `health`
 - **MUTATE** — Triggers computation and disk writes to index/analysis data: `index`, `analyze`, `impact`
 - **WRITE** — Modifies user-facing state (memory store): `remember`, `forget`
 
@@ -43,6 +43,6 @@ The default is `full` rather than `read` because all current deployments use std
 
 ## Alternatives Considered
 
-- **Per-tool env vars** (e.g., `NEXUS_ALLOW_INDEX=true`): Does not scale. 13 tools means 13 env vars.
+- **Per-tool env vars** (e.g., `NEXUS_ALLOW_INDEX=true`): Does not scale. 15 tools means 15 env vars.
 - **Role-based access (RBAC)**: Overengineered for the current single-user, stdio-only deployment. Categories achieve the same grouping without a role abstraction layer.
 - **Default to read-only**: Would break backward compatibility for all existing users who rely on `index` and `remember` tools working out of the box.

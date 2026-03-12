@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use Nexus-MCP, please cite it as below."
+title: "Nexus-MCP: Unified Code Intelligence Server"
+type: software
+version: 0.1.0
+date-released: 2026-03-12
+license: MIT
+url: "https://github.com/shreyasjagannath/Nexus-MCP"
+repository-code: "https://github.com/shreyasjagannath/Nexus-MCP"
+authors:
+  - family-names: Jagannath
+    given-names: Shreyas
+keywords:
+  - model-context-protocol
+  - mcp-server
+  - code-search
+  - semantic-search
+  - hybrid-search
+  - code-graph
+  - vector-search
+  - bm25
+  - code-intelligence
+  - ai-coding-agent
+  - tree-sitter
+  - ast-grep
+  - rustworkx
+  - lancedb
+  - onnx-runtime
+abstract: >-
+  Nexus-MCP is a unified, local-first MCP server that combines hybrid search
+  (vector + BM25 + graph), structural code graph analysis, and persistent
+  semantic memory into a single process. It provides 15 tools for AI coding
+  agents via the Model Context Protocol, delivering token-efficient code
+  understanding with <350MB RAM, no API keys, and no cloud dependencies.

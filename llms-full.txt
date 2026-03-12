@@ -1,0 +1,1174 @@
+# Nexus-MCP
+
+> Unified, local-first MCP server combining hybrid search (vector + BM25 + graph), structural code graph analysis, and persistent semantic memory in a single process. Designed for AI coding agents via the Model Context Protocol. <350MB RAM, no API keys, no cloud dependencies. MIT licensed.
+
+This file contains the complete project documentation for Nexus-MCP, concatenated for LLM consumption.
+
+---
+
+# Section 1: README
+
+# Nexus-MCP
+
+**The only MCP server with hybrid search + code graph + semantic memory — fully local.**
+
+Nexus-MCP is a unified, local-first code intelligence server built for the [Model Context Protocol](https://modelcontextprotocol.io). It combines vector search, BM25 keyword search, and structural graph analysis into a single process — giving AI agents precise, token-efficient code understanding without cloud dependencies.
+
+---
+
+## Why Nexus-MCP?
+
+AI coding agents waste tokens. A lot of them. Every time an agent reads full files to find a function, grep-searches for keywords that miss semantic intent, or makes multiple tool calls across disconnected servers — tokens burn. Nexus-MCP fixes this.
+
+### Token Efficiency: The Numbers
+
+| Scenario | Without Nexus | With Nexus | Savings |
+|----------|:---:|:---:|:---:|
+| **Find relevant code** (agent reads 5-10 files manually) | 5,000–15,000 tokens | 500–2,000 tokens (summary mode) | **70–90%** |
+| **Understand a symbol** (grep + read file + read callers) | 3,000–8,000 tokens across 3-5 tool calls | 800–2,000 tokens in 1 `explain` call | **60–75%** |
+| **Assess change impact** (manual trace through codebase) | 10,000–20,000 tokens | 1,000–3,000 tokens via `impact` tool | **80–85%** |
+| **Tool descriptions in context** (2 separate MCP servers) | ~1,700 tokens (17 tools) | ~1,000 tokens (15 consolidated) | **40%** |
+| **Search precision** (keyword-only misses, needs retries) | 2–3 searches × 2,000 tokens | 1 hybrid search × 1,500 tokens | **60–75%** |
+
+**Estimated savings per coding session:** 15,000–40,000 tokens (30–60% reduction) compared to standalone agentic file browsing.
+
+### Three Verbosity Levels
+
+Every tool respects a token budget — agents request only the detail they need:
+
+| Level | Budget | What's Returned | Use Case |
+|-------|:---:|---|---|
+| `summary` | ~500 tokens | Counts, scores, file:line pointers | Quick lookups, triage |
+| `detailed` | ~2,000 tokens | Signatures, types, line ranges, docstrings | Normal development |
+| `full` | ~8,000 tokens | Full code snippets, relationships, metadata | Deep analysis |
+
+### vs. Standalone Agentic Development (No Code MCP)
+
+Without a code intelligence server, AI agents must:
+- **Read entire files** to find one function (~500–2,000 tokens/file, often 5–10 files per query)
+- **Grep for keywords** that miss semantic intent ("auth" won't find "verify_credentials")
+- **Manually trace call chains** by reading file after file
+- **Lose all context between sessions** — no persistent memory
+
+Nexus-MCP replaces this with targeted retrieval: semantic search returns the exact chunks needed, graph queries trace relationships instantly, and memory persists across sessions.
+
+### vs. Competitor MCP Servers
+
+| Feature | Nexus-MCP | Sourcegraph MCP | Greptile MCP | GitHub MCP | tree-sitter MCP |
+|---------|:---:|:---:|:---:|:---:|:---:|
+| **Local / private** | Yes | No (infra required) | No (cloud) | No (cloud) | Yes |
+| **Semantic search** | Yes (embeddings) | No (keyword) | Yes (LLM-based) | No (keyword) | No |
+| **Keyword search** | Yes (BM25) | Yes | N/A | Yes | No |
+| **Hybrid fusion** | Yes (RRF) | No | No | No | No |
+| **Code graph** | Yes (rustworkx) | Yes (SCIP) | No | No | No |
+| **Re-ranking** | Yes (FlashRank) | No | N/A | No | No |
+| **Semantic memory** | Yes (6 types) | No | No | No | No |
+| **Change impact** | Yes | Partial | No | No | No |
+| **Token budgeting** | Yes (3 levels) | No | No | No | No |
+| **Languages** | 25+ | 30+ | Many | Many | Many |
+| **Cost** | Free | $$$ | $40/mo | $10–39/mo | Free |
+| **API keys needed** | No | Yes | Yes | Yes | No |
+
+### vs. AI Code Tools (Cursor, Copilot, Cody, etc.)
+
+| Capability | Nexus-MCP | Cursor | Copilot @workspace | Sourcegraph Cody | Continue.dev | Aider |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **IDE-agnostic** | Yes | No | No | No | No | Yes |
+| **MCP-native** | Yes | Partial | No | No | Yes (client) | No |
+| **Fully local** | Yes | Partial | No | Partial | Yes | Yes |
+| **Hybrid search** | Yes | Unknown | Unknown | Keyword | Yes | No |
+| **Code graph** | Yes | Unknown | Unknown | Yes (SCIP) | Basic | No |
+| **Semantic memory** | Yes (persistent) | No | No | No | No | No |
+| **Token-budgeted responses** | Yes | N/A | N/A | N/A | N/A | N/A |
+| **Open source** | Yes (MIT) | No | No | Partial | Yes | Yes |
+| **Cost** | Free | $20–40/mo | $10–39/mo | $0–49/mo | Free | Free |
+
+**Nexus-MCP's unique combination:** No other tool delivers hybrid search + code graph + semantic memory + token budgeting + full privacy in a single MCP server.
+
+---
+
+## Key Features
+
+- **Hybrid search** — Vector (semantic) + BM25 (keyword) + graph (structural) fused via Reciprocal Rank Fusion, then re-ranked with FlashRank
+- **Code graph** — Structural analysis via rustworkx: callers, callees, imports, inheritance, change impact
+- **Dual parsing** — tree-sitter (symbol extraction) + ast-grep (structural relationships), 25+ languages
+- **Semantic memory** — Persistent knowledge store with TTL expiration, 6 memory types, semantic recall
+- **Explain & Impact** — "What does this do?" and "What breaks if I change it?" in single tool calls
+- **Token-budgeted responses** — Three verbosity levels (summary/detailed/full) keep context windows lean
+- **Incremental indexing** — Only re-processes changed files; file watcher support
+- **Low memory** — <350MB RAM target (ONNX Runtime ~50MB, mmap vectors, lazy model loading)
+- **Fully local** — Zero cloud dependencies, no API keys, all processing on your machine
+- **15 tools, one server** — Consolidates what previously required 2 MCP servers (17 tools) into one
+
+## Install
+
+```bash
+# Option 1: Setup script (recommended — creates venv, installs, verifies)
+git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+cd Nexus-MCP
+./setup.sh
+
+# Option 2: Manual install
+pip install -e ".[dev]"
+```
+
+See the full [Installation Guide](docs/INSTALLATION.md) for all options, MCP client integration, and troubleshooting.
+
+## Run
+
+```bash
+nexus-mcp
+```
+
+## Add to Claude Code
+
+```bash
+claude mcp add nexus-mcp -- nexus-mcp
+```
+
+## MCP Tools (15)
+
+### Core
+| Tool | Description |
+|------|-------------|
+| `status` | Server status, indexing stats, memory usage |
+| `health` | Readiness/liveness probe (uptime, engine availability) |
+| `index` | Index a codebase (full or incremental) |
+| `search` | Hybrid code search with language/type filters and reranking |
+
+### Graph Analysis
+| Tool | Description |
+|------|-------------|
+| `find_symbol` | Look up a symbol by name — definition, location, relationships |
+| `find_callers` | Find all direct callers of a function |
+| `find_callees` | Find all functions called by a given function |
+| `analyze` | Code complexity, dependencies, smells, and quality metrics |
+| `impact` | Transitive change impact analysis |
+| `explain` | Combined graph + vector + analysis explanation of a symbol |
+| `overview` | High-level project overview: files, languages, symbols, quality |
+| `architecture` | Architectural analysis: layers, dependencies, entry points, hubs |
+
+### Memory
+| Tool | Description |
+|------|-------------|
+| `remember` | Store a semantic memory with tags and TTL |
+| `recall` | Search memories by semantic similarity |
+| `forget` | Delete memories by ID, tags, or type |
+
+## Configuration
+
+All settings can be overridden via `NEXUS_` environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEXUS_STORAGE_DIR` | `.nexus` | Storage directory for indexes |
+| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | Embedding model |
+| `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
+| `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max code snippet size per chunk |
+| `NEXUS_MAX_MEMORY_MB` | `350` | Memory budget |
+| `NEXUS_SEARCH_MODE` | `hybrid` | Search mode: `hybrid`, `vector`, or `bm25` |
+| `NEXUS_FUSION_WEIGHT_VECTOR` | `0.5` | Vector engine weight in RRF |
+| `NEXUS_FUSION_WEIGHT_BM25` | `0.3` | BM25 engine weight in RRF |
+| `NEXUS_FUSION_WEIGHT_GRAPH` | `0.2` | Graph engine weight in RRF |
+| `NEXUS_LOG_LEVEL` | `INFO` | Logging level |
+| `NEXUS_LOG_FORMAT` | `text` | Log format: `text` or `json` |
+
+## Self-Test Demo
+
+Verify your installation by running the end-to-end demo that exercises all 15 tools:
+
+```bash
+python self_test/demo_mcp.py                  # Uses built-in sample project
+python self_test/demo_mcp.py /path/to/project  # Or test against your own codebase
+```
+
+See [self_test/README.md](self_test/README.md) for details.
+
+## Development
+
+```bash
+pip install -e ".[dev]"     # Install with dev deps
+pytest -v                   # Run tests (441 tests)
+pytest -m "not slow"        # Skip performance benchmarks
+ruff check .                # Lint
+nexus-mcp                   # Run server
+```
+
+## Architecture
+
+- **LanceDB** — Disk-backed vectors + native full-text search (mmap, ~20-50MB overhead)
+- **ONNX Runtime** — Embedding inference (~50MB vs PyTorch ~500MB)
+- **rustworkx** — Rust-backed graph engine for code structure
+- **Dual parser** — tree-sitter (symbol extraction) + ast-grep (structural relationships)
+- **Symbol-based chunking** — One chunk per symbol with deterministic IDs
+
+## Documentation
+
+- [Installation Guide](docs/INSTALLATION.md) — Prerequisites, install steps, MCP client integration, troubleshooting
+- [Architecture](docs/ARCHITECTURE.md) — System design, data flow, components, memory budget
+- [Usage Guide](docs/USAGE_GUIDE.md) — Tool reference, configuration, best practices
+- [Developer Guide](docs/DEVELOPER_GUIDE.md) — Setup, testing, contributing, adding tools/engines
+- [ADRs](docs/adr/) — 11 Architecture Decision Records
+- [Research Notes](docs/RESEARCH.md) — Deep dives on libraries and technology choices
+
+## Acknowledgments
+
+Nexus-MCP consolidates and extends two earlier projects:
+
+- **[CodeGrok MCP](https://github.com/shreyasjagannath/CodeGrok_mcp)** by [rdondeti](https://github.com/rdondeti) (Ravitez Dondeti) — Semantic code search with tree-sitter parsing, embedding service, parallel indexing, and memory retrieval. Core models, symbol extraction, and the embedding pipeline were ported from CodeGrok. Originally licensed under MIT.
+- **[code-graph-mcp](https://github.com/entrepeneur4lyf/code-graph-mcp)** by [entrepeneur4lyf](https://github.com/entrepeneur4lyf) — Code graph analysis with ast-grep structural parsing, rustworkx graph engine, and complexity analysis. Graph models, relationship extraction, and code analysis were ported from code-graph-mcp.
+
+Individual source files retain "Ported from" attribution in their module docstrings. See [ADR-001](docs/adr/ADR-001-single-mcp-consolidation.md) for the rationale behind the consolidation.
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.
+
+---
+
+# Section 2: Installation Guide
+
+# Nexus-MCP Installation Guide
+
+## Prerequisites
+
+- **Python 3.10+** (tested on 3.10, 3.11, 3.12)
+- **pip** (comes with Python)
+- **git** (to clone the repository)
+
+Check your Python version:
+
+```bash
+python3 --version
+```
+
+If you have multiple Python versions, ensure you use 3.10 or later.
+
+---
+
+## Quick Start (Setup Script)
+
+The recommended way to install Nexus-MCP:
+
+```bash
+# Clone the repository
+git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+cd Nexus-MCP
+
+# Run setup script (creates venv, installs deps, verifies)
+./setup.sh
+```
+
+**Setup script options:**
+
+| Flag | Description |
+|------|-------------|
+| `--clean` | Remove existing venv before creating new |
+| `--prod` | Install production dependencies only (no dev) |
+| `--reranker` | Include optional FlashRank reranker |
+| `--no-verify` | Skip verification step |
+| `--help` | Show help message |
+
+Examples:
+
+```bash
+./setup.sh                       # Dev install (pytest, ruff, mypy)
+./setup.sh --clean               # Remove old venv, fresh install
+./setup.sh --prod                # Production-only (no dev tools)
+./setup.sh --reranker            # Dev install + FlashRank reranker
+./setup.sh --clean --prod        # Clean production install
+```
+
+After setup, activate the environment:
+
+```bash
+source .venv/bin/activate
+```
+
+---
+
+## Manual Install
+
+If you prefer not to use the setup script:
+
+```bash
+git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+cd Nexus-MCP
+
+# Option 1: Production only
+pip install -e .
+
+# Option 2: With dev dependencies
+pip install -e ".[dev]"
+
+# Option 3: With dev + reranker
+pip install -e ".[dev,reranker]"
+```
+
+---
+
+## Verify Installation
+
+```bash
+# Check the module imports correctly
+python3 -c "import nexus_mcp; print('OK')"
+
+# Check the CLI is available
+nexus-mcp --help
+
+# Run the self-test demo (exercises all 13 tools, 26 checks)
+python self_test/demo_mcp.py
+```
+
+---
+
+## AI Tool Integrations
+
+### Claude Code (CLI)
+
+The easiest way to add Nexus-MCP to Claude Code:
+
+```bash
+claude mcp add nexus-mcp -- nexus-mcp
+```
+
+Or manually add to your settings (`~/.claude/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "nexus-mcp": {
+      "command": "nexus-mcp"
+    }
+  }
+}
+```
+
+**Usage in Claude Code:**
+```
+> index my codebase at ./my-project
+> search for authentication logic
+> find_symbol User
+> explain Config
+```
+
+---
+
+### Claude Desktop
+
+Add to your Claude Desktop configuration:
+
+| Platform | Config File Location |
+|----------|---------------------|
+| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+| Linux | `~/.config/Claude/claude_desktop_config.json` |
+
+```json
+{
+  "mcpServers": {
+    "nexus-mcp": {
+      "command": "nexus-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+Restart Claude Desktop after saving.
+
+---
+
+### Cursor
+
+Cursor supports MCP servers through its extension system:
+
+1. **Open Settings** → Extensions → MCP
+2. **Add Server Configuration**:
+
+```json
+{
+  "nexus-mcp": {
+    "command": "nexus-mcp",
+    "transport": "stdio"
+  }
+}
+```
+
+Or add to `.cursor/mcp.json` in your project:
+
+```json
+{
+  "servers": {
+    "nexus-mcp": {
+      "command": "nexus-mcp"
+    }
+  }
+}
+```
+
+---
+
+### Windsurf (Codeium)
+
+Windsurf supports MCP through Cascade:
+
+1. Open **Cascade Settings**
+2. Navigate to **MCP Servers**
+3. Add configuration:
+
+```json
+{
+  "nexus-mcp": {
+    "command": "nexus-mcp",
+    "transport": "stdio"
+  }
+}
+```
+
+---
+
+### Cline (VS Code)
+
+Add to Cline's MCP settings in VS Code:
+
+1. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+2. Search "Cline: Open MCP Settings"
+3. Add:
+
+```json
+{
+  "mcpServers": {
+    "nexus-mcp": {
+      "command": "nexus-mcp"
+    }
+  }
+}
+```
+
+---
+
+### Zed Editor
+
+Zed supports MCP through its assistant panel. Add to settings:
+
+```json
+{
+  "assistant": {
+    "mcp_servers": {
+      "nexus-mcp": {
+        "command": "nexus-mcp"
+      }
+    }
+  }
+}
+```
+
+---
+
+### Continue (VS Code / JetBrains)
+
+Add to your Continue configuration (`~/.continue/config.json`):
+
+```json
+{
+  "mcpServers": [
+    {
+      "name": "nexus-mcp",
+      "command": "nexus-mcp"
+    }
+  ]
+}
+```
+
+---
+
+### Generic MCP Client
+
+For any MCP-compatible client, use stdio transport:
+
+```bash
+# Command to run
+nexus-mcp
+
+# Transport
+stdio (stdin/stdout)
+
+# Protocol
+Model Context Protocol (MCP)
+```
+
+---
+
+## Configuration
+
+All settings use the `NEXUS_` environment variable prefix:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEXUS_STORAGE_DIR` | `.nexus` | Storage directory for indexes and graph DB |
+| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | Embedding model name |
+| `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
+| `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max characters per code chunk |
+| `NEXUS_MAX_MEMORY_MB` | `350` | Memory budget in MB |
+| `NEXUS_SEARCH_MODE` | `hybrid` | Search mode: `hybrid`, `vector`, or `bm25` |
+| `NEXUS_LOG_LEVEL` | `INFO` | Logging level |
+| `NEXUS_LOG_FORMAT` | `text` | Log format: `text` or `json` |
+| `NEXUS_PERMISSION_LEVEL` | `full` | Permission level: `full` or `read` |
+| `NEXUS_AUDIT_ENABLED` | `true` | Enable audit logging |
+| `NEXUS_RATE_LIMIT_ENABLED` | `false` | Enable per-tool rate limiting |
+| `NEXUS_TRUST_REMOTE_CODE` | `false` | Allow trust_remote_code in models |
+
+Example:
+
+```bash
+NEXUS_LOG_LEVEL=DEBUG NEXUS_SEARCH_MODE=vector nexus-mcp
+```
+
+---
+
+## Running Tests
+
+```bash
+# All tests (441)
+pytest -v
+
+# Skip slow performance benchmarks
+pytest -m "not slow"
+
+# Lint
+ruff check .
+```
+
+---
+
+## Troubleshooting
+
+### `ModuleNotFoundError: No module named 'nexus_mcp'`
+
+Ensure you installed with `pip install -e .` from the project root and are using the correct Python version (3.10+). If using a venv, make sure it's activated: `source .venv/bin/activate`.
+
+### `tree-sitter` FutureWarning
+
+The warning `Language(path, name) is deprecated` is harmless and comes from the tree-sitter-languages compatibility layer. It does not affect functionality.
+
+### High memory usage during indexing
+
+The embedding model is loaded during indexing and unloaded after. Peak RSS may exceed the 350MB target briefly. Set `NEXUS_MAX_MEMORY_MB` to adjust the budget.
+
+### `pip` resolves dependency conflicts
+
+If you see dependency conflict warnings from other installed packages, these are unrelated to Nexus-MCP and can be safely ignored as long as `import nexus_mcp` succeeds.
+
+### Demo fails at indexing step
+
+Ensure `tree-sitter==0.21.3` and `tree-sitter-languages>=1.10.0` are installed. These are pinned for compatibility.
+
+### Server not found after install
+
+If `nexus-mcp` command is not found, ensure the install location is on your PATH. With a venv, activate it first. Without a venv, you may need `python3 -m nexus_mcp.server` as a fallback.
+
+### MCP client can't connect
+
+- Ensure `nexus-mcp` is on the PATH that the MCP client uses
+- If installed in a venv, use the full path: `/path/to/Nexus-MCP/.venv/bin/nexus-mcp`
+- Check the client's logs for connection errors
+
+---
+
+# Section 3: Usage Guide
+
+# Usage Guide
+
+## Getting Started
+
+### Installation
+
+```bash
+# Clone and install
+git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+cd Nexus-MCP
+pip install -e ".[dev]"
+
+# Optional: install FlashRank reranker for better search quality
+pip install -e ".[reranker]"
+```
+
+### Running the Server
+
+```bash
+nexus-mcp
+```
+
+The server starts on stdio (default MCP transport). Configure your MCP client to connect to `nexus-mcp`.
+
+### MCP Client Configuration
+
+Add to your MCP client's config (e.g., Claude Desktop):
+
+```json
+{
+  "mcpServers": {
+    "nexus-mcp": {
+      "command": "nexus-mcp"
+    }
+  }
+}
+```
+
+## Tool Reference
+
+### Core Tools
+
+#### `index`
+Index a codebase directory. Must be called before any other tool (except `status`).
+
+```
+index(path="/path/to/your/project")
+```
+
+Returns indexing statistics: file count, symbol count, chunk count, timing. On subsequent calls, performs incremental reindexing (only changed files).
+
+#### `search`
+Hybrid search across indexed code. Combines semantic, keyword, and structural search.
+
+```
+search(query="authentication middleware", limit=10, language="python", mode="hybrid")
+```
+
+Parameters:
+- `query` — Natural language or code query
+- `limit` — Max results (1-100, default 10)
+- `language` — Filter by language (e.g., "python", "javascript")
+- `symbol_type` — Filter by type (e.g., "function", "class")
+- `mode` — "hybrid" (default), "vector", or "bm25"
+- `rerank` — Enable FlashRank reranking (default True)
+
+#### `status`
+Check server health, indexing stats, and memory usage.
+
+```
+status()
+```
+
+Returns version, indexing state, chunk counts, graph stats, and peak RSS memory.
+
+### Graph Analysis Tools
+
+#### `find_symbol`
+Look up a symbol by name. Returns definition, location, and all relationships.
+
+```
+find_symbol(name="UserService", exact=True)
+```
+
+#### `find_callers`
+Find all direct callers of a function.
+
+```
+find_callers(symbol_name="authenticate")
+```
+
+#### `find_callees`
+Find all functions called by a given function.
+
+```
+find_callees(symbol_name="process_request")
+```
+
+#### `analyze`
+Run code analysis on the indexed codebase: complexity metrics, dependency analysis, code smells, and quality scores.
+
+```
+analyze(path="src/auth/")
+```
+
+The optional `path` parameter filters analysis to a subdirectory.
+
+#### `impact`
+Transitive change impact analysis. Shows all functions affected if a given symbol changes.
+
+```
+impact(symbol_name="DatabaseConnection", max_depth=5)
+```
+
+#### `explain`
+Comprehensive explanation of a symbol combining graph analysis, vector search, and code metrics.
+
+```
+explain(symbol_name="Router", verbosity="detailed")
+```
+
+Verbosity levels: "summary" (concise), "detailed" (default), "full" (everything).
+
+### Project Documentation Tools
+
+#### `overview`
+Get a high-level overview of the indexed project: file counts, language breakdown, symbol counts by type, directory structure, quality metrics, and top modules.
+
+```
+overview()
+```
+
+No parameters required. Returns a structured summary of the entire indexed project.
+
+#### `architecture`
+Document the architecture of the indexed project: layers, module dependencies, class hierarchies, entry points, hub symbols (highest connectivity), and complexity hotspots.
+
+```
+architecture()
+```
+
+No parameters required. Returns architectural analysis with layers, dependencies, classes, entry points, and structural insights.
+
+### Memory Tools
+
+#### `remember`
+Store a semantic memory for later recall.
+
+```
+remember(
+    content="The auth service uses JWT tokens with 24h expiry",
+    memory_type="decision",
+    tags="auth,jwt",
+    ttl="permanent"
+)
+```
+
+Memory types: note, decision, conversation, status, preference, doc.
+TTL options: permanent, month, week, day, session.
+
+#### `recall`
+Search memories by semantic similarity.
+
+```
+recall(query="how does authentication work?", limit=5, tags="auth")
+```
+
+#### `forget`
+Delete memories by ID, tags, or type.
+
+```
+forget(tags="temporary")
+forget(memory_type="session")
+forget(memory_id="abc-123")
+```
+
+## Configuration
+
+Set via environment variables before starting the server:
+
+```bash
+# Search tuning
+export NEXUS_SEARCH_MODE=hybrid          # hybrid, vector, or bm25
+export NEXUS_FUSION_WEIGHT_VECTOR=0.5    # Vector weight in RRF
+export NEXUS_FUSION_WEIGHT_BM25=0.3      # BM25 weight in RRF
+export NEXUS_FUSION_WEIGHT_GRAPH=0.2     # Graph weight in RRF
+
+# Resource limits
+export NEXUS_MAX_FILE_SIZE_MB=10         # Skip files larger than this
+export NEXUS_MAX_MEMORY_MB=350           # Memory budget target
+
+# Logging
+export NEXUS_LOG_LEVEL=INFO              # DEBUG, INFO, WARNING, ERROR
+export NEXUS_LOG_FORMAT=json             # text or json (json for production)
+
+# Storage
+export NEXUS_STORAGE_DIR=.nexus          # Where indexes are stored
+```
+
+## Best Practices
+
+### Indexing
+
+1. **Index from the project root** — Point `index` at the top-level directory, not a subdirectory. This ensures .gitignore is respected and relative paths are meaningful.
+
+2. **Let incremental reindex handle changes** — After the first full index, subsequent `index` calls only process changed files. No need to clear and re-index.
+
+3. **Check status after indexing** — Use `status` to verify chunk counts and graph stats look reasonable.
+
+### Searching
+
+1. **Start with hybrid mode** — The default `hybrid` mode combines all three engines for the best results. Only switch to `vector` or `bm25` if you have a specific reason.
+
+2. **Use filters to narrow results** — The `language` and `symbol_type` filters are applied before search, making results more relevant and queries faster.
+
+3. **Adjust verbosity for context** — When using `explain`, start with "summary" for quick overviews and "detailed" for investigation.
+
+### Memory
+
+1. **Tag everything** — Tags make recall much more effective. Use consistent tag conventions (e.g., "auth", "api", "bug").
+
+2. **Use TTL for ephemeral context** — Set `ttl="session"` or `ttl="day"` for temporary context that shouldn't persist.
+
+3. **Use memory types semantically** — "decision" for architectural choices, "note" for observations, "status" for current state.
+
+### Performance
+
+1. **Monitor memory** — Check `status()` memory stats periodically. Peak RSS should stay under 350MB for typical codebases.
+
+2. **Large codebases** — For codebases >10K files, consider increasing `NEXUS_MAX_WORKERS` for faster parallel parsing, or increasing `NEXUS_EMBEDDING_BATCH_SIZE` for faster embedding.
+
+3. **Search latency** — If search is slow, try `mode="vector"` (skips BM25 and graph) or reduce the `limit`.
+
+---
+
+# Section 4: Architecture
+
+# Architecture
+
+Nexus-MCP is a unified Model Context Protocol (MCP) server that combines vector search, full-text search, code graph analysis, and semantic memory into a single process. It is designed to run locally with <350MB RAM.
+
+Nexus-MCP consolidates two predecessor projects into a single server ([ADR-001](adr/ADR-001-single-mcp-consolidation.md)):
+- **CodeGrok MCP** (by rdondeti / Ravitez Dondeti, MIT license) — Contributed the symbol extraction pipeline, embedding service, parallel indexing, core data models, and memory retrieval system.
+- **code-graph-mcp** (by [entrepeneur4lyf](https://github.com/entrepeneur4lyf)) — Contributed the ast-grep structural parser, rustworkx graph engine, code complexity analysis, and relationship extraction.
+
+## System Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      MCP Client (IDE)                       │
+└────────────────────────────┬────────────────────────────────┘
+                             │ MCP Protocol (stdio/SSE)
+┌────────────────────────────┴────────────────────────────────┐
+│                    FastMCP Server (server.py)                │
+│  15 Tools: index, search, status, find_symbol, find_callers,│
+│  find_callees, analyze, impact, explain, overview,           │
+│  architecture, remember, recall, forget                      │
+├─────────────────────────────────────────────────────────────┤
+│  Input Validation │ Graceful Shutdown │ JSON Logging         │
+├─────────┬─────────┬─────────┬─────────┬─────────────────────┤
+│ Vector  │  BM25   │  Graph  │ Memory  │  Code Analysis      │
+│ Engine  │ Engine  │ Engine  │ Store   │                     │
+│(LanceDB)│(LanceDB)│(rustworkx)│(LanceDB)│ (CodeAnalyzer)   │
+├─────────┴─────────┴─────────┴─────────┴─────────────────────┤
+│  Indexing Pipeline (8 steps)                                │
+│  discover → dual parse → chunk → embed → store              │
+├─────────────────────────────────────────────────────────────┤
+│  Parsing Layer                                              │
+│  tree-sitter (symbols) + ast-grep (relationships)           │
+├─────────────────────────────────────────────────────────────┤
+│  ONNX Runtime (bge-small-en embeddings, ~50MB)              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Key Components
+
+### Indexing Pipeline (`indexing/pipeline.py`)
+
+The 8-step pipeline transforms source code into searchable indexes:
+
+1. **Discover** — Walk directory tree, filter by extension/size/.gitignore
+2. **Parse symbols** — tree-sitter extracts functions, classes, methods (parallel)
+3. **Parse graph** — ast-grep extracts call/import/inheritance relationships (sequential)
+4. **Transfer graph** — Populate rustworkx graph from ast-grep results
+5. **Chunk** — Convert symbols to CodeChunks with deterministic IDs
+6. **Embed** — ONNX Runtime generates 384-dim vectors (bge-small-en)
+7. **Store** — Write chunks to LanceDB, rebuild FTS index
+8. **Cleanup** — Unload embedding model, save metadata for incremental reindex
+
+Incremental reindexing uses mtime-based change detection: only new/modified files are re-processed. Corrupt indexes are auto-detected and rebuilt.
+
+### Search Engines
+
+**Vector Engine** (`engines/vector_engine.py`) — LanceDB-backed semantic search. Embeds queries at search time and performs flat cosine similarity search. Filters via SQL-escaped WHERE clauses.
+
+**BM25 Engine** (`engines/bm25_engine.py`) — LanceDB's native Tantivy full-text search. Reads from the same `chunks` table. Good for exact keyword matches.
+
+**Graph Engine** (`engines/graph_engine.py`) — rustworkx (Rust-backed) directed graph. Stores nodes (functions, classes) and edges (calls, imports, inheritance). Supports transitive traversal for impact analysis.
+
+**Fusion** (`engines/fusion.py`) — Reciprocal Rank Fusion combines results from vector, BM25, and graph engines with configurable weights (default: 0.5/0.3/0.2).
+
+**Reranker** (`engines/reranker.py`) — Optional FlashRank two-stage reranker. Gracefully degrades to passthrough if not installed.
+
+### Dual Parser Strategy
+
+**tree-sitter** — Fast, incremental parser for 25+ languages. Extracts symbol definitions (functions, classes, methods) with metadata (line numbers, docstrings, signatures). Runs in parallel via ThreadPool.
+
+**ast-grep** — Structural search tool that extracts relationships between symbols (who-calls-whom, imports, inheritance). Runs sequentially to build a consistent graph.
+
+This dual approach gets the best of both worlds: tree-sitter for fast symbol extraction and ast-grep for accurate structural relationships.
+
+### Memory Store (`memory/memory_store.py`)
+
+LanceDB-backed semantic memory with 11-column PyArrow schema. Supports:
+- TTL-based expiration (permanent, month, week, day, session)
+- Tag-based filtering with LIKE wildcards
+- Memory types: note, decision, conversation, status, preference, doc
+
+### State Management
+
+`state.py` holds a global singleton `SessionState` with references to all engines. Lazy-loaded: engines are `None` until `index` is called. Thread-safe shutdown with lock-protected `shutdown()` method that persists graph state.
+
+### Persistence
+
+- **LanceDB** — Disk-backed vectors and FTS via mmap (~20-50MB overhead)
+- **SQLite** (`persistence/store.py`) — Graph persistence for warm-start recovery
+- **JSON metadata** — File mtimes for incremental reindex detection
+
+## Data Flow
+
+### Indexing
+```
+Source files → tree-sitter → Symbols → Chunker → CodeChunks
+                                                      ↓
+Source files → ast-grep → UniversalGraph → rustworkx   ONNX embed
+                                                      ↓
+                                              LanceDB (chunks table)
+```
+
+### Hybrid Search
+```
+Query → embed → Vector search (LanceDB)  ─┐
+Query →       → BM25 search (Tantivy)     ├→ RRF Fusion → FlashRank → Results
+Query →       → Graph relevance search    ─┘
+```
+
+## Memory Budget
+
+Target: <350MB RSS. Achieved through:
+- ONNX Runtime (~50MB) instead of PyTorch (~500MB)
+- LanceDB mmap (vectors stay on disk, ~20-50MB overhead)
+- Lazy model loading — embedding model loaded during indexing, unloaded after
+- bge-small-en (33M params) instead of larger models
+
+## Thread Safety
+
+- Vector engine: RLock for write operations, concurrent reads allowed
+- Graph engine: RLock for all mutations
+- Pipeline: Threading Lock prevents concurrent indexing
+- State shutdown: Lock-protected to prevent double-shutdown on signal + finally
+
+## Configuration
+
+All settings are in `config.py` with NEXUS_ env prefix. See README for the full table.
+
+---
+
+# Section 5: Developer Guide
+
+# Developer Guide
+
+## Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+cd Nexus-MCP
+
+# Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install with dev dependencies
+pip install -e ".[dev]"
+
+# Optional: install reranker for full feature set
+pip install -e ".[reranker]"
+
+# Verify installation
+pytest -v
+ruff check .
+nexus-mcp --help
+```
+
+## Project Structure
+
+```
+Nexus-MCP/
+├── src/nexus_mcp/          # Source code (5,300+ lines)
+│   ├── server.py           # FastMCP server, 15 tools, entry point
+│   ├── config.py           # Settings with NEXUS_ env prefix
+│   ├── state.py            # Session state singleton
+│   ├── core/               # Data models, interfaces, exceptions
+│   ├── parsing/            # tree-sitter + ast-grep parsers
+│   ├── engines/            # Vector, BM25, graph, fusion, reranker
+│   ├── analysis/           # Code complexity and quality analysis
+│   ├── memory/             # Semantic memory store
+│   ├── indexing/           # Pipeline, embedding service, chunker
+│   ├── formatting/         # Token budget, response builder
+│   └── persistence/        # SQLite graph persistence
+├── tests/                  # 357 tests across 29 files
+├── docs/                   # Architecture, ADRs, research notes
+│   ├── adr/                # 11 Architecture Decision Records
+│   └── research/           # Research notes on libraries
+├── pyproject.toml          # Build config, dependencies
+├── CLAUDE.md               # AI assistant context
+├── PROGRESS.md             # Phase tracking
+└── LICENSE                 # MIT License
+```
+
+## Running Tests
+
+```bash
+# Full suite (357 tests, ~14s)
+pytest -v
+
+# Skip slow performance benchmarks
+pytest -v -m "not slow"
+
+# Run specific test file
+pytest tests/test_security.py -v
+
+# Run with coverage (if pytest-cov installed)
+pytest --cov=nexus_mcp --cov-report=term-missing
+```
+
+### Test Categories
+
+| File | Tests | Purpose |
+|------|-------|---------|
+| `test_tools_basic.py` | 11 | Core MCP tools (index, search, status) |
+| `test_graph_tools.py` | 14 | Graph tools (find_symbol, find_callers, find_callees) |
+| `test_analyze_tool.py` | 5 | Code analysis tool |
+| `test_impact_tool.py` | 6 | Impact analysis tool |
+| `test_explain_tool.py` | 8 | Explain tool with verbosity levels |
+| `test_hybrid_search.py` | 15 | Hybrid search, fusion, reranking |
+| `test_memory_tools.py` | 12 | Remember, recall, forget tools |
+| `test_security.py` | 17 | Input validation, SQL injection, path traversal |
+| `test_e2e.py` | 10 | End-to-end lifecycle, corrupt index recovery |
+| `test_performance.py` | 4 | Performance benchmarks (marked slow) |
+| `test_memory_usage.py` | 5 | RSS monitoring and memory stability |
+| `test_vector_engine.py` | 14 | LanceDB vector engine CRUD |
+| `test_pipeline.py` | 19 | Indexing pipeline, incremental reindex |
+| `test_chunker.py` | 22 | Symbol-to-chunk conversion |
+| ... | ... | ... |
+
+### Test Conventions
+
+- **Naming:** `test_{function}_{scenario}`
+- **Fixtures:** Shared setup in `tests/conftest.py` (`mini_codebase`, `_setup_indexed`, `_call_tool`)
+- **No mocking of core models** (Symbol, ParsedFile, etc.)
+- **Both happy path and error cases** required
+- **Fast:** Each test <5s, full suite <30s
+- **File system tests** use `tmp_path` fixture
+
+## Linting
+
+```bash
+# Check for issues
+ruff check .
+
+# Auto-fix
+ruff check --fix .
+
+# Configuration in pyproject.toml: E, F, W, I rules, 100 char line length
+```
+
+## Adding a New MCP Tool
+
+1. Add the tool function inside `create_server()` in `server.py`:
+   ```python
+   @mcp.tool()
+   def my_tool(param: str) -> dict[str, Any]:
+       """Tool description for MCP clients."""
+       # Validate input
+       err = _validate_query(param)
+       if err:
+           return err
+
+       # Require indexing if needed
+       state, err = _require_indexed()
+       if err:
+           return err
+
+       # Tool logic here
+       return {"result": "..."}
+   ```
+
+2. Add input validation if the tool accepts user input (paths, names, queries).
+
+3. Write tests in a new `tests/test_my_tool.py` or add to an existing file.
+
+4. Update the tools table in `README.md`.
+
+5. Register the tool in `TOOL_PERMISSIONS` in `security/permissions.py`.
+
+6. Update the tool count in `CLAUDE.md`.
+
+## Adding a New Engine
+
+1. Create `engines/my_engine.py` implementing the `IEngine` interface (or a custom interface).
+
+2. Wire it into `IndexingPipeline.__init__()` in `pipeline.py`.
+
+3. Expose it via `SessionState` in `state.py` (add property + setter).
+
+4. Wire it into `server.py` in the `index` tool (store reference on state).
+
+5. Write tests in `tests/test_my_engine.py`.
+
+## Architecture Decision Records
+
+All significant design decisions are documented in `docs/adr/`. When making a key decision:
+
+1. Copy `docs/adr/ADR-000-template.md`
+2. Number it sequentially (ADR-012, etc.)
+3. Document: Context, Decision, Alternatives Considered, Consequences
+4. Add a reference to `CLAUDE.md` under "Key Decisions"
+
+## Key Design Patterns
+
+### Singleton State
+`state.py` uses a module-level singleton. Always access via `get_state()`. Reset with `reset_state()` in tests.
+
+### Lazy Loading
+Engines are `None` until indexing runs. The embedding model is loaded during indexing and unloaded afterward to free RAM. FlashRank loads on first rerank call.
+
+### Defensive Validation
+All tool inputs are validated at entry (null bytes, length limits, path traversal). SQL filter values are escaped. This happens in `server.py` before any business logic.
+
+### Graceful Degradation
+If FlashRank isn't installed, reranking falls through to passthrough. If BM25 fails, hybrid search continues with remaining engines. Each engine failure is logged but doesn't crash the server.
+
+## Debugging
+
+### Enable Debug Logging
+```bash
+NEXUS_LOG_LEVEL=DEBUG nexus-mcp
+```
+
+### JSON Logging (for structured log analysis)
+```bash
+NEXUS_LOG_FORMAT=json nexus-mcp
+```
+
+### Check Index Health
+Use the `status` tool to verify:
+- `indexed: true` — Codebase has been indexed
+- `vector_chunks > 0` — Vector store has data
+- `bm25_fts_ready: true` — Full-text search index built
+- `graph.total_nodes > 0` — Graph has structure
+- `memory.peak_rss_mb < 350` — Within memory budget
+
+## Code Provenance
+
+Nexus-MCP was built by consolidating two earlier projects. Each source file that was ported retains a "Ported from" line in its module docstring documenting its origin.
+
+- **CodeGrok MCP** — Original author: rdondeti (Ravitez Dondeti). Licensed under MIT.
+- **code-graph-mcp** — Original author: [entrepeneur4lyf](https://github.com/entrepeneur4lyf).
+
+| Component | Origin | Files |
+|-----------|--------|-------|
+| Core models (Symbol, ParsedFile, Memory) | CodeGrok MCP | `core/models.py`, `core/interfaces.py`, `core/exceptions.py` |
+| tree-sitter parser | CodeGrok MCP | `parsing/treesitter_parser.py` |
+| Embedding service (ONNX) | CodeGrok MCP | `indexing/embedding_service.py` |
+| Parallel indexer | CodeGrok MCP | `indexing/parallel_indexer.py` |
+| Graph models (UniversalNode) | code-graph-mcp | `core/graph_models.py` |
+| ast-grep parser | code-graph-mcp | `parsing/astgrep_parser.py` |
+| Graph engine (rustworkx) | code-graph-mcp | `engines/graph_engine.py` |
+| Code analyzer | code-graph-mcp | `analysis/code_analyzer.py` |
+| File watcher | code-graph-mcp | `parsing/file_watcher.py` |
+| Language registry | Both (merged) | `parsing/language_registry.py` |
+
+Everything else (vector engine, BM25, fusion, reranker, memory store, pipeline, formatting, persistence, server, all hardening) was written fresh for Nexus-MCP.
+
+## Release Process
+
+1. Update version in `pyproject.toml`
+2. Run full test suite: `pytest -v`
+3. Run linter: `ruff check .`
+4. Run Snyk scan
+5. Build: `python -m build`
+6. Test install: `pip install dist/nexus_mcp-*.whl` in a clean venv
+7. Verify: `nexus-mcp` starts and `status` works

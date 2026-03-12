@@ -12,7 +12,13 @@ requires-python = ">=3.10"
 authors = [
     { name = "Shreyas Jagannath" },
 ]
-keywords = ["mcp", "code-search", "semantic-search", "code-graph", "vector-search"]
+keywords = [
+    "mcp", "mcp-server", "model-context-protocol",
+    "code-search", "semantic-search", "hybrid-search",
+    "code-graph", "code-analysis", "code-intelligence",
+    "vector-search", "bm25", "ai-coding",
+    "tree-sitter", "lancedb", "local-first",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "License :: OSI Approved :: MIT License",
@@ -41,6 +47,9 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/shreyasjagannath/Nexus-MCP"
 Repository = "https://github.com/shreyasjagannath/Nexus-MCP"
+Documentation = "https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md"
+Issues = "https://github.com/shreyasjagannath/Nexus-MCP/issues"
+Changelog = "https://github.com/shreyasjagannath/Nexus-MCP/releases"
 
 [project.optional-dependencies]
 dev = [

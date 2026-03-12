@@ -28,7 +28,7 @@ nexus-mcp --help
 ```
 Nexus-MCP/
 ├── src/nexus_mcp/          # Source code (5,300+ lines)
-│   ├── server.py           # FastMCP server, 12 tools, entry point
+│   ├── server.py           # FastMCP server, 15 tools, entry point
 │   ├── config.py           # Settings with NEXUS_ env prefix
 │   ├── state.py            # Session state singleton
 │   ├── core/               # Data models, interfaces, exceptions
@@ -133,7 +133,9 @@ ruff check --fix .
 
 4. Update the tools table in `README.md`.
 
-5. Update the tool count in `CLAUDE.md`.
+5. Register the tool in `TOOL_PERMISSIONS` in `security/permissions.py`.
+
+6. Update the tool count in `CLAUDE.md`.
 
 ## Adding a New Engine
 

@@ -42,3 +42,9 @@ Thumbs.db
 # Env
 .env
 .env.local
+
+# Claude local config (user-specific)
+.claude/agents/
+.claude/hooks.json
+.claude/settings.json
+.claude/settings.local.json

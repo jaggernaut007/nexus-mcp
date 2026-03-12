@@ -50,11 +50,15 @@ class MemoryStore:
         db_path: str,
         embedding_service: EmbeddingService,
         table_name: str = "memories",
-        vector_dims: int = 384,
+        vector_dims: Optional[int] = None,
     ):
         self._db_path = str(db_path)
         self._embedding_service = embedding_service
         self._table_name = table_name
+        if vector_dims is None:
+            from nexus_mcp.indexing.embedding_service import EMBEDDING_MODELS
+            config = EMBEDDING_MODELS.get(embedding_service.model_name, {})
+            vector_dims = config.get("dimensions", 768)
         self._vector_dims = vector_dims
         self._lock = threading.RLock()
         self._db = lancedb.connect(self._db_path)

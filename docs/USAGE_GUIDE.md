@@ -179,6 +179,11 @@ forget(memory_id="abc-123")
 Set via environment variables before starting the server:
 
 ```bash
+# Embedding model selection
+export NEXUS_EMBEDDING_MODEL=jina-code          # Default: jina-code (768d, code-specific)
+                                                 # Options: bge-small-en (384d), granite-embedding-small (384d)
+export NEXUS_EMBEDDING_DEVICE=auto               # auto (CUDA > MPS > CPU), cuda, mps, cpu
+
 # Search tuning
 export NEXUS_SEARCH_MODE=hybrid          # hybrid, vector, or bm25
 export NEXUS_FUSION_WEIGHT_VECTOR=0.5    # Vector weight in RRF
@@ -196,6 +201,18 @@ export NEXUS_LOG_FORMAT=json             # text or json (json for production)
 # Storage
 export NEXUS_STORAGE_DIR=.nexus          # Where indexes are stored
 ```
+
+### Embedding Models
+
+Nexus-MCP supports three embedding models. Only registered model names are accepted; custom model names raise a `ConfigurationError`.
+
+| Model | HuggingFace ID | Dims | Code-specific? | Notes |
+|-------|---------------|------|:-:|---|
+| `jina-code` (default) | `jinaai/jina-embeddings-v2-base-code` | 768 | Yes | Best code search quality, ONNX |
+| `bge-small-en` | `BAAI/bge-small-en-v1.5` | 384 | No | Smallest download (~50MB), general text |
+| `granite-embedding-small` | `onnx-community/granite-embedding-small-english-r2-ONNX` | 384 | No | Apache 2.0, 47M params, no trust_remote_code needed |
+
+GPU/MPS auto-detection (`NEXUS_EMBEDDING_DEVICE=auto`) tries CUDA first, then Apple MPS, then falls back to CPU. For explicit GPU support, install with `pip install -e ".[gpu]"`.
 
 ## Best Practices
 

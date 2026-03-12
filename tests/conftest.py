@@ -1,5 +1,6 @@
 """Shared test fixtures and helpers for Nexus-MCP tests."""
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -55,9 +56,9 @@ def mini_codebase_with_calls(tmp_path):
 
 def _mock_embedding_service():
     svc = MagicMock()
-    svc.embed.return_value = [0.1] * 384
+    svc.embed.return_value = [0.1] * 768
     def dynamic_batch(texts, **kwargs):
-        return [[0.1] * 384 for _ in texts]
+        return [[0.1] * 768 for _ in texts]
     svc.embed_batch.side_effect = dynamic_batch
     return svc
 
@@ -65,7 +66,14 @@ def _mock_embedding_service():
 async def _call_tool(mcp, name, args=None):
     """Call an MCP tool and return the structured result."""
     result = await mcp.call_tool(name, args or {})
-    return result.structured_content.get("result", result.structured_content)
+    if result.structured_content is not None:
+        return result.structured_content.get("result", result.structured_content)
+    # Fallback: parse JSON from text content
+    for content in result.content:
+        if hasattr(content, "text"):
+            data = json.loads(content.text)
+            return data.get("result", data) if isinstance(data, dict) else data
+    return {}
 
 
 async def _setup_indexed(codebase_path, storage_dir):

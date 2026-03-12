@@ -5,7 +5,7 @@ Research notes for libraries and technologies used in Nexus-MCP. Check here befo
 | Library | Status | Notes |
 |---------|--------|-------|
 | LanceDB | Documented in [RESEARCH.md](../RESEARCH.md#1-lancedb) | API reference, FTS, gotchas, memory profile. Phase 2: PyArrow schema, flat search, SQL-style filters |
-| Embedding Models | Documented in [RESEARCH.md](../RESEARCH.md#2-embedding-models) | bge-small vs CodeRankEmbed, ONNX strategy |
+| Embedding Models | Documented in [RESEARCH.md](../RESEARCH.md#2-embedding-models) | jina-code (default), bge-small-en, granite-embedding-small; ONNX strategy, GPU/MPS auto-detection |
 | rustworkx | Documented in [RESEARCH.md](../RESEARCH.md#3-rustworkx-code-graph) | Graph algorithms, memory, porting guide |
 | ONNX Runtime | Documented in [RESEARCH.md](../RESEARCH.md#2-embedding-models) | PyTorch replacement, quantization |
 | sentence-transformers | Used in Phase 1-2 | Model loading wrapper; lazy load + unload pattern in `embedding_service.py` |

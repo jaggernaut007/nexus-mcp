@@ -7,7 +7,7 @@ Nexus-MCP consolidates CodeGrok + code-graph-mcp into **one single MCP server** 
 - **Single MCP** — one process, one connection, 12 tools
 - **LanceDB** — vectors + full-text search in one DB (no ChromaDB, no rank-bm25)
 - **ONNX Runtime** — replaces PyTorch (~50MB vs ~500MB), 2.5x faster CPU inference
-- **bge-small-en default** — 50MB embedding model; CodeRankEmbed (500MB) as opt-in
+- **jina-code default** — code-specific 768d embedding model; bge-small-en and granite-embedding-small as alternatives
 - **rustworkx code graph** — in-memory directed graph, not a knowledge graph DB
 - **Port from both repos** — `CodeGrok_mcp/` + `code-graph-mcp/` (already cloned in project)
 - **Spec-driven** — tests first, then implement
@@ -237,7 +237,7 @@ src/nexus_mcp/
 │   └── memory_store.py        # LanceDB-backed semantic memory
 ├── indexing/
 │   ├── pipeline.py            # Orchestrator: parse → chunk → embed → store
-│   ├── embedding_service.py   # ONNX Runtime + bge-small/CodeRankEmbed
+│   ├── embedding_service.py   # ONNX Runtime + jina-code/bge-small/granite-embedding-small
 │   ├── parallel_indexer.py    # ThreadPool (from CodeGrok)
 │   └── chunker.py             # Symbol → CodeChunk
 ├── formatting/
@@ -275,7 +275,7 @@ src/nexus_mcp/
 | Strategy | Savings |
 |----------|---------|
 | ONNX Runtime instead of PyTorch | -300-500MB |
-| bge-small FP16 instead of CodeRankEmbed | -433MB |
+| ONNX models (jina-code/bge-small/granite) instead of PyTorch | -300-450MB |
 | LanceDB mmap (disk-backed) | Vectors stay on disk |
 | Lazy model load (only during `index`) | Model not in RAM at idle |
 | Model unload after indexing | `del model; gc.collect()` |

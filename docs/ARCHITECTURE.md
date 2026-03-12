@@ -31,7 +31,7 @@ Nexus-MCP consolidates two predecessor projects into a single server ([ADR-001](
 │  Parsing Layer                                              │
 │  tree-sitter (symbols) + ast-grep (relationships)           │
 ├─────────────────────────────────────────────────────────────┤
-│  ONNX Runtime (bge-small-en embeddings, ~50MB)              │
+│  ONNX Runtime (jina-code default, 3 models, GPU/MPS auto)   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -46,7 +46,7 @@ The 8-step pipeline transforms source code into searchable indexes:
 3. **Parse graph** — ast-grep extracts call/import/inheritance relationships (sequential)
 4. **Transfer graph** — Populate rustworkx graph from ast-grep results
 5. **Chunk** — Convert symbols to CodeChunks with deterministic IDs
-6. **Embed** — ONNX Runtime generates 384-dim vectors (bge-small-en)
+6. **Embed** — ONNX Runtime generates vectors (768-dim jina-code default; 384-dim for bge-small-en/granite-embedding-small)
 7. **Store** — Write chunks to LanceDB, rebuild FTS index
 8. **Cleanup** — Unload embedding model, save metadata for incremental reindex
 
@@ -113,7 +113,8 @@ Target: <350MB RSS. Achieved through:
 - ONNX Runtime (~50MB) instead of PyTorch (~500MB)
 - LanceDB mmap (vectors stay on disk, ~20-50MB overhead)
 - Lazy model loading — embedding model loaded during indexing, unloaded after
-- bge-small-en (33M params) instead of larger models
+- GPU/MPS auto-detection (`NEXUS_EMBEDDING_DEVICE=auto`) for faster inference when available
+- Three model options: jina-code (768d, default), bge-small-en (384d), granite-embedding-small (384d)
 
 ## Thread Safety
 

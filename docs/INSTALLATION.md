@@ -73,6 +73,9 @@ pip install -e ".[dev]"
 
 # Option 3: With dev + reranker
 pip install -e ".[dev,reranker]"
+
+# Option 4: With GPU (CUDA) support
+pip install -e ".[gpu]"
 ```
 
 ---
@@ -277,7 +280,8 @@ All settings use the `NEXUS_` environment variable prefix:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NEXUS_STORAGE_DIR` | `.nexus` | Storage directory for indexes and graph DB |
-| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | Embedding model name |
+| `NEXUS_EMBEDDING_MODEL` | `jina-code` | Embedding model: `jina-code`, `bge-small-en`, `granite-embedding-small` |
+| `NEXUS_EMBEDDING_DEVICE` | `auto` | Device: `auto` (CUDA > MPS > CPU), `cuda`, `mps`, `cpu` |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max characters per code chunk |
 | `NEXUS_MAX_MEMORY_MB` | `350` | Memory budget in MB |

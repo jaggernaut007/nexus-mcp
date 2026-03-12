@@ -67,7 +67,7 @@ Into a **single, memory-efficient MCP server** (<350MB RAM) with 12 tools for co
 | MCP Framework | FastMCP ≥2.0 | Standard MCP server framework |
 | Vector + FTS Storage | LanceDB ≥0.4 | Embedded, mmap, vectors + FTS in one DB |
 | Inference | ONNX Runtime ≥1.16 | 50MB vs 500MB (PyTorch), 2.5x faster CPU |
-| Embedding Model | bge-small-en-v1.5 (default) | 50MB, 384 dims, good quality |
+| Embedding Model | jina-code (default) | 768 dims, code-specific; also bge-small-en (384d), granite-embedding-small (384d) |
 | Symbol Parsing | tree-sitter 0.21.3 | Extract code symbols for embeddings |
 | Structural Analysis | ast-grep-py ≥0.28 | Build call/import graphs, 25+ languages |
 | Graph Engine | rustworkx ≥0.15 | In-memory directed graph, Rust-backed |
@@ -172,7 +172,7 @@ All settings via environment variables with `NEXUS_` prefix:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NEXUS_EMBEDDING_MODEL` | `bge-small` | Embedding model (`bge-small` or `coderankembed`) |
+| `NEXUS_EMBEDDING_MODEL` | `jina-code` | Embedding model (`jina-code`, `bge-small-en`, `granite-embedding-small`) |
 | `NEXUS_STORAGE_DIR` | `.nexus` | Per-project storage directory |
 | `NEXUS_MAX_FILE_SIZE` | `1048576` | Max file size in bytes (1MB) |
 | `NEXUS_LOG_FORMAT` | `text` | Logging format (`text` or `json`) |
@@ -199,7 +199,7 @@ All settings via environment variables with `NEXUS_` prefix:
 |----------|-----------|
 | LanceDB over ChromaDB | Embedded, mmap (disk-backed), native FTS, fewer dependencies |
 | ONNX Runtime over PyTorch | 50MB vs 500MB RAM, 2.5x faster CPU inference |
-| bge-small-en default | 50MB vs 500MB download, reduces adoption friction |
+| jina-code default | Code-specific 768d embeddings; 3 models supported, GPU/MPS auto-detection |
 | rustworkx over Neo4j | In-memory graph is sufficient, no DB server dependency |
 | Single MCP over two | Halves memory, eliminates cross-process coordination |
 | Dual parsers (tree-sitter + ast-grep) | Each excels at different task: symbols vs structure |

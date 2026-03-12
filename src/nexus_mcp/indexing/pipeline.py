@@ -140,9 +140,12 @@ class IndexingPipeline:
             self._settings.embedding_model,
             batch_size=self._settings.embedding_batch_size,
         )
+        from nexus_mcp.indexing.embedding_service import EMBEDDING_MODELS
+        model_config = EMBEDDING_MODELS.get(self._settings.embedding_model, {})
         self._vector_engine = LanceDBVectorEngine(
             db_path=str(self._settings.lancedb_path),
             embedding_service=self._embedding_service,
+            vector_dims=model_config.get("dimensions", 768),
         )
         self._bm25_engine = LanceDBBM25Engine(
             db_path=str(self._settings.lancedb_path),

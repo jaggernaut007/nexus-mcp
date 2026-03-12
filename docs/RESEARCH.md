@@ -54,18 +54,18 @@ Serverless, embedded vector database with native full-text search. Rust core, Py
 
 | Model | Params | Size | Dims | Quality | Code-specific? |
 |-------|--------|------|------|---------|---------------|
-| `BAAI/bge-small-en-v1.5` **(our default)** | 33.4M | ~50MB (FP16: ~25MB) | 384 | Good | No (general text) |
-| `all-MiniLM-L6-v2` | 22M | ~80MB | 384 | Good | No |
-| `nomic-ai/CodeRankEmbed` | 137M | ~500MB | 768 | Best | Yes (SOTA CodeSearchNet) |
-| `CodeSage-Small` | 130M | ~200MB | 1024 | Very good | Yes (9 languages) |
-| `jina-embeddings-v2-base-code` | - | ~500MB | 768 | Comparable | Yes |
+| `jinaai/jina-embeddings-v2-base-code` **(our default)** | - | ~500MB | 768 | Best for code | Yes |
+| `BAAI/bge-small-en-v1.5` | 33.4M | ~50MB (FP16: ~25MB) | 384 | Good | No (general text) |
+| `onnx-community/granite-embedding-small-english-r2-ONNX` | 47M | ~90MB | 384 | Good | No (Apache 2.0, no trust_remote_code) |
+| `all-MiniLM-L6-v2` (not supported) | 22M | ~80MB | 384 | Good | No |
+| `CodeSage-Small` (not supported) | 130M | ~200MB | 1024 | Very good | Yes (9 languages) |
 
-### Why bge-small as default
-- 10x smaller download than CodeRankEmbed (50MB vs 500MB)
-- Reduces adoption friction (biggest complaint from CodeGrok users)
-- Adequate quality for small/medium codebases
-- FP16 mode cuts to ~25MB with minimal accuracy loss
-- Users can upgrade via `NEXUS_EMBEDDING_MODEL=coderankembed`
+### Why jina-code as default
+- Code-specific model with 768-dim embeddings for high-quality code search
+- ONNX-compatible for efficient inference
+- Best search quality among supported models for code-specific queries
+- Users can switch via `NEXUS_EMBEDDING_MODEL=bge-small-en` (smaller, 384d) or `NEXUS_EMBEDDING_MODEL=granite-embedding-small` (384d, Apache 2.0)
+- Only registered model names are accepted; custom names raise `ConfigurationError`
 
 ### ONNX Runtime Strategy
 - Replaces PyTorch (~300-500MB RAM → ~50MB)
@@ -124,7 +124,7 @@ Rust-backed Python graph library. Drop-in replacement for NetworkX, 10-100x fast
 ### Previous Problem
 CodeGrok + code-graph-mcp running as two separate MCPs consumed 1-2GB+ RAM:
 - PyTorch runtime: ~300-500MB
-- CodeRankEmbed model: ~500MB loaded
+- CodeRankEmbed model (removed): ~500MB loaded
 - ChromaDB in-memory index: variable
 - Two Python processes overhead: ~200-400MB
 
@@ -132,7 +132,7 @@ CodeGrok + code-graph-mcp running as two separate MCPs consumed 1-2GB+ RAM:
 
 | Component | Strategy | Budget |
 |-----------|----------|--------|
-| Embedding model | bge-small FP16 via ONNX | ~67MB |
+| Embedding model | jina-code via ONNX (default), GPU/MPS auto | ~67MB |
 | LanceDB | mmap (disk-backed) | ~20-50MB |
 | rustworkx graph | Lightweight payloads | ~50MB |
 | Python + FastMCP | Runtime overhead | ~100MB |
@@ -140,7 +140,7 @@ CodeGrok + code-graph-mcp running as two separate MCPs consumed 1-2GB+ RAM:
 
 ### Strategies
 1. ONNX Runtime replaces PyTorch (-300-500MB)
-2. bge-small FP16 default (-433MB vs CodeRankEmbed)
+2. jina-code default with ONNX inference; bge-small-en and granite-embedding-small as alternatives
 3. LanceDB mmap — vectors on disk, not in RAM
 4. Lazy model loading — only during `index`, not at startup
 5. Model unloading — `del model; gc.collect()` after indexing

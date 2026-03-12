@@ -15,7 +15,7 @@
 
 **Priority: High** | **Difficulty: Medium**
 
-Currently Nexus-MCP only supports local ONNX models (bge-small-en, CodeRankEmbed). Add support for external embedding providers so users can trade latency for quality.
+Currently Nexus-MCP supports three local ONNX models (jina-code, bge-small-en, granite-embedding-small) with GPU/MPS auto-detection. Add support for external embedding providers so users can trade latency for quality.
 
 **Targets:**
 - OpenAI `text-embedding-3-small` / `text-embedding-3-large`

@@ -1,4 +1,4 @@
-"""Tests for trust_remote_code mitigation (Phase 5a)."""
+"""Tests for trust_remote_code mitigation."""
 
 import pytest
 
@@ -20,42 +20,47 @@ def clean_state():
     reset_embedding_service()
 
 
-def test_default_model_no_trust_remote_code():
+def test_bge_small_no_trust_remote_code():
     """bge-small-en does not require trust_remote_code."""
     config = EMBEDDING_MODELS["bge-small-en"]
     assert config["trust_remote_code"] is False
 
 
-def test_coderankembed_requires_trust_remote_code():
-    """coderankembed config has trust_remote_code=True."""
-    config = EMBEDDING_MODELS["coderankembed"]
+def test_granite_no_trust_remote_code():
+    """granite-embedding-small does not require trust_remote_code."""
+    config = EMBEDDING_MODELS["granite-embedding-small"]
+    assert config["trust_remote_code"] is False
+
+
+def test_jina_requires_trust_remote_code():
+    """jina-code config has trust_remote_code=True."""
+    config = EMBEDDING_MODELS["jina-code"]
     assert config["trust_remote_code"] is True
 
 
-def test_trust_remote_code_default_is_false():
-    """Settings default trust_remote_code to False."""
+def test_trust_remote_code_default_is_true():
+    """Settings default trust_remote_code to True (needed for jina-code default model)."""
     s = Settings()
-    assert s.trust_remote_code is False
+    assert s.trust_remote_code is True
 
 
-def test_coderankembed_blocked_without_opt_in(monkeypatch):
-    """Loading coderankembed without NEXUS_TRUST_REMOTE_CODE raises ConfigurationError."""
-    monkeypatch.delenv("NEXUS_TRUST_REMOTE_CODE", raising=False)
-    svc = EmbeddingService(model_name="coderankembed")
+def test_jina_blocked_when_trust_disabled(monkeypatch):
+    """Loading jina-code with NEXUS_TRUST_REMOTE_CODE=false raises ConfigurationError."""
+    monkeypatch.setenv("NEXUS_TRUST_REMOTE_CODE", "false")
+    reset_settings()
+    svc = EmbeddingService(model_name="jina-code")
     with pytest.raises(ConfigurationError, match="trust_remote_code"):
         svc._load_model()
 
 
-def test_coderankembed_allowed_with_opt_in(monkeypatch):
-    """Loading coderankembed with NEXUS_TRUST_REMOTE_CODE=true passes the gate.
+def test_jina_allowed_with_opt_in(monkeypatch):
+    """Loading jina-code with NEXUS_TRUST_REMOTE_CODE=true passes the gate.
 
     Note: actual model download is not tested; we verify the gate doesn't block.
-    The SentenceTransformer import may fail in CI without the package, so we
-    check that ConfigurationError is NOT raised (other errors are acceptable).
     """
     monkeypatch.setenv("NEXUS_TRUST_REMOTE_CODE", "true")
     reset_settings()
-    svc = EmbeddingService(model_name="coderankembed")
+    svc = EmbeddingService(model_name="jina-code")
     try:
         svc._load_model()
     except ConfigurationError:
@@ -65,10 +70,12 @@ def test_coderankembed_allowed_with_opt_in(monkeypatch):
         pass
 
 
-def test_custom_model_defaults_to_no_trust():
-    """Custom model names default to trust_remote_code=False and won't hit the gate."""
-    svc = EmbeddingService(model_name="some-custom-model")
-    assert svc.config["trust_remote_code"] is False
+def test_unsupported_model_rejected():
+    """Unsupported model names are rejected with ConfigurationError."""
+    from nexus_mcp.core.exceptions import ConfigurationError
+
+    with pytest.raises(ConfigurationError, match="Unsupported embedding model"):
+        EmbeddingService(model_name="some-custom-model")
 
 
 def test_trust_remote_code_env_var(monkeypatch):

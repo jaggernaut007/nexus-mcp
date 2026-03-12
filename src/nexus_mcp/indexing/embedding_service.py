@@ -1,7 +1,9 @@
-"""Embedding service with ONNX Runtime support.
+"""Embedding service with ONNX Runtime support and GPU/MPS auto-detection.
 
-Ported from CodeGrok MCP. Default: bge-small-en (50MB).
-CodeRankEmbed available as opt-in. ONNX Runtime replaces PyTorch.
+Supported models:
+- jina-code (768d, 8192 seq len, ONNX) — DEFAULT, code-specific
+- bge-small-en (384d, 512 seq len, PyTorch) — lightweight general
+- granite-embedding-small (384d, 8192 seq len, ONNX) — lightest, no trust_remote_code
 """
 
 import gc
@@ -14,6 +16,15 @@ logger = logging.getLogger(__name__)
 
 # Supported embedding models
 EMBEDDING_MODELS = {
+    "jina-code": {
+        "hf_name": "jinaai/jina-embeddings-v2-base-code",
+        "dimensions": 768,
+        "max_seq_length": 8192,
+        "trust_remote_code": True,
+        "prompt_prefix": "",
+        "query_prefix": "",
+        "backend": "onnx",
+    },
     "bge-small-en": {
         "hf_name": "BAAI/bge-small-en-v1.5",
         "dimensions": 384,
@@ -21,18 +32,42 @@ EMBEDDING_MODELS = {
         "trust_remote_code": False,
         "prompt_prefix": "",
         "query_prefix": "Represent this sentence for searching relevant passages: ",
+        "backend": None,
     },
-    "coderankembed": {
-        "hf_name": "nomic-ai/CodeRankEmbed",
-        "dimensions": 768,
+    "granite-embedding-small": {
+        "hf_name": "onnx-community/granite-embedding-small-english-r2-ONNX",
+        "dimensions": 384,
         "max_seq_length": 8192,
-        "trust_remote_code": True,
+        "trust_remote_code": False,
         "prompt_prefix": "",
-        "query_prefix": "Represent this query for searching relevant code: ",
+        "query_prefix": "",
+        "backend": "onnx",
     },
 }
 
-DEFAULT_MODEL = "bge-small-en"
+DEFAULT_MODEL = "jina-code"
+
+
+def _detect_device() -> str:
+    """Detect best available device: cuda > mps > cpu."""
+    try:
+        import torch
+        if torch.cuda.is_available():
+            return "cuda"
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            return "mps"
+    except (ImportError, AttributeError):
+        pass
+    try:
+        import onnxruntime
+        providers = onnxruntime.get_available_providers()
+        if "CUDAExecutionProvider" in providers:
+            return "cuda"
+        if "CoreMLExecutionProvider" in providers:
+            return "mps"
+    except ImportError:
+        pass
+    return "cpu"
 
 
 class EmbeddingService:
@@ -53,19 +88,17 @@ class EmbeddingService:
         self.normalize = normalize
         self.cache_dir = cache_dir
 
-        if model_name in EMBEDDING_MODELS:
-            self.config = EMBEDDING_MODELS[model_name].copy()
-        else:
-            self.config = {
-                "hf_name": model_name,
-                "dimensions": None,
-                "max_seq_length": 512,
-                "trust_remote_code": False,
-                "prompt_prefix": "",
-                "query_prefix": "",
-            }
+        if model_name not in EMBEDDING_MODELS:
+            from nexus_mcp.core.exceptions import ConfigurationError
 
-        self.device = device or "cpu"
+            supported = ", ".join(sorted(EMBEDDING_MODELS.keys()))
+            raise ConfigurationError(
+                f"Unsupported embedding model '{model_name}'. "
+                f"Supported models: {supported}"
+            )
+        self.config = EMBEDDING_MODELS[model_name].copy()
+
+        self.device = device if device and device != "auto" else _detect_device()
         self._lock = threading.Lock()
         self._model = None
         self._model_loaded = False
@@ -107,6 +140,21 @@ class EmbeddingService:
                         f"Set NEXUS_TRUST_REMOTE_CODE=true to accept this risk."
                     )
                 kwargs["trust_remote_code"] = True
+
+            backend = self.config.get("backend")
+            if backend == "onnx":
+                kwargs["backend"] = "onnx"
+                if self.device == "cuda":
+                    kwargs["model_kwargs"] = {"provider": "CUDAExecutionProvider"}
+                elif self.device == "mps":
+                    kwargs["model_kwargs"] = {"provider": "CoreMLExecutionProvider"}
+                # ONNX manages its own device; remove SentenceTransformer device param
+                kwargs.pop("device", None)
+                logger.info(
+                    "Loading %s with ONNX Runtime backend (device=%s)",
+                    self.config["hf_name"],
+                    self.device,
+                )
 
             import io
             import sys

@@ -14,8 +14,8 @@ class Settings:
     storage_dir: str = ".nexus"
 
     # Embedding model
-    embedding_model: str = "bge-small-en"
-    embedding_device: str = "cpu"
+    embedding_model: str = "jina-code"
+    embedding_device: str = "auto"
     embedding_batch_size: int = 32
 
     # Indexing
@@ -41,7 +41,7 @@ class Settings:
     log_format: str = "text"  # "text" or "json"
 
     # Security
-    trust_remote_code: bool = False
+    trust_remote_code: bool = True
     auth_mode: str = "none"  # "none", "local", "oauth" (oauth deferred)
     default_permission_level: str = "full"  # "read" or "full"
 

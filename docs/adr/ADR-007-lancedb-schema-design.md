@@ -10,7 +10,7 @@ Phase 2 needs a vector database schema to store code chunks extracted from parse
 ## Decision
 Use a PyArrow schema with 12 columns in a single `chunks` table:
 - `id` (string) — deterministic SHA256 hash of `filepath:name:line_start`, truncated to 16 hex chars
-- `vector` (list<float32>[384]) — embedding from bge-small-en (384 dims)
+- `vector` (list<float32>[N]) — embedding vector (768d for jina-code default, 384d for bge-small-en/granite-embedding-small)
 - `text` (string) — formatted chunk text used for embedding
 - `filepath`, `symbol_name`, `symbol_type`, `language` — metadata for filtering
 - `line_start`, `line_end` (int32) — source location

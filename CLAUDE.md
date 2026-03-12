@@ -77,7 +77,7 @@ src/nexus_mcp/
 ├── memory/
 │   └── memory_store.py    # LanceDB-backed memory with TTL
 ├── indexing/
-│   ├── embedding_service.py   # ONNX Runtime + bge-small (trust_remote_code guard)
+│   ├── embedding_service.py   # Multi-model embeddings: jina-code, bge-small-en, granite (ONNX + GPU/MPS)
 │   ├── parallel_indexer.py    # ThreadPool
 │   ├── pipeline.py            # discover → parse → chunk → embed → store + corrupt index detection
 │   └── chunker.py             # Symbol → CodeChunk
@@ -116,7 +116,7 @@ claude mcp add nexus-mcp -- nexus-mcp  # Add to Claude Code
 
 - LanceDB replaces ChromaDB (mmap, disk-backed vectors) — [ADR-002](docs/adr/ADR-002-lancedb-over-chromadb.md)
 - ONNX Runtime replaces PyTorch (~50MB vs ~500MB) — [ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md)
-- bge-small-en default; CodeRankEmbed opt-in — [ADR-004](docs/adr/ADR-004-bge-small-default-model.md)
+- jina-code default; bge-small-en + granite-embedding-small alternatives — [ADR-004](docs/adr/ADR-004-bge-small-default-model.md)
 - Dual parsing: tree-sitter (symbols) + ast-grep (graph) — [ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)
 - rustworkx for graph algorithms (Rust-backed) — [ADR-006](docs/adr/ADR-006-rustworkx-graph-engine.md)
 - LanceDB schema: 12-column PyArrow, flat search — [ADR-007](docs/adr/ADR-007-lancedb-schema-design.md)
@@ -143,6 +143,44 @@ claude mcp add nexus-mcp -- nexus-mcp  # Add to Claude Code
 11. Permission default is `full` (backward compat); set `NEXUS_PERMISSION_LEVEL=read` for restricted
 12. Audit logging is on by default; set `NEXUS_AUDIT_ENABLED=false` to disable
 13. Rate limiting is off by default (stdio); enable via `NEXUS_RATE_LIMIT_ENABLED=true`
-14. `trust_remote_code` defaults to `false`; embedding_service respects this setting
+14. `trust_remote_code` defaults to `true` (required for default jina-code model); set `NEXUS_TRUST_REMOTE_CODE=false` to disable
 15. Pydantic schemas are internal only; FastMCP tool signatures use simple params
 16. New exceptions (AuthenticationError, AuthorizationError, RateLimitError) in exceptions.py
+17. Only registered embedding models are supported; custom model names raise ConfigurationError
+18. GPU/MPS auto-detected; set `NEXUS_EMBEDDING_DEVICE=cpu` to force CPU
+
+## Embedding Models
+
+| Model | Key | Dims | Seq Len | Backend | trust_remote_code | Notes |
+|-------|-----|------|---------|---------|-------------------|-------|
+| **Jina Embeddings v2 Code** | `jina-code` | 768 | 8192 | ONNX | Yes | **Default**. Code-specific, 161M params |
+| BGE Small EN v1.5 | `bge-small-en` | 384 | 512 | PyTorch | No | Lightweight general-purpose |
+| Granite Embedding Small | `granite-embedding-small` | 384 | 8192 | ONNX | No | Lightest (47M params), Apache 2.0 |
+
+### Changing the embedding model
+
+Set the `NEXUS_EMBEDDING_MODEL` environment variable:
+
+```bash
+# Use granite (lightest, no trust_remote_code needed)
+NEXUS_EMBEDDING_MODEL=granite-embedding-small nexus-mcp
+
+# Or set in your shell profile
+export NEXUS_EMBEDDING_MODEL=granite-embedding-small
+
+# For Claude Code MCP config
+claude mcp add nexus-mcp -e NEXUS_EMBEDDING_MODEL=granite-embedding-small -- nexus-mcp
+```
+
+### GPU / MPS acceleration
+
+Device is auto-detected by default (`NEXUS_EMBEDDING_DEVICE=auto`):
+- **CUDA**: Detected via `torch.cuda.is_available()` or onnxruntime CUDAExecutionProvider
+- **MPS** (Apple Silicon): Detected via `torch.backends.mps` or onnxruntime CoreMLExecutionProvider
+- **CPU**: Fallback
+
+For CUDA GPU support, install the gpu extra: `pip install nexus-mcp[gpu]`
+
+To force a specific device: `NEXUS_EMBEDDING_DEVICE=cpu` or `NEXUS_EMBEDDING_DEVICE=cuda`
+
+**Important**: After changing the embedding model, you must re-index your codebase — embeddings from different models are not compatible.

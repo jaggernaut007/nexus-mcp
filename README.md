@@ -86,6 +86,7 @@ Nexus-MCP replaces this with targeted retrieval: semantic search returns the exa
 - **Explain & Impact** — "What does this do?" and "What breaks if I change it?" in single tool calls
 - **Token-budgeted responses** — Three verbosity levels (summary/detailed/full) keep context windows lean
 - **Incremental indexing** — Only re-processes changed files; file watcher support
+- **Multi-model embeddings** — 3 models (jina-code default, bge-small-en, granite-embedding-small), GPU/MPS auto-detection
 - **Low memory** — <350MB RAM target (ONNX Runtime ~50MB, mmap vectors, lazy model loading)
 - **Fully local** — Zero cloud dependencies, no API keys, all processing on your machine
 - **15 tools, one server** — Consolidates what previously required 2 MCP servers (17 tools) into one
@@ -100,6 +101,9 @@ cd Nexus-MCP
 
 # Option 2: Manual install
 pip install -e ".[dev]"
+
+# Option 3: With GPU (CUDA) support
+pip install -e ".[gpu]"
 ```
 
 See the full [Installation Guide](docs/INSTALLATION.md) for all options, MCP client integration, and troubleshooting.
@@ -152,7 +156,8 @@ All settings can be overridden via `NEXUS_` environment variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NEXUS_STORAGE_DIR` | `.nexus` | Storage directory for indexes |
-| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | Embedding model |
+| `NEXUS_EMBEDDING_MODEL` | `jina-code` | Embedding model (`jina-code`, `bge-small-en`, `granite-embedding-small`) |
+| `NEXUS_EMBEDDING_DEVICE` | `auto` | Device for embeddings: `auto` (CUDA > MPS > CPU), `cuda`, `mps`, `cpu` |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max code snippet size per chunk |
 | `NEXUS_MAX_MEMORY_MB` | `350` | Memory budget |
@@ -208,7 +213,7 @@ search("how does auth work")
 | Component | Technology | Why |
 |-----------|-----------|-----|
 | **Vector store** | LanceDB | Disk-backed, mmap, ~20-50MB overhead, native FTS |
-| **Embeddings** | ONNX Runtime + bge-small-en | ~50MB vs PyTorch ~500MB, fast CPU inference |
+| **Embeddings** | ONNX Runtime + jina-code (default) | ~50MB vs PyTorch ~500MB, GPU/MPS auto-detection, 3 models supported |
 | **Graph engine** | rustworkx | Rust-backed, O(1) node/edge lookup, PageRank, centrality |
 | **Symbol parser** | tree-sitter | 25+ languages, AST-level symbol extraction |
 | **Graph parser** | ast-grep | Structural pattern matching for calls/imports/inheritance |

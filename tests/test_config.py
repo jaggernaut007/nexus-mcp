@@ -14,8 +14,8 @@ def clean_settings():
 
 def test_default_settings():
     s = Settings()
-    assert s.embedding_model == "bge-small-en"
-    assert s.embedding_device == "cpu"
+    assert s.embedding_model == "jina-code"
+    assert s.embedding_device == "auto"
     assert s.embedding_batch_size == 32
     assert s.max_memory_mb == 350
     assert s.log_level == "INFO"
@@ -29,11 +29,11 @@ def test_storage_paths():
 
 
 def test_env_override(monkeypatch):
-    monkeypatch.setenv("NEXUS_EMBEDDING_MODEL", "coderankembed")
+    monkeypatch.setenv("NEXUS_EMBEDDING_MODEL", "granite-embedding-small")
     monkeypatch.setenv("NEXUS_EMBEDDING_BATCH_SIZE", "64")
     monkeypatch.setenv("NEXUS_LOG_LEVEL", "DEBUG")
     s = Settings()
-    assert s.embedding_model == "coderankembed"
+    assert s.embedding_model == "granite-embedding-small"
     assert s.embedding_batch_size == 64
     assert s.log_level == "DEBUG"
 

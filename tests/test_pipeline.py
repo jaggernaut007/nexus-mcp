@@ -41,8 +41,8 @@ def settings(tmp_path):
 def _mock_embedding_service():
     """Create a mock embedding service."""
     svc = MagicMock()
-    svc.embed.return_value = [0.1] * 384
-    svc.embed_batch.return_value = [[0.1] * 384]
+    svc.embed.return_value = [0.1] * 768
+    svc.embed_batch.return_value = [[0.1] * 768]
     return svc
 
 
@@ -56,7 +56,7 @@ def _make_pipeline(settings):
         pipeline._vector_engine._embedding_service = mock_svc
         # Make embed_batch return correct number of vectors
         def dynamic_batch(texts, **kwargs):
-            return [[0.1] * 384 for _ in texts]
+            return [[0.1] * 768 for _ in texts]
         mock_svc.embed_batch.side_effect = dynamic_batch
         return pipeline
 

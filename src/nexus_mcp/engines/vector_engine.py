@@ -59,7 +59,7 @@ class LanceDBVectorEngine(IEngine):
         self._db_path = str(db_path)
         self._embedding_service = embedding_service
         self._table_name = table_name
-        self._vector_dims = vector_dims or 384  # bge-small-en default
+        self._vector_dims = vector_dims or 768  # jina-code default
         self._lock = threading.RLock()
         self._db = lancedb.connect(self._db_path)
         self._table = None

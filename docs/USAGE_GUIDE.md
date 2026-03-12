@@ -6,7 +6,7 @@
 
 ```bash
 # Clone and install
-git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 pip install -e ".[dev]"
 

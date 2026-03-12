@@ -6,33 +6,33 @@ Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexe
 
 ## Core Tools (15 MCP tools)
 
-- [search](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Hybrid code search — vector semantic + BM25 keyword + graph structural, fused via RRF, re-ranked with FlashRank. Supports language/type filters, path scoping, three verbosity levels (summary/detailed/full).
-- [index](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Index a codebase — parallel parsing, incremental reindex on changed files, 8-step pipeline.
-- [find_symbol](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Look up a symbol by name — definition, location, relationships. Exact or fuzzy matching.
-- [find_callers](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Find all direct callers of a function — essential before refactoring.
-- [find_callees](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Find all functions called by a given function — trace execution flow.
-- [explain](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Combined graph + vector + analysis explanation of a symbol — one call replaces 3-5 tool calls.
-- [impact](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Transitive change impact analysis — "what breaks if I change X?"
-- [analyze](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Code complexity, dependencies, smells, and quality metrics.
-- [overview](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): High-level project overview — files, languages, symbols, quality.
-- [architecture](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Architectural analysis — layers, dependencies, entry points, hubs.
-- [remember](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Store semantic memory with tags and TTL — persists context across sessions.
-- [recall](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Search memories by semantic similarity.
-- [forget](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Delete memories by ID, tags, or type.
-- [status](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Server status, indexing stats, memory usage.
-- [health](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Readiness/liveness probe.
+- [search](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Hybrid code search — vector semantic + BM25 keyword + graph structural, fused via RRF, re-ranked with FlashRank. Supports language/type filters, path scoping, three verbosity levels (summary/detailed/full).
+- [index](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Index a codebase — parallel parsing, incremental reindex on changed files, 8-step pipeline.
+- [find_symbol](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Look up a symbol by name — definition, location, relationships. Exact or fuzzy matching.
+- [find_callers](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Find all direct callers of a function — essential before refactoring.
+- [find_callees](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Find all functions called by a given function — trace execution flow.
+- [explain](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Combined graph + vector + analysis explanation of a symbol — one call replaces 3-5 tool calls.
+- [impact](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Transitive change impact analysis — "what breaks if I change X?"
+- [analyze](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Code complexity, dependencies, smells, and quality metrics.
+- [overview](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): High-level project overview — files, languages, symbols, quality.
+- [architecture](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Architectural analysis — layers, dependencies, entry points, hubs.
+- [remember](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Store semantic memory with tags and TTL — persists context across sessions.
+- [recall](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Search memories by semantic similarity.
+- [forget](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Delete memories by ID, tags, or type.
+- [status](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Server status, indexing stats, memory usage.
+- [health](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Readiness/liveness probe.
 
 ## Getting Started
 
-- [README](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/README.md): Overview, install, quick start, tool reference, configuration
-- [Installation Guide](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/INSTALLATION.md): Prerequisites, setup script, manual install, MCP client integration
-- [Usage Guide](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Tool reference, configuration, best practices
+- [README](https://github.com/jaggernaut007/Nexus-MCP/blob/main/README.md): Overview, install, quick start, tool reference, configuration
+- [Installation Guide](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/INSTALLATION.md): Prerequisites, setup script, manual install, MCP client integration
+- [Usage Guide](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Tool reference, configuration, best practices
 
 ## Architecture & Design
 
-- [Architecture](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/ARCHITECTURE.md): System design, data flow, engine composition, memory budget
-- [Developer Guide](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/DEVELOPER_GUIDE.md): Contributing, testing, adding tools/engines
-- [ADRs](https://github.com/shreyasjagannath/Nexus-MCP/tree/main/docs/adr): 14 Architecture Decision Records
+- [Architecture](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/ARCHITECTURE.md): System design, data flow, engine composition, memory budget
+- [Developer Guide](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/DEVELOPER_GUIDE.md): Contributing, testing, adding tools/engines
+- [ADRs](https://github.com/jaggernaut007/Nexus-MCP/tree/main/docs/adr): 14 Architecture Decision Records
 
 ## Key Technical Details
 
@@ -46,5 +46,5 @@ Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexe
 
 ## Optional
 
-- [Research Notes](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/docs/RESEARCH.md): Deep dives on LanceDB, ONNX, rustworkx, embedding models
-- [Self-Test Demo](https://github.com/shreyasjagannath/Nexus-MCP/blob/main/self_test/README.md): End-to-end demo exercising all 15 tools
+- [Research Notes](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/RESEARCH.md): Deep dives on LanceDB, ONNX, rustworkx, embedding models
+- [Self-Test Demo](https://github.com/jaggernaut007/Nexus-MCP/blob/main/self_test/README.md): End-to-end demo exercising all 15 tools

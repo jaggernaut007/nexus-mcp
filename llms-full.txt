@@ -104,7 +104,7 @@ Nexus-MCP replaces this with targeted retrieval: semantic search returns the exa
 
 ```bash
 # Option 1: Setup script (recommended — creates venv, installs, verifies)
-git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 ./setup.sh
 
@@ -252,7 +252,7 @@ The recommended way to install Nexus-MCP:
 
 ```bash
 # Clone the repository
-git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 
 # Run setup script (creates venv, installs deps, verifies)
@@ -292,7 +292,7 @@ source .venv/bin/activate
 If you prefer not to use the setup script:
 
 ```bash
-git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 
 # Option 1: Production only
@@ -586,7 +586,7 @@ If `nexus-mcp` command is not found, ensure the install location is on your PATH
 
 ```bash
 # Clone and install
-git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 pip install -e ".[dev]"
 
@@ -953,7 +953,7 @@ All settings are in `config.py` with NEXUS_ env prefix. See README for the full 
 
 ```bash
 # Clone the repository
-git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 
 # Create virtual environment

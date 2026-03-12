@@ -4,7 +4,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 
 # Create virtual environment

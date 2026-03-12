@@ -94,7 +94,7 @@ Nexus-MCP replaces this with targeted retrieval: semantic search returns the exa
 
 ```bash
 # Option 1: Setup script (recommended — creates venv, installs, verifies)
-git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 ./setup.sh
 

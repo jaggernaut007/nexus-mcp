@@ -22,7 +22,7 @@ The recommended way to install Nexus-MCP:
 
 ```bash
 # Clone the repository
-git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 
 # Run setup script (creates venv, installs deps, verifies)
@@ -62,7 +62,7 @@ source .venv/bin/activate
 If you prefer not to use the setup script:
 
 ```bash
-git clone https://github.com/shreyasjagannath/Nexus-MCP.git
+git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 
 # Option 1: Production only

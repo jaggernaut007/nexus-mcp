@@ -5,8 +5,8 @@ type: software
 version: 0.1.0
 date-released: 2026-03-12
 license: MIT
-url: "https://github.com/shreyasjagannath/Nexus-MCP"
-repository-code: "https://github.com/shreyasjagannath/Nexus-MCP"
+url: "https://github.com/jaggernaut007/Nexus-MCP"
+repository-code: "https://github.com/jaggernaut007/Nexus-MCP"
 authors:
   - family-names: Jagannath
     given-names: Shreyas

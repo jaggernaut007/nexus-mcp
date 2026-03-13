@@ -3,7 +3,6 @@
 Supported models:
 - jina-code (768d, 8192 seq len, ONNX) — DEFAULT, code-specific
 - bge-small-en (384d, 512 seq len, PyTorch) — lightweight general
-- granite-embedding-small (384d, 8192 seq len, ONNX) — lightest, no trust_remote_code
 """
 
 import gc
@@ -33,15 +32,6 @@ EMBEDDING_MODELS = {
         "prompt_prefix": "",
         "query_prefix": "Represent this sentence for searching relevant passages: ",
         "backend": None,
-    },
-    "granite-embedding-small": {
-        "hf_name": "onnx-community/granite-embedding-small-english-r2-ONNX",
-        "dimensions": 384,
-        "max_seq_length": 8192,
-        "trust_remote_code": False,
-        "prompt_prefix": "",
-        "query_prefix": "",
-        "backend": "onnx",
     },
 }
 
@@ -111,7 +101,7 @@ class EmbeddingService:
             "cache_misses": 0,
         }
 
-        self._embed_cached = lru_cache(maxsize=1000)(self._embed_single_uncached)
+        self._embed_cached = lru_cache(maxsize=256)(self._embed_single_uncached)
 
     def _load_model(self):
         if self._model_loaded:
@@ -148,6 +138,9 @@ class EmbeddingService:
                     kwargs["model_kwargs"] = {"provider": "CUDAExecutionProvider"}
                 elif self.device == "mps":
                     kwargs["model_kwargs"] = {"provider": "CoreMLExecutionProvider"}
+                else:
+                    # Force CPU-only to prevent ONNX auto-selecting CoreML/CUDA
+                    kwargs["model_kwargs"] = {"provider": "CPUExecutionProvider"}
                 # ONNX manages its own device; remove SentenceTransformer device param
                 kwargs.pop("device", None)
                 logger.info(
@@ -228,10 +221,9 @@ class EmbeddingService:
         self.stats["total_batches"] += (len(texts) + bs - 1) // bs
         self.stats["total_time"] += elapsed
 
-        if self.stats["total_batches"] % 100 == 0:
-            gc.collect()
-
-        return embeddings.tolist()
+        result = embeddings.tolist()
+        del embeddings  # Free numpy array immediately
+        return result
 
     def get_stats(self) -> dict:
         stats = self.stats.copy()

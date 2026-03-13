@@ -26,12 +26,6 @@ def test_bge_small_no_trust_remote_code():
     assert config["trust_remote_code"] is False
 
 
-def test_granite_no_trust_remote_code():
-    """granite-embedding-small does not require trust_remote_code."""
-    config = EMBEDDING_MODELS["granite-embedding-small"]
-    assert config["trust_remote_code"] is False
-
-
 def test_jina_requires_trust_remote_code():
     """jina-code config has trust_remote_code=True."""
     config = EMBEDDING_MODELS["jina-code"]

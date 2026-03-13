@@ -68,13 +68,13 @@ def test_symbol_qualified_name_with_parent():
 
 
 def test_symbol_to_dict_from_dict():
-    sym = _make_symbol(docstring="A test", imports=["os"], calls=["print"])
+    sym = _make_symbol(docstring="A test", imports=("os",), calls=("print",))
     d = sym.to_dict()
     assert d["type"] == "function"
     restored = Symbol.from_dict(d)
     assert restored.name == sym.name
     assert restored.type == sym.type
-    assert restored.imports == ["os"]
+    assert restored.imports == ("os",)
 
 
 def test_symbol_empty_name_raises():

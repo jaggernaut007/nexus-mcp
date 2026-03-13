@@ -4,6 +4,7 @@ Ported from code-graph-mcp. Language-agnostic representations for
 code nodes, relationships, and graph structure.
 """
 
+from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set
@@ -53,7 +54,7 @@ class RelationshipType(Enum):
     USES = "uses"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class UniversalLocation:
     """Location information for code elements. Immutable after creation."""
 
@@ -79,7 +80,7 @@ class UniversalLocation:
             raise ValueError(f"end_column must be >= 0, got {self.end_column}")
 
 
-@dataclass
+@dataclass(slots=True)
 class UniversalNode:
     """Universal representation of a code element.
 
@@ -108,7 +109,7 @@ class UniversalNode:
     parameter_types: List[str] = field(default_factory=list)
 
 
-@dataclass
+@dataclass(slots=True)
 class UniversalRelationship:
     """Relationship between code elements.
 
@@ -132,31 +133,23 @@ class UniversalGraph:
     def __init__(self):
         self.nodes: Dict[str, UniversalNode] = {}
         self.relationships: Dict[str, UniversalRelationship] = {}
-        self._nodes_by_type: Dict[NodeType, Set[str]] = {}
-        self._nodes_by_language: Dict[str, Set[str]] = {}
-        self._relationships_from: Dict[str, Set[str]] = {}
-        self._relationships_to: Dict[str, Set[str]] = {}
+        self._nodes_by_type: Dict[NodeType, Set[str]] = defaultdict(set)
+        self._nodes_by_language: Dict[str, Set[str]] = defaultdict(set)
+        self._relationships_from: Dict[str, Set[str]] = defaultdict(set)
+        self._relationships_to: Dict[str, Set[str]] = defaultdict(set)
         self.metadata: Dict[str, Any] = {}
 
     def add_node(self, node: UniversalNode) -> None:
         """Add a node to the graph, updating type and language indexes."""
         self.nodes[node.id] = node
-        if node.node_type not in self._nodes_by_type:
-            self._nodes_by_type[node.node_type] = set()
         self._nodes_by_type[node.node_type].add(node.id)
         if node.language:
-            if node.language not in self._nodes_by_language:
-                self._nodes_by_language[node.language] = set()
             self._nodes_by_language[node.language].add(node.id)
 
     def add_relationship(self, relationship: UniversalRelationship) -> None:
         """Add a relationship, updating source/target indexes."""
         self.relationships[relationship.id] = relationship
-        if relationship.source_id not in self._relationships_from:
-            self._relationships_from[relationship.source_id] = set()
         self._relationships_from[relationship.source_id].add(relationship.id)
-        if relationship.target_id not in self._relationships_to:
-            self._relationships_to[relationship.target_id] = set()
         self._relationships_to[relationship.target_id].add(relationship.id)
 
     def get_node(self, node_id: str) -> Optional[UniversalNode]:
@@ -246,8 +239,8 @@ class UniversalGraph:
             stats["complexity_stats"]["total_complexity"] = sum(complexities)
             stats["complexity_stats"]["average_complexity"] = sum(complexities) / len(complexities)
             stats["complexity_stats"]["max_complexity"] = max(complexities)
-            stats["complexity_stats"]["high_complexity_functions"] = len(
-                [c for c in complexities if c > 10]
+            stats["complexity_stats"]["high_complexity_functions"] = sum(
+                1 for c in complexities if c > 10
             )
         return stats
 

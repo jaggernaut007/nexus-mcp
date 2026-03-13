@@ -99,23 +99,52 @@ python self_test/demo_mcp.py
 
 ### Claude Code (CLI)
 
-The easiest way to add Nexus-MCP to Claude Code:
+**Recommended setup (venv install):**
+
+```bash
+# 1. Clone and install in a virtual environment
+git clone https://github.com/jaggernaut007/Nexus-MCP.git
+cd Nexus-MCP
+./setup.sh            # creates .venv, installs all deps
+# Use --clean to remove an existing venv and start fresh
+
+# 2. Register the MCP server with Claude Code (use full venv path)
+claude mcp add nexus-mcp -- /path/to/Nexus-MCP/.venv/bin/nexus-mcp
+
+# 3. If updating an existing registration, remove first
+claude mcp remove nexus-mcp
+claude mcp add nexus-mcp -- /path/to/Nexus-MCP/.venv/bin/nexus-mcp
+```
+
+> **Why use the full venv path?** MCP clients spawn the server as a subprocess. If you just use `nexus-mcp`, it resolves to whatever Python is on your system PATH — which may not have the required dependencies installed. Using the venv path ensures the server runs with the correct, isolated environment.
+
+**Alternative (global install):**
 
 ```bash
 claude mcp add nexus-mcp -- nexus-mcp
 ```
 
-Or manually add to your settings (`~/.claude/settings.json`):
+This works if you installed Nexus-MCP globally (`pip install -e .` without a venv), but may cause dependency conflicts with other packages in your global Python environment.
+
+**Passing environment variables:**
+
+```bash
+claude mcp add nexus-mcp -e NEXUS_EMBEDDING_MODEL=bge-small-en -- /path/to/Nexus-MCP/.venv/bin/nexus-mcp
+```
+
+**Manual config** — add to your settings (`~/.claude/settings.json`):
 
 ```json
 {
   "mcpServers": {
     "nexus-mcp": {
-      "command": "nexus-mcp"
+      "command": "/path/to/Nexus-MCP/.venv/bin/nexus-mcp"
     }
   }
 }
 ```
+
+**After setup**, reload your VS Code window (Cmd+Shift+P → "Reload Window") or restart Claude Code for the MCP server to start.
 
 **Usage in Claude Code:**
 ```
@@ -280,7 +309,7 @@ All settings use the `NEXUS_` environment variable prefix:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NEXUS_STORAGE_DIR` | `.nexus` | Storage directory for indexes and graph DB |
-| `NEXUS_EMBEDDING_MODEL` | `jina-code` | Embedding model: `jina-code`, `bge-small-en`, `granite-embedding-small` |
+| `NEXUS_EMBEDDING_MODEL` | `jina-code` | Embedding model: `jina-code`, `bge-small-en` |
 | `NEXUS_EMBEDDING_DEVICE` | `auto` | Device: `auto` (CUDA > MPS > CPU), `cuda`, `mps`, `cpu` |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max characters per code chunk |
@@ -317,6 +346,28 @@ ruff check .
 ---
 
 ## Troubleshooting
+
+### ONNX Runtime / Optimum errors during indexing
+
+If you see `Using the ONNX backend requires installing Optimum and ONNX Runtime`, install the required packages:
+
+```bash
+pip install "sentence-transformers[onnx]" "optimum[onnxruntime]>=1.19.0,<2.0"
+```
+
+**Version compatibility:** Ensure `optimum` and `transformers` versions are compatible. If you see `cannot import name 'FLAX_WEIGHTS_NAME'`, pin compatible versions:
+
+```bash
+pip install "optimum[onnxruntime]>=1.19.0,<2.0" "transformers>=4.46,<5.0"
+```
+
+**MCP server not picking up new packages:** If you installed packages but the MCP server still errors, the server process needs a restart. Reload your VS Code window, restart Claude Code, or restart Claude Desktop.
+
+**Alternative: use a model that doesn't need ONNX:**
+
+```bash
+NEXUS_EMBEDDING_MODEL=bge-small-en nexus-mcp
+```
 
 ### `ModuleNotFoundError: No module named 'nexus_mcp'`
 

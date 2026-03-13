@@ -198,8 +198,8 @@ class TreeSitterParser(IParser):
             signature=self._get_node_text(node, content).split("\n")[0].strip(),
             docstring=self._extract_docstring(node, content, config),
             code_snippet=self._get_code_snippet(node, content),
-            imports=self._extract_imports_from_node(node, content, config),
-            calls=self._extract_calls_from_node(node, content, config),
+            imports=tuple(self._extract_imports_from_node(node, content, config)),
+            calls=tuple(self._extract_calls_from_node(node, content, config)),
         )
 
     def _extract_function_symbol(
@@ -220,8 +220,8 @@ class TreeSitterParser(IParser):
             docstring=self._extract_docstring(node, content, config),
             parent=parent,
             code_snippet=self._get_code_snippet(node, content),
-            imports=self._extract_imports_from_node(node, content, config),
-            calls=self._extract_calls_from_node(node, content, config),
+            imports=tuple(self._extract_imports_from_node(node, content, config)),
+            calls=tuple(self._extract_calls_from_node(node, content, config)),
         )
 
     def _extract_constant_symbol(

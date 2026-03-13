@@ -139,6 +139,7 @@ class IndexingPipeline:
         self._embedding_service = get_embedding_service(
             self._settings.embedding_model,
             batch_size=self._settings.embedding_batch_size,
+            device=self._settings.embedding_device,
         )
         from nexus_mcp.indexing.embedding_service import EMBEDDING_MODELS
         model_config = EMBEDDING_MODELS.get(self._settings.embedding_model, {})
@@ -166,12 +167,29 @@ class IndexingPipeline:
     def graph_engine(self) -> RustworkxCodeGraph:
         return self._graph_engine
 
+    def _embed_and_store_symbols(self, symbols: List, batch_size: int) -> int:
+        """Chunk, embed, and store symbols in small batches. Returns chunk count."""
+        total_chunks = 0
+        for i in range(0, len(symbols), batch_size):
+            batch_chunks = create_chunks(symbols[i : i + batch_size])
+            if not batch_chunks:
+                continue
+            total_chunks += len(batch_chunks)
+            vectors = self._embedding_service.embed_batch(
+                [c.text for c in batch_chunks]
+            )
+            # Write vectors directly into chunks, build dicts in one pass
+            for chunk, vector in zip(batch_chunks, vectors):
+                chunk.vector = vector
+            self._vector_engine.add([c.to_dict() for c in batch_chunks])
+        return total_chunks
+
     def index(
         self,
         codebase_path: Path,
         progress_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None,
     ) -> IndexResult:
-        """Full index of a codebase. Clears existing data first."""
+        """Full index of a codebase. Streams files in batches to limit peak RAM."""
         start = time.time()
         codebase_path = Path(codebase_path).resolve()
 
@@ -185,75 +203,72 @@ class IndexingPipeline:
         if not files:
             return IndexResult(time_seconds=time.time() - start)
 
-        # Step 2: Parse symbols with tree-sitter (parallel)
-        symbols, parse_errors = parallel_parse_files(
-            files, self._settings.max_workers, progress_callback
-        )
-        logger.info("Parsed %d symbols (%d errors)", len(symbols), parse_errors)
-
-        # Step 3: Parse graph structure with ast-grep (sequential)
+        # Clear engines before indexing
         self._graph_engine.clear()
-        universal_graph = UniversalGraph()
-        for filepath in files:
-            if self._astgrep.can_parse(str(filepath)):
-                try:
-                    self._astgrep.parse_file(str(filepath), universal_graph)
-                except Exception as e:
-                    logger.warning("ast-grep failed for %s: %s", filepath, e)
+        self._vector_engine.clear()
 
-        _transfer_graph(universal_graph, self._graph_engine)
-        graph_stats = self._graph_engine.get_statistics()
+        total_symbols = 0
+        total_chunks = 0
+        total_parse_errors = 0
+        file_batch_size = self._settings.index_file_batch_size
+        embed_batch_size = self._settings.embedding_batch_size
 
-        # Step 4: Chunk symbols
-        chunks = create_chunks(symbols)
-
-        if not chunks:
-            self._save_metadata(codebase_path, files)
-            return IndexResult(
-                total_files=len(files),
-                total_symbols=len(symbols),
-                parse_errors=parse_errors,
-                graph_nodes=graph_stats["total_nodes"],
-                graph_relationships=graph_stats["total_relationships"],
-                time_seconds=time.time() - start,
-            )
-
-        # Step 5: Embed in batches, store, and clean up
         try:
-            batch_size = self._settings.embedding_batch_size
-            for i in range(0, len(chunks), batch_size):
-                batch = chunks[i : i + batch_size]
-                texts = [c.text for c in batch]
-                vectors = self._embedding_service.embed_batch(texts)
-                for chunk, vector in zip(batch, vectors):
-                    chunk.vector = vector
+            # Stream files in batches: parse → graph → embed → store per batch
+            for batch_start in range(0, len(files), file_batch_size):
+                batch_files = files[batch_start : batch_start + file_batch_size]
 
-            # Step 6: Store in vector engine
-            self._vector_engine.clear()
-            chunk_dicts = [c.to_dict() for c in chunks]
-            self._vector_engine.add(chunk_dicts)
+                # Parse symbols with tree-sitter (parallel)
+                symbols, parse_errors = parallel_parse_files(
+                    batch_files, self._settings.max_workers, progress_callback
+                )
+                total_parse_errors += parse_errors
+                total_symbols += len(symbols)
 
-            # Step 6b: Create FTS index for BM25
-            self._bm25_engine.clear()
-            self._bm25_engine.ensure_fts_index()
+                # Parse graph structure with ast-grep (additive)
+                universal_graph = UniversalGraph()
+                for filepath in batch_files:
+                    if self._astgrep.can_parse(str(filepath)):
+                        try:
+                            self._astgrep.parse_file(str(filepath), universal_graph)
+                        except Exception as e:
+                            logger.warning("ast-grep failed for %s: %s", filepath, e)
+                _transfer_graph(universal_graph, self._graph_engine)
+                del universal_graph
 
-            # Step 7: Save metadata
+                # Chunk, embed, store
+                total_chunks += self._embed_and_store_symbols(symbols, embed_batch_size)
+                del symbols
+
+                logger.info(
+                    "Batch %d-%d: %d files processed",
+                    batch_start, batch_start + len(batch_files), len(batch_files),
+                )
+
+            graph_stats = self._graph_engine.get_statistics()
+
+            if total_chunks > 0:
+                # Create FTS index for BM25
+                self._bm25_engine.clear()
+                self._bm25_engine.ensure_fts_index()
+
+            # Save metadata
             self._save_metadata(codebase_path, files)
         finally:
-            # Step 8: Always unload model to free RAM
+            # Always unload model to free RAM
             self._embedding_service.unload()
 
         elapsed = time.time() - start
         logger.info(
             "Indexed %d files, %d symbols, %d chunks in %.1fs",
-            len(files), len(symbols), len(chunks), elapsed,
+            len(files), total_symbols, total_chunks, elapsed,
         )
 
         return IndexResult(
             total_files=len(files),
-            total_symbols=len(symbols),
-            total_chunks=len(chunks),
-            parse_errors=parse_errors,
+            total_symbols=total_symbols,
+            total_chunks=total_chunks,
+            parse_errors=total_parse_errors,
             graph_nodes=graph_stats["total_nodes"],
             graph_relationships=graph_stats["total_relationships"],
             time_seconds=elapsed,
@@ -335,35 +350,37 @@ class IndexingPipeline:
             self._vector_engine.delete_by_filepath(fp)
             self._graph_engine.remove_file_nodes(fp)
 
-        # Parse and index changed files
+        # Parse and index changed files in streaming batches
         changed_paths = [Path(f) for f in changed_files]
-        symbols, parse_errors = parallel_parse_files(
-            changed_paths, self._settings.max_workers, progress_callback
-        )
+        total_symbols = 0
+        total_chunks = 0
+        parse_errors = 0
+        file_batch_size = self._settings.index_file_batch_size
+        embed_batch_size = self._settings.embedding_batch_size
 
-        # ast-grep for changed files
-        universal_graph = UniversalGraph()
-        for filepath in changed_paths:
-            if self._astgrep.can_parse(str(filepath)):
-                try:
-                    self._astgrep.parse_file(str(filepath), universal_graph)
-                except Exception as e:
-                    logger.warning("ast-grep failed for %s: %s", filepath, e)
-        _transfer_graph(universal_graph, self._graph_engine)
-
-        # Chunk + embed + store
-        chunks = create_chunks(symbols)
         try:
-            if chunks:
-                batch_size = self._settings.embedding_batch_size
-                for i in range(0, len(chunks), batch_size):
-                    batch = chunks[i : i + batch_size]
-                    texts = [c.text for c in batch]
-                    vectors = self._embedding_service.embed_batch(texts)
-                    for chunk, vector in zip(batch, vectors):
-                        chunk.vector = vector
+            for batch_start in range(0, len(changed_paths), file_batch_size):
+                batch_files = changed_paths[batch_start : batch_start + file_batch_size]
 
-                self._vector_engine.add([c.to_dict() for c in chunks])
+                symbols, batch_errors = parallel_parse_files(
+                    batch_files, self._settings.max_workers, progress_callback
+                )
+                parse_errors += batch_errors
+                total_symbols += len(symbols)
+
+                # ast-grep for this batch
+                universal_graph = UniversalGraph()
+                for filepath in batch_files:
+                    if self._astgrep.can_parse(str(filepath)):
+                        try:
+                            self._astgrep.parse_file(str(filepath), universal_graph)
+                        except Exception as e:
+                            logger.warning("ast-grep failed for %s: %s", filepath, e)
+                _transfer_graph(universal_graph, self._graph_engine)
+                del universal_graph
+
+                total_chunks += self._embed_and_store_symbols(symbols, embed_batch_size)
+                del symbols
 
             # Rebuild FTS index for BM25
             self._bm25_engine.clear()
@@ -379,8 +396,8 @@ class IndexingPipeline:
 
         return IndexResult(
             total_files=len(files),
-            total_symbols=len(symbols),
-            total_chunks=len(chunks),
+            total_symbols=total_symbols,
+            total_chunks=total_chunks,
             parse_errors=parse_errors,
             graph_nodes=graph_stats["total_nodes"],
             graph_relationships=graph_stats["total_relationships"],
@@ -389,6 +406,148 @@ class IndexingPipeline:
             files_modified=len(modified_files),
             files_deleted=len(deleted_files),
         )
+
+    def multi_index(
+        self,
+        codebase_paths: List[Path],
+        progress_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+    ) -> IndexResult:
+        """Index multiple directories folder-by-folder into shared engines.
+
+        Processes each folder sequentially: discover → parse → embed → store,
+        then builds the FTS index and saves metadata once at the end.
+        This keeps peak RAM low since each folder's symbols are freed before
+        the next folder starts.
+
+        Args:
+            codebase_paths: List of absolute paths to index.
+            progress_callback: Optional callback for progress events.
+
+        Returns:
+            Aggregated IndexResult across all paths.
+        """
+        if not codebase_paths:
+            return IndexResult()
+
+        if len(codebase_paths) == 1:
+            return self.index(codebase_paths[0], progress_callback)
+
+        start = time.time()
+        resolved_paths = [Path(p).resolve() for p in codebase_paths]
+
+        # Ensure storage dir exists
+        self._settings.storage_path.mkdir(parents=True, exist_ok=True)
+
+        # Clear engines once before processing all folders
+        self._graph_engine.clear()
+        self._vector_engine.clear()
+
+        total_files = 0
+        total_symbols = 0
+        total_chunks = 0
+        total_parse_errors = 0
+        all_indexed_files: List[Path] = []
+        seen_files: Set[str] = set()
+
+        file_batch_size = self._settings.index_file_batch_size
+        embed_batch_size = self._settings.embedding_batch_size
+
+        try:
+            for folder_idx, root in enumerate(resolved_paths):
+                logger.info(
+                    "Indexing folder %d/%d: %s",
+                    folder_idx + 1, len(resolved_paths), root,
+                )
+
+                # Step 1: Discover files for this folder
+                files = discover_files(root, self._settings)
+                # Deduplicate across folders (e.g. overlapping paths)
+                files = [f for f in files if str(f) not in seen_files]
+                for f in files:
+                    seen_files.add(str(f))
+                all_indexed_files.extend(files)
+
+                if not files:
+                    logger.info("No files found in %s, skipping", root)
+                    continue
+
+                total_files += len(files)
+
+                # Stream files in batches within each folder
+                for batch_start in range(0, len(files), file_batch_size):
+                    batch_files = files[batch_start : batch_start + file_batch_size]
+
+                    # Parse symbols with tree-sitter (parallel)
+                    symbols, parse_errors = parallel_parse_files(
+                        batch_files, self._settings.max_workers, progress_callback
+                    )
+                    total_parse_errors += parse_errors
+                    total_symbols += len(symbols)
+
+                    # Parse graph structure with ast-grep (additive)
+                    universal_graph = UniversalGraph()
+                    for filepath in batch_files:
+                        if self._astgrep.can_parse(str(filepath)):
+                            try:
+                                self._astgrep.parse_file(str(filepath), universal_graph)
+                            except Exception as e:
+                                logger.warning("ast-grep failed for %s: %s", filepath, e)
+                    _transfer_graph(universal_graph, self._graph_engine)
+                    del universal_graph
+
+                    # Chunk, embed, store
+                    total_chunks += self._embed_and_store_symbols(symbols, embed_batch_size)
+                    del symbols
+
+                logger.info(
+                    "Folder %s: %d files processed",
+                    root.name, len(files),
+                )
+
+            # Build FTS index once after all folders
+            if total_chunks > 0:
+                self._bm25_engine.clear()
+                self._bm25_engine.ensure_fts_index()
+
+            # Save metadata for all roots
+            self._save_multi_metadata(resolved_paths, all_indexed_files)
+        finally:
+            # Always unload model to free RAM
+            self._embedding_service.unload()
+
+        graph_stats = self._graph_engine.get_statistics()
+        elapsed = time.time() - start
+        logger.info(
+            "Multi-indexed %d files, %d symbols, %d chunks from %d folders in %.1fs",
+            total_files, total_symbols, total_chunks, len(resolved_paths), elapsed,
+        )
+
+        return IndexResult(
+            total_files=total_files,
+            total_symbols=total_symbols,
+            total_chunks=total_chunks,
+            parse_errors=total_parse_errors,
+            graph_nodes=graph_stats["total_nodes"],
+            graph_relationships=graph_stats["total_relationships"],
+            time_seconds=elapsed,
+        )
+
+    def _save_multi_metadata(self, codebase_paths: List[Path], files: List[Path]) -> None:
+        """Save file mtimes for multi-root incremental reindex."""
+        mtimes = {}
+        for f in files:
+            try:
+                mtimes[str(f)] = f.stat().st_mtime
+            except OSError:
+                continue
+
+        metadata = {
+            "codebase_paths": [str(p) for p in codebase_paths],
+            "codebase_path": str(codebase_paths[0]),
+            "mtimes": mtimes,
+        }
+        self._metadata_path.parent.mkdir(parents=True, exist_ok=True)
+        self._metadata_path.write_text(json.dumps(metadata))
 
     def _save_metadata(self, codebase_path: Path, files: List[Path]) -> None:
         """Save file mtimes for incremental reindex."""

@@ -67,7 +67,7 @@ Into a **single, memory-efficient MCP server** (<350MB RAM) with 12 tools for co
 | MCP Framework | FastMCP ≥2.0 | Standard MCP server framework |
 | Vector + FTS Storage | LanceDB ≥0.4 | Embedded, mmap, vectors + FTS in one DB |
 | Inference | ONNX Runtime ≥1.16 | 50MB vs 500MB (PyTorch), 2.5x faster CPU |
-| Embedding Model | jina-code (default) | 768 dims, code-specific; also bge-small-en (384d), granite-embedding-small (384d) |
+| Embedding Model | jina-code (default) | 768 dims, code-specific; also bge-small-en (384d) |
 | Symbol Parsing | tree-sitter 0.21.3 | Extract code symbols for embeddings |
 | Structural Analysis | ast-grep-py ≥0.28 | Build call/import graphs, 25+ languages |
 | Graph Engine | rustworkx ≥0.15 | In-memory directed graph, Rust-backed |
@@ -172,7 +172,7 @@ All settings via environment variables with `NEXUS_` prefix:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NEXUS_EMBEDDING_MODEL` | `jina-code` | Embedding model (`jina-code`, `bge-small-en`, `granite-embedding-small`) |
+| `NEXUS_EMBEDDING_MODEL` | `jina-code` | Embedding model (`jina-code`, `bge-small-en`) |
 | `NEXUS_STORAGE_DIR` | `.nexus` | Per-project storage directory |
 | `NEXUS_MAX_FILE_SIZE` | `1048576` | Max file size in bytes (1MB) |
 | `NEXUS_LOG_FORMAT` | `text` | Logging format (`text` or `json`) |

@@ -18,6 +18,7 @@ class SessionState:
 
     settings: Settings = field(default_factory=get_settings)
     codebase_path: Optional[Path] = None
+    codebase_paths: list = field(default_factory=list)
     started_at: float = field(default_factory=time.time)
 
     # Engine references (populated during indexing)

@@ -163,7 +163,7 @@ class CodeAnalyzer:
         )
         maintainability = max(0, 100 - (avg_complexity * 5) - (total_lines / 1000))
 
-        documented = len([f for f in functions if f.docstring])
+        documented = sum(1 for f in functions if f.docstring)
         doc_ratio = (documented / len(functions)) * 100 if functions else 0
 
         quality_score = (maintainability * 0.6 + doc_ratio * 0.4)

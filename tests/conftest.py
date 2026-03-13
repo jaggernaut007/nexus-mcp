@@ -55,10 +55,14 @@ def mini_codebase_with_calls(tmp_path):
 
 
 def _mock_embedding_service():
+    from nexus_mcp.config import get_settings
+    from nexus_mcp.indexing.embedding_service import EMBEDDING_MODELS
+    settings = get_settings()
+    dims = EMBEDDING_MODELS.get(settings.embedding_model, {}).get("dimensions", 384)
     svc = MagicMock()
-    svc.embed.return_value = [0.1] * 768
+    svc.embed.return_value = [0.1] * dims
     def dynamic_batch(texts, **kwargs):
-        return [[0.1] * 768 for _ in texts]
+        return [[0.1] * dims for _ in texts]
     svc.embed_batch.side_effect = dynamic_batch
     return svc
 

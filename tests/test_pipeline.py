@@ -38,25 +38,27 @@ def settings(tmp_path):
     return Settings(storage_dir=str(tmp_path / ".nexus"))
 
 
-def _mock_embedding_service():
+def _mock_embedding_service(dims=384):
     """Create a mock embedding service."""
     svc = MagicMock()
-    svc.embed.return_value = [0.1] * 768
-    svc.embed_batch.return_value = [[0.1] * 768]
+    svc.embed.return_value = [0.1] * dims
+    svc.embed_batch.return_value = [[0.1] * dims]
     return svc
 
 
 def _make_pipeline(settings):
     """Create pipeline with mocked embedding service."""
+    from nexus_mcp.indexing.embedding_service import EMBEDDING_MODELS
+    dims = EMBEDDING_MODELS.get(settings.embedding_model, {}).get("dimensions", 384)
     with patch("nexus_mcp.indexing.pipeline.get_embedding_service") as mock_get:
-        mock_svc = _mock_embedding_service()
+        mock_svc = _mock_embedding_service(dims)
         mock_get.return_value = mock_svc
         pipeline = IndexingPipeline(settings)
         # Patch the embedding service on the vector engine too
         pipeline._vector_engine._embedding_service = mock_svc
         # Make embed_batch return correct number of vectors
         def dynamic_batch(texts, **kwargs):
-            return [[0.1] * 768 for _ in texts]
+            return [[0.1] * dims for _ in texts]
         mock_svc.embed_batch.side_effect = dynamic_batch
         return pipeline
 

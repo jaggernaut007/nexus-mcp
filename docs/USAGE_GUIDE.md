@@ -44,10 +44,23 @@ Add to your MCP client's config (e.g., Claude Desktop):
 Index a codebase directory. Must be called before any other tool (except `status`).
 
 ```
+# Single directory
 index(path="/path/to/your/project")
+
+# Multiple directories (comma-separated)
+index(path="/path/to/project/src,/path/to/project/lib,/path/to/project/tests")
+
+# Multiple directories (using paths parameter)
+index(path="/path/to/project/src", paths="/path/to/project/lib,/path/to/project/tests")
 ```
 
-Returns indexing statistics: file count, symbol count, chunk count, timing. On subsequent calls, performs incremental reindexing (only changed files).
+Parameters:
+- `path` — Absolute path to the codebase directory. Accepts comma-separated paths for multi-folder indexing.
+- `paths` — (Optional) Additional comma-separated paths to index alongside `path`.
+
+When multiple paths are provided, each folder is indexed sequentially (discover → parse → embed → store) and results are merged into shared engines. This keeps peak RAM low since each folder's data is freed before processing the next. Duplicate files across overlapping paths are automatically deduplicated.
+
+Returns indexing statistics: file count, symbol count, chunk count, timing. On subsequent calls with a single path, performs incremental reindexing (only changed files).
 
 #### `search`
 Hybrid search across indexed code. Combines semantic, keyword, and structural search.
@@ -181,7 +194,7 @@ Set via environment variables before starting the server:
 ```bash
 # Embedding model selection
 export NEXUS_EMBEDDING_MODEL=jina-code          # Default: jina-code (768d, code-specific)
-                                                 # Options: bge-small-en (384d), granite-embedding-small (384d)
+                                                 # Options: bge-small-en (384d)
 export NEXUS_EMBEDDING_DEVICE=auto               # auto (CUDA > MPS > CPU), cuda, mps, cpu
 
 # Search tuning
@@ -204,13 +217,12 @@ export NEXUS_STORAGE_DIR=.nexus          # Where indexes are stored
 
 ### Embedding Models
 
-Nexus-MCP supports three embedding models. Only registered model names are accepted; custom model names raise a `ConfigurationError`.
+Nexus-MCP supports two embedding models. Only registered model names are accepted; custom model names raise a `ConfigurationError`.
 
 | Model | HuggingFace ID | Dims | Code-specific? | Notes |
 |-------|---------------|------|:-:|---|
 | `jina-code` (default) | `jinaai/jina-embeddings-v2-base-code` | 768 | Yes | Best code search quality, ONNX |
 | `bge-small-en` | `BAAI/bge-small-en-v1.5` | 384 | No | Smallest download (~50MB), general text |
-| `granite-embedding-small` | `onnx-community/granite-embedding-small-english-r2-ONNX` | 384 | No | Apache 2.0, 47M params, no trust_remote_code needed |
 
 GPU/MPS auto-detection (`NEXUS_EMBEDDING_DEVICE=auto`) tries CUDA first, then Apple MPS, then falls back to CPU. For explicit GPU support, install with `pip install -e ".[gpu]"`.
 
@@ -220,9 +232,11 @@ GPU/MPS auto-detection (`NEXUS_EMBEDDING_DEVICE=auto`) tries CUDA first, then Ap
 
 1. **Index from the project root** — Point `index` at the top-level directory, not a subdirectory. This ensures .gitignore is respected and relative paths are meaningful.
 
-2. **Let incremental reindex handle changes** — After the first full index, subsequent `index` calls only process changed files. No need to clear and re-index.
+2. **Use multi-folder indexing for monorepos** — For projects with multiple source roots (e.g., `src/`, `lib/`, `plugins/`), pass them as comma-separated paths in a single `index` call. Each folder is processed sequentially to keep RAM usage low.
 
-3. **Check status after indexing** — Use `status` to verify chunk counts and graph stats look reasonable.
+3. **Let incremental reindex handle changes** — After the first full index, subsequent `index` calls only process changed files. No need to clear and re-index.
+
+4. **Check status after indexing** — Use `status` to verify chunk counts and graph stats look reasonable.
 
 ### Searching
 

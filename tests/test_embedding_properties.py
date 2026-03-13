@@ -136,7 +136,7 @@ def test_batch_embed_returns_correct_count(n):
 @hyp_settings(deadline=None)
 def test_embed_single_returns_correct_dims(text):
     """embed() returns vector of correct dimensions (mocked)."""
-    svc = EmbeddingService(model_name="granite-embedding-small")
+    svc = EmbeddingService(model_name="bge-small-en")
     dims = svc.config["dimensions"]
 
     mock_model = MagicMock()
@@ -255,7 +255,7 @@ def test_batch_matches_individual(model_name):
 @hyp_settings(max_examples=5, deadline=None)
 def test_hypothesis_normalized_unit_length(text):
     """Property: any non-empty text produces a unit-norm embedding (using lightest model)."""
-    svc = get_embedding_service("granite-embedding-small")
+    svc = get_embedding_service("bge-small-en")
     vec = svc.embed(text)
     norm = sum(x ** 2 for x in vec) ** 0.5
     assert abs(norm - 1.0) < 0.01
@@ -273,6 +273,6 @@ def test_hypothesis_normalized_unit_length(text):
 @hyp_settings(max_examples=3, deadline=None)
 def test_hypothesis_batch_count_matches(texts):
     """Property: embed_batch returns exactly len(texts) vectors."""
-    svc = get_embedding_service("granite-embedding-small")
+    svc = get_embedding_service("bge-small-en")
     results = svc.embed_batch(texts)
     assert len(results) == len(texts)

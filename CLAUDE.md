@@ -11,7 +11,14 @@ Nexus-MCP is registered as an MCP server (`nexus-mcp`). **Use its 15 tools activ
 Before using any search/graph/analysis tools, index the codebase:
 
 ```
+# Single directory
 mcp__nexus-mcp__index(path="/path/to/codebase")
+
+# Multiple directories (comma-separated) — indexed folder-by-folder
+mcp__nexus-mcp__index(path="/path/to/src,/path/to/lib,/path/to/tests")
+
+# Or use the paths parameter for additional directories
+mcp__nexus-mcp__index(path="/path/to/src", paths="/path/to/lib,/path/to/tests")
 ```
 
 For subsequent sessions or after file changes, use incremental mode (auto-detected).
@@ -20,7 +27,7 @@ For subsequent sessions or after file changes, use incremental mode (auto-detect
 
 | Tool | When to use |
 |------|-------------|
-| `index` | **First thing** when working with a new or changed codebase. Re-run after significant file changes. |
+| `index` | **First thing** when working with a new or changed codebase. Supports comma-separated paths for multi-folder indexing (processed folder-by-folder). Re-run after significant file changes. |
 | `status` | Check if a codebase is indexed, how many symbols/chunks exist, memory usage. |
 | `health` | Verify the server and all engines are running before starting work. |
 | `search` | **Primary tool** for finding relevant code. Use for any "where is...", "how does...", "find..." query. Supports `mode=hybrid` (default), `vector`, or `bm25`. Use language/type filters to narrow results. |
@@ -47,6 +54,7 @@ For subsequent sessions or after file changes, use incremental mode (auto-detect
 - **Use `overview` when starting a new project**: Get a quick summary of project structure, languages, and quality before diving in.
 - **Use `architecture` for design understanding**: See layers, dependencies, entry points, and hub symbols to understand system design.
 - **Use `analyze` for code reviews**: Get objective quality metrics to guide review feedback.
+- **Use multi-folder indexing for monorepos**: Pass comma-separated paths to `index` for projects with multiple source roots. Each folder is processed sequentially to keep RAM low.
 - **Re-index incrementally after changes**: Run `index` again after making significant edits — incremental mode only processes changed files.
 
 ## Structure (all implemented)
@@ -77,9 +85,9 @@ src/nexus_mcp/
 ├── memory/
 │   └── memory_store.py    # LanceDB-backed memory with TTL
 ├── indexing/
-│   ├── embedding_service.py   # Multi-model embeddings: jina-code, bge-small-en, granite (ONNX + GPU/MPS)
+│   ├── embedding_service.py   # Multi-model embeddings: jina-code, bge-small-en (ONNX + GPU/MPS)
 │   ├── parallel_indexer.py    # ThreadPool
-│   ├── pipeline.py            # discover → parse → chunk → embed → store + corrupt index detection
+│   ├── pipeline.py            # discover → parse → chunk → embed → store + corrupt index detection + multi-folder
 │   └── chunker.py             # Symbol → CodeChunk
 ├── formatting/
 │   ├── token_budget.py        # Token counting/truncation
@@ -116,7 +124,7 @@ claude mcp add nexus-mcp -- nexus-mcp  # Add to Claude Code
 
 - LanceDB replaces ChromaDB (mmap, disk-backed vectors) — [ADR-002](docs/adr/ADR-002-lancedb-over-chromadb.md)
 - ONNX Runtime replaces PyTorch (~50MB vs ~500MB) — [ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md)
-- jina-code default; bge-small-en + granite-embedding-small alternatives — [ADR-004](docs/adr/ADR-004-bge-small-default-model.md)
+- jina-code default; bge-small-en alternative — [ADR-004](docs/adr/ADR-004-bge-small-default-model.md)
 - Dual parsing: tree-sitter (symbols) + ast-grep (graph) — [ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)
 - rustworkx for graph algorithms (Rust-backed) — [ADR-006](docs/adr/ADR-006-rustworkx-graph-engine.md)
 - LanceDB schema: 12-column PyArrow, flat search — [ADR-007](docs/adr/ADR-007-lancedb-schema-design.md)
@@ -148,6 +156,7 @@ claude mcp add nexus-mcp -- nexus-mcp  # Add to Claude Code
 16. New exceptions (AuthenticationError, AuthorizationError, RateLimitError) in exceptions.py
 17. Only registered embedding models are supported; custom model names raise ConfigurationError
 18. GPU/MPS auto-detected; set `NEXUS_EMBEDDING_DEVICE=cpu` to force CPU
+19. Multi-folder indexing processes each folder sequentially; `state.codebase_paths` tracks all roots, `state.codebase_path` is the first root for backward compat
 
 ## Embedding Models
 
@@ -155,21 +164,20 @@ claude mcp add nexus-mcp -- nexus-mcp  # Add to Claude Code
 |-------|-----|------|---------|---------|-------------------|-------|
 | **Jina Embeddings v2 Code** | `jina-code` | 768 | 8192 | ONNX | Yes | **Default**. Code-specific, 161M params |
 | BGE Small EN v1.5 | `bge-small-en` | 384 | 512 | PyTorch | No | Lightweight general-purpose |
-| Granite Embedding Small | `granite-embedding-small` | 384 | 8192 | ONNX | No | Lightest (47M params), Apache 2.0 |
 
 ### Changing the embedding model
 
 Set the `NEXUS_EMBEDDING_MODEL` environment variable:
 
 ```bash
-# Use granite (lightest, no trust_remote_code needed)
-NEXUS_EMBEDDING_MODEL=granite-embedding-small nexus-mcp
+# Use bge-small-en (lightweight, no trust_remote_code needed)
+NEXUS_EMBEDDING_MODEL=bge-small-en nexus-mcp
 
 # Or set in your shell profile
-export NEXUS_EMBEDDING_MODEL=granite-embedding-small
+export NEXUS_EMBEDDING_MODEL=bge-small-en
 
 # For Claude Code MCP config
-claude mcp add nexus-mcp -e NEXUS_EMBEDDING_MODEL=granite-embedding-small -- nexus-mcp
+claude mcp add nexus-mcp -e NEXUS_EMBEDDING_MODEL=bge-small-en -- nexus-mcp
 ```
 
 ### GPU / MPS acceleration

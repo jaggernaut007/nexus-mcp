@@ -5,6 +5,7 @@ Ported from code-graph-mcp. Thread-safe graph with advanced algorithms.
 
 import logging
 import threading
+from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set
 
 import rustworkx as rx
@@ -32,10 +33,10 @@ class RustworkxCodeGraph:
         self._id_to_index: Dict[str, int] = {}
         self._index_to_id: Dict[int, str] = {}
 
-        # Performance indexes
-        self._nodes_by_type: Dict[NodeType, Set[str]] = {}
-        self._nodes_by_language: Dict[str, Set[str]] = {}
-        self._file_nodes: Dict[str, Set[str]] = {}
+        # Performance indexes (defaultdict avoids per-key existence checks)
+        self._nodes_by_type: Dict[NodeType, Set[str]] = defaultdict(set)
+        self._nodes_by_language: Dict[str, Set[str]] = defaultdict(set)
+        self._file_nodes: Dict[str, Set[str]] = defaultdict(set)
 
     def add_node(self, node: UniversalNode) -> int:
         """Add node to graph. Returns rustworkx index."""
@@ -49,20 +50,13 @@ class RustworkxCodeGraph:
             self.nodes[node.id] = node
 
             # Update indexes
-            if node.node_type not in self._nodes_by_type:
-                self._nodes_by_type[node.node_type] = set()
             self._nodes_by_type[node.node_type].add(node.id)
 
             if node.language:
-                if node.language not in self._nodes_by_language:
-                    self._nodes_by_language[node.language] = set()
                 self._nodes_by_language[node.language].add(node.id)
 
             if node.location:
-                fp = node.location.file_path
-                if fp not in self._file_nodes:
-                    self._file_nodes[fp] = set()
-                self._file_nodes[fp].add(node.id)
+                self._file_nodes[node.location.file_path].add(node.id)
 
             return idx
 
@@ -291,6 +285,6 @@ class RustworkxCodeGraph:
             self.relationships.clear()
             self._id_to_index.clear()
             self._index_to_id.clear()
-            self._nodes_by_type.clear()
-            self._nodes_by_language.clear()
-            self._file_nodes.clear()
+            self._nodes_by_type = defaultdict(set)
+            self._nodes_by_language = defaultdict(set)
+            self._file_nodes = defaultdict(set)

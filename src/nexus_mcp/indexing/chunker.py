@@ -12,7 +12,7 @@ from nexus_mcp.config import get_settings
 from nexus_mcp.core.models import Symbol
 
 
-@dataclass
+@dataclass(slots=True)
 class CodeChunk:
     """A chunk of code ready for embedding and LanceDB storage.
 

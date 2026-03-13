@@ -7,7 +7,7 @@ All models use frozen dataclasses for immutability and JSON serialization.
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 
 class SymbolType(Enum):
@@ -29,7 +29,7 @@ class SymbolType(Enum):
         raise ValueError(f"Invalid SymbolType: {value}")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Symbol:
     """A single code symbol (function, class, method, or variable).
 
@@ -59,8 +59,8 @@ class Symbol:
     docstring: str = ""
     parent: Optional[str] = None
     code_snippet: str = ""
-    imports: List[str] = field(default_factory=list)
-    calls: List[str] = field(default_factory=list)
+    imports: Tuple[str, ...] = ()
+    calls: Tuple[str, ...] = ()
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
@@ -96,13 +96,17 @@ class Symbol:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Symbol":
+        data = data.copy()
         if "type" in data and isinstance(data["type"], str):
-            data = data.copy()
             data["type"] = SymbolType.from_string(data["type"])
+        if "imports" in data and isinstance(data["imports"], list):
+            data["imports"] = tuple(data["imports"])
+        if "calls" in data and isinstance(data["calls"], list):
+            data["calls"] = tuple(data["calls"])
         return cls(**data)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ParsedFile:
     """A parsed source code file with extracted symbols."""
 
@@ -147,10 +151,12 @@ class ParsedFile:
         data = data.copy()
         if "symbols" in data:
             data["symbols"] = [Symbol.from_dict(s) for s in data["symbols"]]
+        if "imports" in data and isinstance(data["imports"], tuple):
+            data["imports"] = list(data["imports"])
         return cls(**data)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class CodebaseIndex:
     """Complete index of a codebase."""
 

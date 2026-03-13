@@ -51,8 +51,7 @@ class ResponseBuilder:
                     )[:200],
                 }
             else:  # full
-                entry = dict(r)
-                entry["score"] = round(entry.get("score", 0.0), 4)
+                entry = {**r, "score": round(r.get("score", 0.0), 4)}
 
             entry_size = sum(len(str(v)) for v in entry.values())
             if used_chars + entry_size > self.budget.budget_chars:

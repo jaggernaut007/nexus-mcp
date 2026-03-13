@@ -293,11 +293,17 @@ def create_server():
         }
 
     @mcp.tool()
-    def index(path: str) -> dict[str, Any]:
+    def index(path: str, paths: str = "") -> dict[str, Any]:
         """Index a codebase into vector + graph engines.
 
+        Supports indexing multiple directories folder-by-folder. Each folder
+        is processed sequentially (discover → parse → embed → store) and
+        results are merged into shared engines.
+
         Args:
-            path: Absolute path to the codebase directory.
+            path: Absolute path to the codebase directory. Can also be
+                  comma-separated paths (e.g. "/proj/src,/proj/lib").
+            paths: Additional comma-separated paths to index alongside `path`.
 
         Returns:
             Indexing statistics (files, symbols, chunks, timing).
@@ -312,9 +318,21 @@ def create_server():
         if guard_err:
             return guard_err
 
-        codebase_path, err = _validate_path(path)
-        if err:
-            return err
+        # Collect all paths from both parameters
+        raw_paths = [p.strip() for p in path.split(",") if p.strip()]
+        if paths:
+            raw_paths.extend(p.strip() for p in paths.split(",") if p.strip())
+
+        # Validate each path
+        validated: list[Path] = []
+        for raw in raw_paths:
+            resolved, err = _validate_path(raw)
+            if err:
+                return {"error": f"Invalid path '{raw}': {err['error']}"}
+            validated.append(resolved)
+
+        if not validated:
+            return {"error": "No valid paths provided."}
 
         settings = get_settings()
 
@@ -322,7 +340,19 @@ def create_server():
             if _pipeline is None:
                 _pipeline = IndexingPipeline(settings)
 
-        # Determine full vs incremental
+        # Multi-path: always use folder-by-folder indexing
+        if len(validated) > 1:
+            result = _pipeline.multi_index(validated)
+            state = get_state()
+            state.codebase_path = validated[0]
+            state.codebase_paths = validated
+            state.vector_engine = _pipeline.vector_engine
+            state.bm25_engine = _pipeline.bm25_engine
+            state.graph_engine = _pipeline.graph_engine
+            return result.to_dict()
+
+        # Single path: determine full vs incremental
+        codebase_path = validated[0]
         metadata_path = settings.storage_path / "index_metadata.json"
         if metadata_path.exists():
             result = _pipeline.incremental_index(codebase_path)
@@ -332,6 +362,7 @@ def create_server():
         # Wire engines into session state
         state = get_state()
         state.codebase_path = codebase_path
+        state.codebase_paths = [codebase_path]
         state.vector_engine = _pipeline.vector_engine
         state.bm25_engine = _pipeline.bm25_engine
         state.graph_engine = _pipeline.graph_engine
@@ -391,7 +422,7 @@ def create_server():
 
         engines_used = []
         ranked_lists: dict[str, list] = {}
-        overfetch = limit * 3
+        overfetch = limit * 2
 
         # Vector search
         if mode in ("hybrid", "vector"):

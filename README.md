@@ -85,11 +85,18 @@ Nexus-MCP replaces this with targeted retrieval: semantic search returns the exa
 - **Semantic memory** — Persistent knowledge store with TTL expiration, 6 memory types, semantic recall
 - **Explain & Impact** — "What does this do?" and "What breaks if I change it?" in single tool calls
 - **Token-budgeted responses** — Three verbosity levels (summary/detailed/full) keep context windows lean
+- **Multi-folder indexing** — Index multiple directories in one call, processed folder-by-folder with shared engines
 - **Incremental indexing** — Only re-processes changed files; file watcher support
-- **Multi-model embeddings** — 3 models (jina-code default, bge-small-en, granite-embedding-small), GPU/MPS auto-detection
+- **Multi-model embeddings** — 2 models (jina-code default, bge-small-en), GPU/MPS auto-detection
 - **Low memory** — <350MB RAM target (ONNX Runtime ~50MB, mmap vectors, lazy model loading)
 - **Fully local** — Zero cloud dependencies, no API keys, all processing on your machine
 - **15 tools, one server** — Consolidates what previously required 2 MCP servers (17 tools) into one
+
+## Prerequisites
+
+- **Python 3.10+** (tested on 3.10, 3.11, 3.12)
+- **pip** (comes with Python)
+- **git** (to clone the repository)
 
 ## Install
 
@@ -106,6 +113,12 @@ pip install -e ".[dev]"
 pip install -e ".[gpu]"
 ```
 
+> **Note:** The default embedding model (`jina-code`) requires ONNX Runtime. This is included automatically via the `sentence-transformers[onnx]` dependency. If you see errors about missing ONNX/Optimum, run:
+> ```bash
+> pip install "sentence-transformers[onnx]" "optimum[onnxruntime]>=1.19.0"
+> ```
+> The default model also requires `trust_remote_code=True` (enabled by default). To use a model that doesn't need this, set `NEXUS_EMBEDDING_MODEL=bge-small-en`.
+
 See the full [Installation Guide](docs/INSTALLATION.md) for all options, MCP client integration, and troubleshooting.
 
 ## Run
@@ -117,8 +130,17 @@ nexus-mcp
 ## Add to Claude Code
 
 ```bash
+# Basic setup
 claude mcp add nexus-mcp -- nexus-mcp
+
+# With a specific embedding model (no trust_remote_code needed)
+claude mcp add nexus-mcp -e NEXUS_EMBEDDING_MODEL=bge-small-en -- nexus-mcp
 ```
+
+> **Important:** If you installed Nexus-MCP in a virtual environment, the MCP client must use the venv's Python. Either activate the venv before running `claude`, or use the full path:
+> ```bash
+> claude mcp add nexus-mcp -- /path/to/Nexus-MCP/.venv/bin/nexus-mcp
+> ```
 
 ## MCP Tools (15)
 
@@ -127,7 +149,7 @@ claude mcp add nexus-mcp -- nexus-mcp
 |------|-------------|
 | `status` | Server status, indexing stats, memory usage |
 | `health` | Readiness/liveness probe (uptime, engine availability) |
-| `index` | Index a codebase (full or incremental) |
+| `index` | Index a codebase (full, incremental, or multi-folder) |
 | `search` | Hybrid code search with language/type filters and reranking |
 
 ### Graph Analysis
@@ -156,7 +178,7 @@ All settings can be overridden via `NEXUS_` environment variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NEXUS_STORAGE_DIR` | `.nexus` | Storage directory for indexes |
-| `NEXUS_EMBEDDING_MODEL` | `jina-code` | Embedding model (`jina-code`, `bge-small-en`, `granite-embedding-small`) |
+| `NEXUS_EMBEDDING_MODEL` | `jina-code` | Embedding model (`jina-code`, `bge-small-en`) |
 | `NEXUS_EMBEDDING_DEVICE` | `auto` | Device for embeddings: `auto` (CUDA > MPS > CPU), `cuda`, `mps`, `cpu` |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max code snippet size per chunk |

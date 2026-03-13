@@ -92,7 +92,7 @@ def parallel_parse_files(
 
     if max_workers is None:
         cpu_count = os.cpu_count() or 4
-        max_workers = max(1, min(cpu_count - 1, 32))
+        max_workers = max(1, min(cpu_count - 1, 4))
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_file = {

@@ -56,7 +56,6 @@ Serverless, embedded vector database with native full-text search. Rust core, Py
 |-------|--------|------|------|---------|---------------|
 | `jinaai/jina-embeddings-v2-base-code` **(our default)** | - | ~500MB | 768 | Best for code | Yes |
 | `BAAI/bge-small-en-v1.5` | 33.4M | ~50MB (FP16: ~25MB) | 384 | Good | No (general text) |
-| `onnx-community/granite-embedding-small-english-r2-ONNX` | 47M | ~90MB | 384 | Good | No (Apache 2.0, no trust_remote_code) |
 | `all-MiniLM-L6-v2` (not supported) | 22M | ~80MB | 384 | Good | No |
 | `CodeSage-Small` (not supported) | 130M | ~200MB | 1024 | Very good | Yes (9 languages) |
 
@@ -64,7 +63,7 @@ Serverless, embedded vector database with native full-text search. Rust core, Py
 - Code-specific model with 768-dim embeddings for high-quality code search
 - ONNX-compatible for efficient inference
 - Best search quality among supported models for code-specific queries
-- Users can switch via `NEXUS_EMBEDDING_MODEL=bge-small-en` (smaller, 384d) or `NEXUS_EMBEDDING_MODEL=granite-embedding-small` (384d, Apache 2.0)
+- Users can switch via `NEXUS_EMBEDDING_MODEL=bge-small-en` (smaller, 384d)
 - Only registered model names are accepted; custom names raise `ConfigurationError`
 
 ### ONNX Runtime Strategy
@@ -140,7 +139,7 @@ CodeGrok + code-graph-mcp running as two separate MCPs consumed 1-2GB+ RAM:
 
 ### Strategies
 1. ONNX Runtime replaces PyTorch (-300-500MB)
-2. jina-code default with ONNX inference; bge-small-en and granite-embedding-small as alternatives
+2. jina-code default with ONNX inference; bge-small-en as alternative
 3. LanceDB mmap — vectors on disk, not in RAM
 4. Lazy model loading — only during `index`, not at startup
 5. Model unloading — `del model; gc.collect()` after indexing

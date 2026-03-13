@@ -14,7 +14,7 @@ class Settings:
     storage_dir: str = ".nexus"
 
     # Embedding model
-    embedding_model: str = "jina-code"
+    embedding_model: str = "bge-small-en"
     embedding_device: str = "auto"
     embedding_batch_size: int = 32
 
@@ -22,6 +22,7 @@ class Settings:
     max_file_size_mb: int = 10
     max_workers: Optional[int] = None
     chunk_max_chars: int = 4000
+    index_file_batch_size: int = 50  # files per streaming batch
 
     # Graph
     graph_max_depth: int = 10
@@ -66,6 +67,7 @@ class Settings:
             "NEXUS_MAX_FILE_SIZE_MB": ("max_file_size_mb", int),
             "NEXUS_MAX_WORKERS": ("max_workers", lambda v: int(v) if v else None),
             "NEXUS_CHUNK_MAX_CHARS": ("chunk_max_chars", int),
+            "NEXUS_INDEX_FILE_BATCH_SIZE": ("index_file_batch_size", int),
             "NEXUS_GRAPH_MAX_DEPTH": ("graph_max_depth", int),
             "NEXUS_SEARCH_MODE": ("search_mode", str),
             "NEXUS_RERANKER_MODEL": ("reranker_model", str),

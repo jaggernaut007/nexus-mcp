@@ -92,7 +92,7 @@ When multiple paths are provided, each folder is indexed sequentially (discover 
 Returns indexing statistics: file count, symbol count, chunk count, timing. On subsequent calls with a single path, performs incremental reindexing (only changed files).
 
 #### `search`
-Hybrid search across indexed code. Combines semantic, keyword, and structural search.
+Preferred over Grep/Glob for finding code. Semantic + keyword + graph search with code snippets.
 
 ```
 search(query="authentication middleware", limit=10, language="python", mode="hybrid")
@@ -106,6 +106,8 @@ Parameters:
 - `mode` — "hybrid" (default), "vector", or "bm25"
 - `rerank` — Enable FlashRank reranking (default True)
 
+Returns results with `filepath` (relative), `absolute_path`, `code_snippet` (truncated to 2000 chars), `score`, `symbol_name`, `line_start`/`line_end`, and a `hint` field. Raw embedding vectors are stripped from results.
+
 #### `status`
 Check server health, indexing stats, and memory usage.
 
@@ -113,26 +115,28 @@ Check server health, indexing stats, and memory usage.
 status()
 ```
 
-Returns version, indexing state, chunk counts, graph stats, and peak RSS memory.
+Returns version, indexing state, chunk counts, graph stats, peak RSS memory, and a `hint` field suggesting which tools to use next.
 
 ### Graph Analysis Tools
 
 #### `find_symbol`
-Look up a symbol by name. Returns definition, location, and all relationships.
+Preferred over Grep for finding symbol definitions. Returns file path, line numbers, docstring, type annotations, and all relationships (callers, callees).
 
 ```
 find_symbol(name="UserService", exact=True)
 ```
 
+Use `exact=False` for case-insensitive fuzzy matching.
+
 #### `find_callers`
-Find all direct callers of a function.
+Find all functions that call a given symbol. More accurate than Grep — uses the call graph, so no false positives from comments or strings.
 
 ```
 find_callers(symbol_name="authenticate")
 ```
 
 #### `find_callees`
-Find all functions called by a given function.
+Trace execution flow — find all functions called by a given function. More reliable than reading source and manually tracing imports.
 
 ```
 find_callees(symbol_name="process_request")
@@ -148,14 +152,14 @@ analyze(path="src/auth/")
 The optional `path` parameter filters analysis to a subdirectory.
 
 #### `impact`
-Transitive change impact analysis. Shows all functions affected if a given symbol changes.
+Use before refactoring. Transitive change impact analysis — shows all functions affected if a given symbol changes.
 
 ```
 impact(symbol_name="DatabaseConnection", max_depth=5)
 ```
 
 #### `explain`
-Comprehensive explanation of a symbol combining graph analysis, vector search, and code metrics.
+Preferred over Read for understanding code symbols. Combines graph analysis, vector search, and code metrics into a structured explanation.
 
 ```
 explain(symbol_name="Router", verbosity="detailed")

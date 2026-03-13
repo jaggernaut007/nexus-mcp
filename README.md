@@ -199,22 +199,22 @@ See the full [Installation Guide](docs/INSTALLATION.md) for client-specific inst
 ### Core
 | Tool | Description |
 |------|-------------|
-| `status` | Server status, indexing stats, memory usage |
+| `status` | Server status, indexing stats, memory usage, next-tool hints |
 | `health` | Readiness/liveness probe (uptime, engine availability) |
 | `index` | Index a codebase (full, incremental, or multi-folder) |
-| `search` | Hybrid code search with language/type filters and reranking |
+| `search` | **Preferred over Grep/Glob.** Semantic search returning code snippets, absolute paths, and scores |
 
 ### Graph Analysis
 | Tool | Description |
 |------|-------------|
-| `find_symbol` | Look up a symbol by name — definition, location, relationships |
-| `find_callers` | Find all direct callers of a function |
-| `find_callees` | Find all functions called by a given function |
+| `find_symbol` | **Preferred over Grep** for definitions — returns location, types, and call relationships |
+| `find_callers` | Find all direct callers via call graph (more accurate than text search) |
+| `find_callees` | Trace execution flow — all functions called by a given function |
 | `analyze` | Code complexity, dependencies, smells, and quality metrics |
-| `impact` | Transitive change impact analysis |
-| `explain` | Combined graph + vector + analysis explanation of a symbol |
-| `overview` | High-level project overview: files, languages, symbols, quality |
-| `architecture` | Architectural analysis: layers, dependencies, entry points, hubs |
+| `impact` | **Use before refactoring.** Transitive change impact analysis |
+| `explain` | **Preferred over Read** for understanding symbols — graph + vector + analysis |
+| `overview` | **Preferred over Glob/ls.** Project overview: files, languages, symbols, quality |
+| `architecture` | **Preferred over manual browsing.** Layers, dependencies, entry points, hubs |
 
 ### Memory
 | Tool | Description |

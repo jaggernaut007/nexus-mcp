@@ -31,6 +31,7 @@ class StatusResponse(BaseModel):
     vector_chunks: Optional[int] = None
     bm25_fts_ready: Optional[bool] = None
     graph: Optional[Dict[str, Any]] = None
+    hint: Optional[str] = None
 
 
 class EngineStatus(BaseModel):
@@ -65,13 +66,14 @@ class IndexResponse(BaseModel):
 class SearchResult(BaseModel):
     id: Optional[str] = None
     filepath: Optional[str] = None
+    absolute_path: Optional[str] = None
     symbol_name: Optional[str] = None
     symbol_type: Optional[str] = None
     language: Optional[str] = None
     line_start: Optional[int] = None
     line_end: Optional[int] = None
     score: Optional[float] = None
-    text: Optional[str] = None
+    code_snippet: Optional[str] = None
     signature: Optional[str] = None
     parent: Optional[str] = None
     docstring: Optional[str] = None
@@ -83,6 +85,7 @@ class SearchResponse(BaseModel):
     search_mode: str
     engines_used: List[str]
     results: List[Dict[str, Any]]
+    hint: Optional[str] = None
 
 
 # --- Symbol ---

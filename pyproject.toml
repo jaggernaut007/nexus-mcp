@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "nexus-mcp"
+name = "nexus-mcp-CI"
 version = "0.1.0"
 description = "Unified MCP server with hybrid search, code graph analysis, and semantic memory"
 readme = "README.md"

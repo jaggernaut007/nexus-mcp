@@ -13,6 +13,7 @@ class TestStatus:
         assert result["version"] == "0.1.0"
         assert result["indexed"] is False
         assert result["codebase_path"] is None
+        assert "hint" in result
 
     def test_status_after_index(self, mini_codebase, tmp_path):
         async def run():
@@ -25,6 +26,7 @@ class TestStatus:
         assert "vector_chunks" in status
         assert status["vector_chunks"] > 0
         assert "graph" in status
+        assert "hint" in status
 
 
 class TestIndex:
@@ -108,6 +110,14 @@ class TestSearch:
         assert "symbol_name" in r
         assert "score" in r
         assert "language" in r
+        # New fields: code_snippet, absolute_path, no raw vector
+        assert "code_snippet" in r, "search results must include code_snippet"
+        assert "absolute_path" in r, "search results must include absolute_path"
+        assert r["absolute_path"].startswith("/"), "absolute_path must be absolute"
+        assert "vector" not in r, "raw embedding vector must be stripped"
+        assert "text" not in r, "text field should be renamed to code_snippet"
+        # Response-level hint
+        assert "hint" in result
 
     def test_search_with_limit(self, mini_codebase, tmp_path):
         async def run():

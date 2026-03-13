@@ -259,6 +259,16 @@ def create_server():
                 result["bm25_fts_ready"] = state.bm25_engine._fts_index_created
             if state.graph_engine:
                 result["graph"] = state.graph_engine.get_statistics()
+            result["hint"] = (
+                "Codebase is indexed. Use 'search' to find code (preferred over Grep/Glob), "
+                "'find_symbol' for definitions, 'find_callers'/'find_callees' for call graph, "
+                "'explain' for understanding symbols, 'impact' before refactoring."
+            )
+        else:
+            result["hint"] = (
+                "Codebase not indexed. Run 'index' first to enable "
+                "semantic search, call graphs, and code analysis."
+            )
 
         return result
 
@@ -378,21 +388,24 @@ def create_server():
         mode: str = "hybrid",
         rerank: bool = True,
     ) -> dict[str, Any]:
-        """Search indexed codebase for relevant code using hybrid search.
+        """PREFERRED over Grep/Glob. Semantic search with code snippets.
 
-        Combines vector (semantic), BM25 (keyword), and graph (structural)
-        results via Reciprocal Rank Fusion, optionally reranked with FlashRank.
+        Use INSTEAD of Grep or Glob to find relevant code. Returns ranked
+        results with file paths, line numbers, and code snippets — no need
+        to Read files after. Understands natural language queries like
+        "error handling in auth" or "database connection setup".
 
         Args:
-            query: Natural language or code search query.
-            limit: Maximum number of results (default 10, max 100).
+            query: Natural language or code query
+                (e.g. "retry logic", "authentication flow").
+            limit: Max results (default 10, max 100).
             language: Filter by language (e.g. "python").
             symbol_type: Filter by type (e.g. "function", "class").
-            mode: Search mode — "hybrid", "vector", or "bm25" (default "hybrid").
-            rerank: Enable FlashRank reranking (default True).
+            mode: "hybrid" (default), "vector", or "bm25".
+            rerank: FlashRank reranking (default True).
 
         Returns:
-            Search results with scores and metadata.
+            Ranked results with paths, line ranges, code, scores.
         """
         guard_err = _guard("search")
         if guard_err:
@@ -480,15 +493,29 @@ def create_server():
         else:
             results = results[:limit]
 
-        # Make paths relative to codebase root
-        if state.codebase_path:
-            root = state.codebase_path
-            for r in results:
-                fp = r.get("filepath", "")
+        # Clean up results: strip vectors, add absolute paths, code_snippet
+        roots = getattr(state, "codebase_paths", [])
+        if not roots and state.codebase_path:
+            roots = [state.codebase_path]
+        for r in results:
+            # Remove raw embedding vector (wastes tokens, not useful to LLM)
+            r.pop("vector", None)
+            # Make path relative; try each indexed root for multi-folder
+            fp = r.get("filepath", "")
+            r["absolute_path"] = fp
+            for root in roots:
                 try:
                     r["filepath"] = str(Path(fp).relative_to(root))
+                    break
                 except ValueError:
-                    pass
+                    continue
+            # Rename 'text' to 'code_snippet' with truncation marker
+            if "text" in r:
+                code = r.pop("text")
+                if len(code) > 2000:
+                    r["code_snippet"] = code[:2000] + "\n... (truncated)"
+                else:
+                    r["code_snippet"] = code
 
         return {
             "query": query,
@@ -496,18 +523,26 @@ def create_server():
             "search_mode": mode,
             "engines_used": engines_used,
             "results": results,
+            "hint": (
+                "Results include code_snippet — you can often "
+                "answer without needing to Read the file."
+            ),
         }
 
     @mcp.tool()
     def find_symbol(name: str, exact: bool = True) -> dict[str, Any]:
-        """Look up a symbol by name. Returns definition, location, and relationships.
+        """PREFERRED over Grep for finding symbol definitions.
+
+        Use INSTEAD of Grep to find where a function, class, or
+        variable is defined. Returns file path, line numbers, docstring,
+        type annotations, and all relationships (callers, callees).
 
         Args:
-            name: Symbol name to search for.
-            exact: If True, exact match. If False, case-insensitive substring.
+            name: Symbol name (e.g. "create_server", "TokenBudget").
+            exact: True for exact match, False for fuzzy substring.
 
         Returns:
-            Matching symbols with their definitions and relationships.
+            Symbols with locations, signatures, and relationships.
         """
         guard_err = _guard("find_symbol")
         if guard_err:
@@ -541,13 +576,16 @@ def create_server():
 
     @mcp.tool()
     def find_callers(symbol_name: str) -> dict[str, Any]:
-        """Find all direct callers of a function.
+        """Find all functions that call a given symbol. More accurate than Grep for tracing usage.
+
+        Use this INSTEAD of Grep to find where a function is called. Returns actual call
+        graph relationships, not just text matches — no false positives from comments or strings.
 
         Args:
             symbol_name: Name of the function to find callers for.
 
         Returns:
-            List of functions that call the given symbol.
+            List of caller functions with their file locations and metadata.
         """
         guard_err = _guard("find_callers")
         if guard_err:
@@ -581,13 +619,16 @@ def create_server():
 
     @mcp.tool()
     def find_callees(symbol_name: str) -> dict[str, Any]:
-        """Find all functions called by the given function.
+        """Find all functions called by a given function. Traces execution flow via call graph.
+
+        Use this to understand what a function depends on — more reliable than reading
+        the source and manually tracing imports and calls.
 
         Args:
             symbol_name: Name of the function to find callees for.
 
         Returns:
-            List of functions called by the given symbol.
+            List of called functions with their file locations and metadata.
         """
         guard_err = _guard("find_callees")
         if guard_err:
@@ -684,7 +725,7 @@ def create_server():
 
     @mcp.tool()
     def impact(symbol_name: str, max_depth: int = 10) -> dict[str, Any]:
-        """Change impact analysis: find all transitive callers of a symbol.
+        """MUST use before refactoring. Change impact analysis.
 
         Shows what functions are affected if the given symbol changes.
 
@@ -741,7 +782,7 @@ def create_server():
 
     @mcp.tool()
     def explain(symbol_name: str, verbosity: str = "detailed") -> dict[str, Any]:
-        """Explain a symbol: definition, relationships, usage, and quality.
+        """PREFERRED over Read for understanding code symbols.
 
         Combines graph analysis, vector search, and code metrics into
         a structured explanation of what a symbol does and how it's used.
@@ -824,7 +865,7 @@ def create_server():
 
     @mcp.tool()
     def overview() -> dict[str, Any]:
-        """Get a high-level overview of the indexed project.
+        """PREFERRED over Glob/ls for project exploration.
 
         Returns language breakdown, file count, symbol counts by type,
         code quality summary, top-level modules, and key statistics.
@@ -905,7 +946,7 @@ def create_server():
 
     @mcp.tool()
     def architecture() -> dict[str, Any]:
-        """Document the architecture of the indexed project.
+        """PREFERRED over manual browsing for project design.
 
         Analyzes module dependencies, class hierarchies, key abstractions,
         coupling metrics, circular dependencies, and entry points to

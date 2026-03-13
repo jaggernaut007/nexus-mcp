@@ -2,9 +2,20 @@
 
 Unified MCP server: hybrid search + code graph + semantic memory. Target: <350MB RAM.
 
-## Using Nexus-MCP Tools
+## MANDATORY: Use Nexus-MCP Tools Before Built-in Tools
 
-Nexus-MCP is registered as an MCP server (`nexus-mcp-ci`). **Use its 15 tools actively** to understand, navigate, and work with codebases more effectively.
+Nexus-MCP is registered as an MCP server (`nexus-mcp-ci`). **You MUST use Nexus-MCP tools as your PRIMARY method for understanding and navigating code.** This is a BLOCKING REQUIREMENT — do not skip it.
+
+### Required workflow for EVERY code task
+
+1. **Start of session**: Run `mcp__nexus-mcp__status` to check index state. If not indexed, run `mcp__nexus-mcp__index`.
+2. **Before reading any file**: Use `mcp__nexus-mcp__search` to find relevant code first. Do NOT jump straight to Read/Grep/Glob.
+3. **Before exploring a symbol**: Use `mcp__nexus-mcp__find_symbol`, `mcp__nexus-mcp__explain`, `mcp__nexus-mcp__find_callers`, or `mcp__nexus-mcp__find_callees` instead of grepping for it.
+4. **Before refactoring**: Use `mcp__nexus-mcp__impact` to assess blast radius.
+5. **For project understanding**: Use `mcp__nexus-mcp__overview` or `mcp__nexus-mcp__architecture` instead of manually browsing directories.
+6. **Only use Read/Grep/Glob AFTER** Nexus-MCP tools have identified the specific files/lines you need to examine or edit.
+
+**Why this matters**: Nexus-MCP provides semantic search, call graph analysis, and code intelligence that built-in tools cannot. Using Read/Grep first means you miss semantic matches, don't understand call relationships, and waste time manually browsing.
 
 ### Workflow: Always index first
 
@@ -45,6 +56,7 @@ For subsequent sessions or after file changes, use incremental mode (auto-detect
 
 ### Best practices
 
+- **NEVER use Grep/Glob/Read as your first action for code exploration**: Always start with `search`, `find_symbol`, or `overview`. Only fall back to built-in tools for reading specific files identified by Nexus-MCP, or for files outside the indexed codebase.
 - **Search before reading files**: Use `search` to find relevant code instead of manually browsing. It's faster and finds semantic matches.
 - **Use `impact` before refactoring**: Always check change impact before modifying shared symbols.
 - **Use `explain` for unfamiliar code**: Combines graph relationships, related code, and quality metrics in one call.

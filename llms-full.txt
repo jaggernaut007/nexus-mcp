@@ -103,12 +103,15 @@ Nexus-MCP replaces this with targeted retrieval: semantic search returns the exa
 ## Install
 
 ```bash
-# Option 1: Setup script (recommended — creates venv, installs, verifies)
+# Option 1: PyPI (recommended)
+pip install nexus-mcp-ci
+
+# Option 2: Setup script (from source — creates venv, installs, verifies)
 git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 ./setup.sh
 
-# Option 2: Manual install
+# Option 3: Manual install from source
 pip install -e ".[dev]"
 ```
 
@@ -117,13 +120,13 @@ See the full [Installation Guide](docs/INSTALLATION.md) for all options, MCP cli
 ## Run
 
 ```bash
-nexus-mcp
+nexus-mcp-ci
 ```
 
 ## Add to Claude Code
 
 ```bash
-claude mcp add nexus-mcp -- nexus-mcp
+claude mcp add nexus-mcp-ci -- nexus-mcp-ci
 ```
 
 ## MCP Tools (15)
@@ -329,7 +332,7 @@ python self_test/demo_mcp.py
 The easiest way to add Nexus-MCP to Claude Code:
 
 ```bash
-claude mcp add nexus-mcp -- nexus-mcp
+claude mcp add nexus-mcp -- nexus-mcp-ci
 ```
 
 Or manually add to your settings (`~/.claude/settings.json`):
@@ -338,7 +341,7 @@ Or manually add to your settings (`~/.claude/settings.json`):
 {
   "mcpServers": {
     "nexus-mcp": {
-      "command": "nexus-mcp"
+      "command": "nexus-mcp-ci"
     }
   }
 }
@@ -368,7 +371,7 @@ Add to your Claude Desktop configuration:
 {
   "mcpServers": {
     "nexus-mcp": {
-      "command": "nexus-mcp",
+      "command": "nexus-mcp-ci",
       "args": []
     }
   }
@@ -389,7 +392,7 @@ Cursor supports MCP servers through its extension system:
 ```json
 {
   "nexus-mcp": {
-    "command": "nexus-mcp",
+    "command": "nexus-mcp-ci",
     "transport": "stdio"
   }
 }
@@ -401,7 +404,7 @@ Or add to `.cursor/mcp.json` in your project:
 {
   "servers": {
     "nexus-mcp": {
-      "command": "nexus-mcp"
+      "command": "nexus-mcp-ci"
     }
   }
 }
@@ -420,7 +423,7 @@ Windsurf supports MCP through Cascade:
 ```json
 {
   "nexus-mcp": {
-    "command": "nexus-mcp",
+    "command": "nexus-mcp-ci",
     "transport": "stdio"
   }
 }
@@ -440,7 +443,7 @@ Add to Cline's MCP settings in VS Code:
 {
   "mcpServers": {
     "nexus-mcp": {
-      "command": "nexus-mcp"
+      "command": "nexus-mcp-ci"
     }
   }
 }
@@ -457,7 +460,7 @@ Zed supports MCP through its assistant panel. Add to settings:
   "assistant": {
     "mcp_servers": {
       "nexus-mcp": {
-        "command": "nexus-mcp"
+        "command": "nexus-mcp-ci"
       }
     }
   }
@@ -475,7 +478,7 @@ Add to your Continue configuration (`~/.continue/config.json`):
   "mcpServers": [
     {
       "name": "nexus-mcp",
-      "command": "nexus-mcp"
+      "command": "nexus-mcp-ci"
     }
   ]
 }
@@ -610,7 +613,7 @@ Add to your MCP client's config (e.g., Claude Desktop):
 {
   "mcpServers": {
     "nexus-mcp": {
-      "command": "nexus-mcp"
+      "command": "nexus-mcp-ci"
     }
   }
 }

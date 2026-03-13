@@ -187,7 +187,7 @@ Nexus-MCP consolidates CodeGrok + code-graph-mcp into **one single MCP server** 
 - JSON structured logging (`NEXUS_LOG_FORMAT=json`)
 - Input validation (symbol name length, path containment)
 - Memory monitoring in `status` tool (RSS via `tracemalloc`)
-- PyPI packaging as `nexus-mcp`
+- PyPI packaging as `nexus-mcp-ci`
 - Snyk security scan
 - Final README with tool docs
 

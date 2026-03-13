@@ -113,6 +113,18 @@
 - [x] Supports user-provided codebase path or auto-generated temp project
 - [x] Optional `rich` integration for colorized table output
 
+## Phase 7: Distribution & Launch — COMPLETE
+- [x] GitHub repository optimization — description, 20 topics, social preview image
+- [x] AI discoverability files — llms.txt, llms-full.txt, CITATION.cff, smithery.yaml
+- [x] PyPI publication — `pip install nexus-mcp-ci` via GitHub Actions trusted publishing
+- [x] GitHub Actions CI/CD — `.github/workflows/publish.yml` (auto-publish on release)
+- [x] GitHub release v0.1.0
+- [x] awesome-mcp-servers PR submitted (punkpeye/awesome-mcp-servers #3152)
+- [x] Launch posts drafted — HN, Reddit (x3), Twitter/X, Dev.to, LinkedIn
+- [x] Website/resume copy prepared
+- [x] pyproject.toml keywords expanded (15 keywords)
+- [x] SEO/GEO strategy documented (docs-pre/SEO_GEO_STRATEGY.md)
+
 ## Recent Decisions
 | Date | Decision | Rationale | ADR |
 |------|----------|-----------|-----|

@@ -261,7 +261,7 @@ Each parser excels at a different task:
 - 5,000+ MCP servers in ecosystem
 - No competitor matches all features: hybrid search + code graph + memory + local-only
 - Biggest threat: Continue.dev (open-source, MCP-compatible, larger community)
-- Distribution gap: not yet on PyPI, Smithery, or awesome-mcp-servers
+- Distribution: published on PyPI (`pip install nexus-mcp-ci`), submitted to awesome-mcp-servers
 
 ### Unique Selling Points
 1. Fully local/private — zero cloud dependency

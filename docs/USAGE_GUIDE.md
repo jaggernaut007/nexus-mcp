@@ -5,13 +5,22 @@
 ### Installation
 
 ```bash
-# Clone and install
+# Install from PyPI
+pip install nexus-mcp-ci
+
+# Optional: with FlashRank reranker for better search quality
+pip install nexus-mcp-ci[reranker]
+
+# Optional: with GPU (CUDA) support
+pip install nexus-mcp-ci[gpu]
+```
+
+Or install from source for development:
+
+```bash
 git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 pip install -e ".[dev]"
-
-# Optional: install FlashRank reranker for better search quality
-pip install -e ".[reranker]"
 ```
 
 ### Running the Server
@@ -20,21 +29,41 @@ pip install -e ".[reranker]"
 nexus-mcp
 ```
 
-The server starts on stdio (default MCP transport). Configure your MCP client to connect to `nexus-mcp`.
+The server starts on stdio (the default MCP transport). Configure your MCP client to connect to `nexus-mcp`.
 
 ### MCP Client Configuration
 
-Add to your MCP client's config (e.g., Claude Desktop):
+**Claude Code:**
+
+```bash
+claude mcp add nexus-mcp -- nexus-mcp-ci
+```
+
+**Claude Desktop** (add to `~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
-    "nexus-mcp": {
-      "command": "nexus-mcp"
+    "nexus-mcp-ci": {
+      "command": "nexus-mcp-ci",
+      "args": []
     }
   }
 }
 ```
+
+**Other MCP clients** (Cursor, Windsurf, Cline, etc.):
+
+```json
+{
+  "nexus-mcp-ci": {
+    "command": "nexus-mcp-ci",
+    "transport": "stdio"
+  }
+}
+```
+
+See the full [Installation Guide](INSTALLATION.md) for client-specific instructions.
 
 ## Tool Reference
 

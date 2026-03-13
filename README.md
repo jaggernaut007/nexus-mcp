@@ -96,28 +96,46 @@ Nexus-MCP replaces this with targeted retrieval: semantic search returns the exa
 
 - **Python 3.10+** (tested on 3.10, 3.11, 3.12)
 - **pip** (comes with Python)
-- **git** (to clone the repository)
 
 ## Install
 
+### Option 1: pip install from PyPI (recommended)
+
 ```bash
-# Option 1: Setup script (recommended — creates venv, installs, verifies)
-git clone https://github.com/jaggernaut007/Nexus-MCP.git
-cd Nexus-MCP
-./setup.sh
-
-# Option 2: Manual install
-pip install -e ".[dev]"
-
-# Option 3: With GPU (CUDA) support
-pip install -e ".[gpu]"
+pip install nexus-mcp-ci
 ```
 
-> **Note:** The default embedding model (`jina-code`) requires ONNX Runtime. This is included automatically via the `sentence-transformers[onnx]` dependency. If you see errors about missing ONNX/Optimum, run:
+With optional extras:
+
+```bash
+# With GPU (CUDA) support
+pip install nexus-mcp-ci[gpu]
+
+# With FlashRank reranker for better search quality
+pip install nexus-mcp-ci[reranker]
+
+# Both
+pip install nexus-mcp-ci[gpu,reranker]
+```
+
+### Option 2: From source (for development)
+
+```bash
+git clone https://github.com/jaggernaut007/Nexus-MCP.git
+cd Nexus-MCP
+
+# Setup script (creates venv, installs, verifies)
+./setup.sh
+
+# Or manual install with dev deps
+pip install -e ".[dev]"
+```
+
+> **Note:** The default embedding model (`jina-code`) requires ONNX Runtime. This is included automatically. If you see errors about missing ONNX/Optimum, run:
 > ```bash
 > pip install "sentence-transformers[onnx]" "optimum[onnxruntime]>=1.19.0"
 > ```
-> The default model also requires `trust_remote_code=True` (enabled by default). To use a model that doesn't need this, set `NEXUS_EMBEDDING_MODEL=bge-small-en`.
+> To use a lighter model that doesn't need `trust_remote_code`, set `NEXUS_EMBEDDING_MODEL=bge-small-en`.
 
 See the full [Installation Guide](docs/INSTALLATION.md) for all options, MCP client integration, and troubleshooting.
 
@@ -127,20 +145,54 @@ See the full [Installation Guide](docs/INSTALLATION.md) for all options, MCP cli
 nexus-mcp
 ```
 
-## Add to Claude Code
+The server starts on stdio (the default MCP transport). Point your MCP client at the `nexus-mcp` command.
+
+## Add to Your MCP Client
+
+### Claude Code
 
 ```bash
 # Basic setup
-claude mcp add nexus-mcp -- nexus-mcp
+claude mcp add nexus-mcp-ci -- nexus-mcp-ci
 
-# With a specific embedding model (no trust_remote_code needed)
-claude mcp add nexus-mcp -e NEXUS_EMBEDDING_MODEL=bge-small-en -- nexus-mcp
+# With a specific embedding model
+claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_MODEL=bge-small-en -- nexus-mcp-ci
 ```
 
-> **Important:** If you installed Nexus-MCP in a virtual environment, the MCP client must use the venv's Python. Either activate the venv before running `claude`, or use the full path:
+> **Tip:** If you installed in a virtual environment, use the full path so the MCP client finds the right Python:
 > ```bash
-> claude mcp add nexus-mcp -- /path/to/Nexus-MCP/.venv/bin/nexus-mcp
+> claude mcp add nexus-mcp-ci -- /path/to/Nexus-MCP/.venv/bin/nexus-mcp-ci
 > ```
+
+### Claude Desktop
+
+Add to your config file (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{
+  "mcpServers": {
+    "nexus-mcp-ci": {
+      "command": "nexus-mcp-ci",
+      "args": []
+    }
+  }
+}
+```
+
+### Cursor / Windsurf / Cline / Other MCP Clients
+
+Add to your MCP client's server config:
+
+```json
+{
+  "nexus-mcp-ci": {
+    "command": "nexus-mcp-ci",
+    "transport": "stdio"
+  }
+}
+```
+
+See the full [Installation Guide](docs/INSTALLATION.md) for client-specific instructions.
 
 ## MCP Tools (15)
 
@@ -208,7 +260,7 @@ pip install -e ".[dev]"     # Install with dev deps
 pytest -v                   # Run tests (441 tests)
 pytest -m "not slow"        # Skip performance benchmarks
 ruff check .                # Lint
-nexus-mcp                   # Run server
+nexus-mcp-ci                # Run server
 ```
 
 ## How It Works

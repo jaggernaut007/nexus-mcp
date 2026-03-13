@@ -26,6 +26,7 @@ env/
 .coverage
 htmlcov/
 .mypy_cache/
+.hypothesis/
 
 # LanceDB data
 .nexus/

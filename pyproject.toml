@@ -68,7 +68,7 @@ reranker = [
 ]
 
 [project.scripts]
-nexus-mcp = "nexus_mcp.server:main"
+nexus-mcp-ci = "nexus_mcp.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/nexus_mcp"]

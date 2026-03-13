@@ -4,7 +4,6 @@
 
 - **Python 3.10+** (tested on 3.10, 3.11, 3.12)
 - **pip** (comes with Python)
-- **git** (to clone the repository)
 
 Check your Python version:
 
@@ -16,9 +15,45 @@ If you have multiple Python versions, ensure you use 3.10 or later.
 
 ---
 
-## Quick Start (Setup Script)
+## Install from PyPI (recommended)
 
-The recommended way to install Nexus-MCP:
+The simplest way to install Nexus-MCP:
+
+```bash
+pip install nexus-mcp-ci
+```
+
+With optional extras:
+
+```bash
+# With GPU (CUDA) support
+pip install nexus-mcp-ci[gpu]
+
+# With FlashRank reranker for better search quality
+pip install nexus-mcp-ci[reranker]
+
+# Both GPU and reranker
+pip install nexus-mcp-ci[gpu,reranker]
+```
+
+After installing, the `nexus-mcp` command is available globally:
+
+```bash
+nexus-mcp
+```
+
+> **Virtual environment recommended:** While `pip install nexus-mcp-ci` works globally, using a virtual environment avoids dependency conflicts:
+> ```bash
+> python3 -m venv ~/.nexus-mcp-venv
+> source ~/.nexus-mcp-venv/bin/activate
+> pip install nexus-mcp-ci
+> ```
+
+---
+
+## Install from Source (for development)
+
+### Quick Start (Setup Script)
 
 ```bash
 # Clone the repository
@@ -55,11 +90,7 @@ After setup, activate the environment:
 source .venv/bin/activate
 ```
 
----
-
-## Manual Install
-
-If you prefer not to use the setup script:
+### Manual Install from Source
 
 ```bash
 git clone https://github.com/jaggernaut007/Nexus-MCP.git
@@ -89,7 +120,7 @@ python3 -c "import nexus_mcp; print('OK')"
 # Check the CLI is available
 nexus-mcp --help
 
-# Run the self-test demo (exercises all 13 tools, 26 checks)
+# Run the self-test demo (exercises all 15 tools)
 python self_test/demo_mcp.py
 ```
 
@@ -99,38 +130,28 @@ python self_test/demo_mcp.py
 
 ### Claude Code (CLI)
 
-**Recommended setup (venv install):**
+**If installed via pip (recommended):**
 
 ```bash
-# 1. Clone and install in a virtual environment
-git clone https://github.com/jaggernaut007/Nexus-MCP.git
-cd Nexus-MCP
-./setup.sh            # creates .venv, installs all deps
-# Use --clean to remove an existing venv and start fresh
+# If nexus-mcp is on your PATH (pip install nexus-mcp-ci)
+claude mcp add nexus-mcp -- nexus-mcp-ci
 
-# 2. Register the MCP server with Claude Code (use full venv path)
+# With environment variables
+claude mcp add nexus-mcp -e NEXUS_EMBEDDING_MODEL=bge-small-en -- nexus-mcp-ci
+```
+
+**If installed in a virtual environment:**
+
+```bash
+# Use the full venv path so the MCP client finds the right Python
 claude mcp add nexus-mcp -- /path/to/Nexus-MCP/.venv/bin/nexus-mcp
 
-# 3. If updating an existing registration, remove first
+# If updating an existing registration, remove first
 claude mcp remove nexus-mcp
 claude mcp add nexus-mcp -- /path/to/Nexus-MCP/.venv/bin/nexus-mcp
 ```
 
 > **Why use the full venv path?** MCP clients spawn the server as a subprocess. If you just use `nexus-mcp`, it resolves to whatever Python is on your system PATH — which may not have the required dependencies installed. Using the venv path ensures the server runs with the correct, isolated environment.
-
-**Alternative (global install):**
-
-```bash
-claude mcp add nexus-mcp -- nexus-mcp
-```
-
-This works if you installed Nexus-MCP globally (`pip install -e .` without a venv), but may cause dependency conflicts with other packages in your global Python environment.
-
-**Passing environment variables:**
-
-```bash
-claude mcp add nexus-mcp -e NEXUS_EMBEDDING_MODEL=bge-small-en -- /path/to/Nexus-MCP/.venv/bin/nexus-mcp
-```
 
 **Manual config** — add to your settings (`~/.claude/settings.json`):
 
@@ -138,7 +159,7 @@ claude mcp add nexus-mcp -e NEXUS_EMBEDDING_MODEL=bge-small-en -- /path/to/Nexus
 {
   "mcpServers": {
     "nexus-mcp": {
-      "command": "/path/to/Nexus-MCP/.venv/bin/nexus-mcp"
+      "command": "nexus-mcp-ci"
     }
   }
 }
@@ -170,7 +191,7 @@ Add to your Claude Desktop configuration:
 {
   "mcpServers": {
     "nexus-mcp": {
-      "command": "nexus-mcp",
+      "command": "nexus-mcp-ci",
       "args": []
     }
   }
@@ -191,7 +212,7 @@ Cursor supports MCP servers through its extension system:
 ```json
 {
   "nexus-mcp": {
-    "command": "nexus-mcp",
+    "command": "nexus-mcp-ci",
     "transport": "stdio"
   }
 }
@@ -203,7 +224,7 @@ Or add to `.cursor/mcp.json` in your project:
 {
   "servers": {
     "nexus-mcp": {
-      "command": "nexus-mcp"
+      "command": "nexus-mcp-ci"
     }
   }
 }
@@ -222,7 +243,7 @@ Windsurf supports MCP through Cascade:
 ```json
 {
   "nexus-mcp": {
-    "command": "nexus-mcp",
+    "command": "nexus-mcp-ci",
     "transport": "stdio"
   }
 }
@@ -242,7 +263,7 @@ Add to Cline's MCP settings in VS Code:
 {
   "mcpServers": {
     "nexus-mcp": {
-      "command": "nexus-mcp"
+      "command": "nexus-mcp-ci"
     }
   }
 }
@@ -259,7 +280,7 @@ Zed supports MCP through its assistant panel. Add to settings:
   "assistant": {
     "mcp_servers": {
       "nexus-mcp": {
-        "command": "nexus-mcp"
+        "command": "nexus-mcp-ci"
       }
     }
   }
@@ -277,7 +298,7 @@ Add to your Continue configuration (`~/.continue/config.json`):
   "mcpServers": [
     {
       "name": "nexus-mcp",
-      "command": "nexus-mcp"
+      "command": "nexus-mcp-ci"
     }
   ]
 }

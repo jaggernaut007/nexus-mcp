@@ -42,7 +42,7 @@ startCommand:
           - "ERROR"
   commandFunction: |-
     (config) => ({
-      command: 'nexus-mcp',
+      command: 'nexus-mcp-ci',
       args: [],
       env: {
         NEXUS_STORAGE_DIR: config.storage_dir || '.nexus',

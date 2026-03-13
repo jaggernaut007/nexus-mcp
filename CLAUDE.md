@@ -4,7 +4,7 @@ Unified MCP server: hybrid search + code graph + semantic memory. Target: <350MB
 
 ## Using Nexus-MCP Tools
 
-Nexus-MCP is registered as an MCP server (`nexus-mcp`). **Use its 15 tools actively** to understand, navigate, and work with codebases more effectively.
+Nexus-MCP is registered as an MCP server (`nexus-mcp-ci`). **Use its 15 tools actively** to understand, navigate, and work with codebases more effectively.
 
 ### Workflow: Always index first
 
@@ -110,14 +110,15 @@ self_test/
 ## Commands
 
 ```bash
+pip install nexus-mcp-ci   # Install from PyPI
+pip install -e ".[dev]"    # Install from source with dev deps
 ./setup.sh                 # Setup script (venv + install + verify)
-pip install -e ".[dev]"    # Manual install with dev deps
 pytest -v                  # Run tests (441 tests)
 pytest -m "not slow"       # Skip performance benchmarks
 ruff check .               # Lint
-nexus-mcp                  # Run server
+nexus-mcp-ci               # Run server
 python self_test/demo_mcp.py  # Run self-test demo (all 15 tools)
-claude mcp add nexus-mcp -- nexus-mcp  # Add to Claude Code
+claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 ```
 
 ## Key Decisions
@@ -171,13 +172,13 @@ Set the `NEXUS_EMBEDDING_MODEL` environment variable:
 
 ```bash
 # Use bge-small-en (lightweight, no trust_remote_code needed)
-NEXUS_EMBEDDING_MODEL=bge-small-en nexus-mcp
+NEXUS_EMBEDDING_MODEL=bge-small-en nexus-mcp-ci
 
 # Or set in your shell profile
 export NEXUS_EMBEDDING_MODEL=bge-small-en
 
 # For Claude Code MCP config
-claude mcp add nexus-mcp -e NEXUS_EMBEDDING_MODEL=bge-small-en -- nexus-mcp
+claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_MODEL=bge-small-en -- nexus-mcp-ci
 ```
 
 ### GPU / MPS acceleration
@@ -187,7 +188,7 @@ Device is auto-detected by default (`NEXUS_EMBEDDING_DEVICE=auto`):
 - **MPS** (Apple Silicon): Detected via `torch.backends.mps` or onnxruntime CoreMLExecutionProvider
 - **CPU**: Fallback
 
-For CUDA GPU support, install the gpu extra: `pip install nexus-mcp[gpu]`
+For CUDA GPU support, install the gpu extra: `pip install nexus-mcp-ci[gpu]`
 
 To force a specific device: `NEXUS_EMBEDDING_DEVICE=cpu` or `NEXUS_EMBEDDING_DEVICE=cuda`
 

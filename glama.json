@@ -7,10 +7,6 @@
   "maintainers": [
     "jaggernaut007"
   ],
-  "buildSpec": {
-    "pythonVersion": "3.12",
-    "buildSteps": ["uv sync"]
-  },
   "keywords": [
     "code-search",
     "semantic-search",

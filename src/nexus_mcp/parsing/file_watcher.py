@@ -79,7 +79,8 @@ class DebouncedFileWatcher:
             if any(file_path.name.endswith(p) for p in temp_patterns):
                 return False
             return True
-        except Exception:
+        except Exception as e:
+            logger.debug("Failed to process file change: %s", e)
             return False
 
     def _handle_file_change(self, file_path: Path) -> None:

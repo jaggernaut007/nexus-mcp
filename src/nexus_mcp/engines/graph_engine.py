@@ -244,7 +244,8 @@ class RustworkxCodeGraph:
                     self._index_to_id.pop(idx, None)
                     try:
                         self.graph.remove_node(idx)
-                    except Exception:
+                    except Exception as e:
+                        logger.debug("Failed to remove node %s from file mapping: %s", nid, e)
                         pass
                 self.nodes.pop(nid, None)
                 for type_set in self._nodes_by_type.values():

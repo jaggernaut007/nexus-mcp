@@ -4,7 +4,7 @@
 Nexus-MCP consolidates CodeGrok + code-graph-mcp into **one single MCP server** with hybrid search, code graph analysis, and semantic memory. Target: <350MB RAM.
 
 **Key decisions:**
-- **Single MCP** — one process, one connection, 12 tools
+- **Single MCP** — one process, one connection, 15 tools
 - **LanceDB** — vectors + full-text search in one DB (no ChromaDB, no rank-bm25)
 - **ONNX Runtime** — replaces PyTorch (~50MB vs ~500MB), 2.5x faster CPU inference
 - **jina-code default** — code-specific 768d embedding model; bge-small-en as alternative
@@ -133,7 +133,7 @@ Nexus-MCP consolidates CodeGrok + code-graph-mcp into **one single MCP server** 
 
 ## Phase 4: Hybrid Search + Memory (4 tools)
 
-**Goal:** Upgrade search to 3-engine hybrid. Add memory layer. Total 12 tools.
+**Goal:** Upgrade search to 3-engine hybrid. Add memory layer. Total 15 tools.
 
 ### 4.1 Tests first
 | Test File | Covers |
@@ -211,7 +211,7 @@ Nexus-MCP consolidates CodeGrok + code-graph-mcp into **one single MCP server** 
 
 ```
 src/nexus_mcp/
-├── server.py                  # FastMCP, 12 tools, single entry point
+├── server.py                  # FastMCP, 15 tools, single entry point
 ├── config.py                  # Settings, env vars, model selection
 ├── state.py                   # Session state singleton
 ├── core/

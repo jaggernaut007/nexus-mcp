@@ -1,7 +1,7 @@
 {
   "$schema": "https://glama.ai/mcp/schemas/server.json",
   "name": "nexus-mcp-ci",
-  "description": "Unified MCP server with hybrid search, code graph analysis, and semantic memory",
+  "description": "Unified MCP server with hybrid search, code graph analysis, semantic memory, and live-grep fallback",
   "homepage": "https://github.com/jaggernaut007/Nexus-MCP",
   "repository": "https://github.com/jaggernaut007/Nexus-MCP",
   "maintainers": [

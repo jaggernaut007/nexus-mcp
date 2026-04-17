@@ -193,7 +193,8 @@ class AstGrepParser:
 
         try:
             matches = sg_node.find_all(pattern=pattern)
-        except Exception:
+        except Exception as e:
+            logger.debug("ast-grep find_all failed: %s", e)
             return 0
 
         for match in matches:
@@ -228,7 +229,8 @@ class AstGrepParser:
                     relationship_type=RelationshipType.CONTAINS,
                 ))
                 count += 1
-            except Exception:
+            except Exception as e:
+                logger.debug("Failed to extract function at %s: %s", filepath, e)
                 continue
 
         return count
@@ -285,7 +287,8 @@ class AstGrepParser:
                     relationship_type=RelationshipType.CONTAINS,
                 ))
                 count += 1
-            except Exception:
+            except Exception as e:
+                logger.debug("Failed to extract class at %s: %s", filepath, e)
                 continue
 
         return count
@@ -319,5 +322,6 @@ class AstGrepParser:
                             target_id=target_id,
                             relationship_type=RelationshipType.IMPORTS,
                         ))
-            except Exception:
+            except Exception as e:
+                logger.debug("Import match failed in %s: %s", filepath, e)
                 continue

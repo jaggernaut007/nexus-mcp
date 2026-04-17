@@ -8,7 +8,7 @@
 We had two separate MCP servers — CodeGrok (vector search + memory) and code-graph-mcp (AST analysis + call graphs). Running both simultaneously consumed 1-2GB+ RAM, required two MCP connections, and prevented cross-engine intelligence (e.g., combining semantic search with call graph traversal).
 
 ## Decision
-Consolidate both servers into a single MCP server (Nexus-MCP) with one process, one connection, and 12 tools. Port reusable code from both repos into a unified `src/nexus_mcp/` package structure.
+Consolidate both servers into a single MCP server (Nexus-MCP) with one process, one connection, and 15 tools. Port reusable code from both repos into a unified `src/nexus_mcp/` package structure.
 
 ## Consequences
 - **Easier:** Single connection for clients, shared state, cross-engine tools (explain, impact), halved memory overhead

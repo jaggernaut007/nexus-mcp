@@ -382,6 +382,7 @@ def create_server():
         symbol_type: Annotated[str, "Filter by type (e.g. 'function', 'class')"] = "",
         mode: Annotated[str, "Search mode: 'hybrid', 'vector', or 'bm25'"] = "hybrid",
         rerank: Annotated[bool, "FlashRank reranking (default True)"] = True,
+        live_grep: Annotated[bool, "Force live-grep fallback (rg/grep)"] = False,
     ) -> dict[str, Any]:
         """PREFERRED over Grep/Glob. Semantic search with code snippets."""
         guard_err = _guard("search")
@@ -469,6 +470,28 @@ def create_server():
             results = state._reranker.rerank(query, results, limit=limit)
         else:
             results = results[:limit]
+
+        # Live Grep (Fallback or Explicit)
+        if live_grep or (mode == "hybrid" and len(results) < limit):
+            try:
+                from nexus_mcp.engines.live_grep import LiveGrepEngine
+                live_engine = LiveGrepEngine(str(state.codebase_path))
+                live_results = live_engine.search(query, limit=limit)
+
+                if live_results:
+                    # Deduplicate: use (path, line) as key
+                    seen = {
+                        (r.get("absolute_path"), r.get("line_start")) for r in results
+                    }
+                    for lr in live_results:
+                        key = (lr["absolute_path"], lr["line_start"])
+                        if key not in seen:
+                            results.append(lr)
+                            seen.add(key)
+                    if "live_grep" not in engines_used:
+                        engines_used.append("live_grep")
+            except Exception as e:
+                logger.warning("Live grep failed: %s", e)
 
         # Clean up results: strip vectors, add absolute paths, code_snippet
         roots = getattr(state, "codebase_paths", [])
@@ -776,7 +799,8 @@ def create_server():
                 search_text += " " + node.docstring
             try:
                 search_results = state.vector_engine.search(search_text, limit=10)
-            except Exception:
+            except Exception as e:
+                logger.debug("Vector search failed in explain: %s", e)
                 pass
 
         # Code analysis
@@ -788,7 +812,8 @@ def create_server():
                 "complexity": analyzer.analyze_complexity(),
                 "quality": analyzer.calculate_quality_metrics(),
             }
-        except Exception:
+        except Exception as e:
+            logger.debug("Code analysis failed in explain: %s", e)
             pass
 
         builder = ResponseBuilder(verbosity)
@@ -1044,24 +1069,13 @@ def create_server():
 
     @mcp.tool()
     def remember(
-        content: str,
-        memory_type: str = "note",
-        tags: str = "",
-        ttl: str = "permanent",
-        project: str = "default",
+        content: Annotated[str, "Memory content to store"],
+        memory_type: Annotated[str, "Type of memory (e.g. 'note', 'decision')"] = "note",
+        tags: Annotated[str, "Comma-separated tags for organization"] = "",
+        ttl: Annotated[str, "Time-to-live: 'permanent', 'month', 'week', 'day', 'session'"] = "permanent",
+        project: Annotated[str, "Project name for scoping memories"] = "default",
     ) -> dict[str, Any]:
-        """Store a semantic memory for later recall.
-
-        Args:
-            content: The text content to remember.
-            memory_type: Type of memory — note, decision, conversation, status, preference, doc.
-            tags: Comma-separated tags for filtering (e.g. "auth,important").
-            ttl: Time-to-live — permanent, month, week, day, session.
-            project: Project name for scoping memories.
-
-        Returns:
-            The stored memory ID and status.
-        """
+        """Store a semantic memory for later recall."""
         import uuid
 
         from nexus_mcp.core.models import Memory, MemoryType
@@ -1095,22 +1109,12 @@ def create_server():
 
     @mcp.tool()
     def recall(
-        query: str,
-        limit: int = 5,
-        memory_type: str = "",
-        tags: str = "",
+        query: Annotated[str, "Natural language search query"],
+        limit: Annotated[int, "Maximum number of results (default 5)"] = 5,
+        memory_type: Annotated[str, "Filter by memory type (e.g. 'note', 'decision')"] = "",
+        tags: Annotated[str, "Comma-separated tags to filter by"] = "",
     ) -> dict[str, Any]:
-        """Search memories by semantic similarity.
-
-        Args:
-            query: Natural language search query.
-            limit: Maximum number of results (default 5).
-            memory_type: Filter by memory type (e.g. "note", "decision").
-            tags: Comma-separated tags to filter by.
-
-        Returns:
-            Matching memories with scores.
-        """
+        """Search memories by semantic similarity."""
         guard_err = _guard("recall")
         if guard_err:
             return guard_err
@@ -1137,20 +1141,11 @@ def create_server():
 
     @mcp.tool()
     def forget(
-        memory_id: str = "",
-        tags: str = "",
-        memory_type: str = "",
+        memory_id: Annotated[str, "Specific memory ID to delete"] = "",
+        tags: Annotated[str, "Delete memories matching any of these comma-separated tags"] = "",
+        memory_type: Annotated[str, "Delete all memories of this type"] = "",
     ) -> dict[str, Any]:
-        """Delete memories by ID, tags, or type.
-
-        Args:
-            memory_id: Specific memory ID to delete.
-            tags: Delete memories matching any of these comma-separated tags.
-            memory_type: Delete all memories of this type.
-
-        Returns:
-            Count of deleted memories.
-        """
+        """Delete memories by ID, tags, or type."""
         guard_err = _guard("forget")
         if guard_err:
             return guard_err

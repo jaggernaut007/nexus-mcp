@@ -87,7 +87,8 @@ def parallel_parse_files(
         if progress_callback:
             try:
                 progress_callback(event_type, data)
-            except Exception:
+            except Exception as e:
+                logger.debug("Progress callback failed: %s", e)
                 pass
 
     if max_workers is None:

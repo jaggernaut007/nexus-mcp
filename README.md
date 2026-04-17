@@ -99,6 +99,7 @@ Nexus-MCP replaces this with targeted retrieval: semantic search returns the exa
 
 - **Python 3.10 to 3.13**
 - **pip** (comes with Python)
+- **ripgrep (rg)** (optional, for 100% search coverage fallback)
 
 ## Install
 

@@ -34,6 +34,7 @@ class SearchInput(BaseModel):
     symbol_type: str = ""
     mode: str = "hybrid"
     rerank: bool = True
+    live_grep: bool = False
 
     @field_validator("query")
     @classmethod

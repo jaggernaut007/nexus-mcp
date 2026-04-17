@@ -15,16 +15,16 @@ Nexus-MCP consolidates two predecessor projects into a single server ([ADR-001](
                              │ MCP Protocol (stdio/SSE)
 ┌────────────────────────────┴────────────────────────────────┐
 │                    FastMCP Server (server.py)                │
-│  15 Tools: index, search, status, find_symbol, find_callers,│
-│  find_callees, analyze, impact, explain, overview,           │
-│  architecture, remember, recall, forget                      │
+│  15 Tools: index, search, status, health, find_symbol,       │
+│  find_callers, find_callees, analyze, impact, explain,       │
+│  overview, architecture, remember, recall, forget            │
 ├─────────────────────────────────────────────────────────────┤
 │  Input Validation │ Graceful Shutdown │ JSON Logging         │
-├─────────┬─────────┬─────────┬─────────┬─────────────────────┤
-│ Vector  │  BM25   │  Graph  │ Memory  │  Code Analysis      │
-│ Engine  │ Engine  │ Engine  │ Store   │                     │
-│(LanceDB)│(LanceDB)│(rustworkx)│(LanceDB)│ (CodeAnalyzer)   │
-├─────────┴─────────┴─────────┴─────────┴─────────────────────┤
+├─────────┬─────────┬─────────┬─────────┬─────────┬───────────┤
+│ Vector  │  BM25   │  Graph  │ Live    │ Memory  │  Code     │
+│ Engine  │ Engine  │ Engine  │ Grep    │ Store   │ Analysis  │
+│(LanceDB)│(LanceDB)│(rustworkx)│(rg/grep)│(LanceDB)│           │
+├─────────┴─────────┴─────────┴─────────┴─────────┴───────────┤
 │  Indexing Pipeline (8 steps)                                │
 │  discover → dual parse → chunk → embed → store              │
 ├─────────────────────────────────────────────────────────────┤
@@ -103,7 +103,7 @@ Source files → ast-grep → UniversalGraph → rustworkx   ONNX embed
 ### Hybrid Search
 ```
 Query → embed → Vector search (LanceDB)  ─┐
-Query →       → BM25 search (Tantivy)     ├→ RRF Fusion → FlashRank → Results
+Query →       → BM25 search (Tantivy)     ├→ RRF Fusion → FlashRank → Live Grep (fallback) → Results
 Query →       → Graph relevance search    ─┘
 ```
 

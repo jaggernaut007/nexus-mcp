@@ -7,6 +7,7 @@
 
 - **Python 3.10, 3.11, or 3.12** (Python 3.13+ is not yet supported by tree-sitter-languages)
 - **pip** (comes with Python)
+- **ripgrep (rg)** (recommended for 100% search coverage fallback)
 
 Check your Python version:
 

@@ -4,8 +4,9 @@
 Nexus-MCP is a unified code intelligence MCP (Model Context Protocol) server that consolidates two existing servers:
 - **CodeGrok** — semantic vector search + memory layer
 - **code-graph-mcp** — structural AST analysis + call graphs
+- **Live Grep** — 100% coverage fallback via ripgrep/grep
 
-Into a **single, memory-efficient MCP server** (<350MB RAM) with 12 tools for code search, navigation, analysis, and memory.
+Into a **single, memory-efficient MCP server** (<350MB RAM) with 15 tools for code search, navigation, analysis, and memory.
 
 ---
 
@@ -18,9 +19,9 @@ Into a **single, memory-efficient MCP server** (<350MB RAM) with 12 tools for co
 4. **No cross-engine intelligence** — can't combine "semantic meaning" with "who calls this function"
 
 ### What Nexus-MCP Solves
-- Single process, single MCP connection, 12 tools
+- Single process, single MCP connection, 15 tools
 - <350MB RAM via ONNX Runtime + LanceDB mmap + lightweight models
-- Hybrid search combining vector + BM25 + graph signals with re-ranking
+- Hybrid search combining vector + BM25 + graph signals + live-grep fallback
 - Cross-engine tools like `explain` (graph + vector) and `impact` (graph traversal)
 
 ---
@@ -31,10 +32,11 @@ Into a **single, memory-efficient MCP server** (<350MB RAM) with 12 tools for co
 ┌─────────────────────────────────────────────────┐
 │              Nexus-MCP Server (FastMCP, stdio)   │
 ├─────────────────────────────────────────────────┤
-│  12 MCP Tools                                    │
-│  index | search | status | find_symbol           │
+│  15 MCP Tools                                    │
+│  index | search | status | health | find_symbol  │
 │  find_callers | find_callees | analyze | impact  │
-│  explain | remember | recall | forget            │
+│  explain | overview | architecture | remember    │
+│  recall | forget                                 │
 ├─────────────────────────────────────────────────┤
 │  Response Formatter (token budget optimization)  │
 │  FlashRank Re-ranker (two-stage retrieval)       │
@@ -72,6 +74,7 @@ Into a **single, memory-efficient MCP server** (<350MB RAM) with 12 tools for co
 | Structural Analysis | ast-grep-py ≥0.28 | Build call/import graphs, 25+ languages |
 | Graph Engine | rustworkx ≥0.15 | In-memory directed graph, Rust-backed |
 | Re-ranking | FlashRank ≥0.2 | ONNX-based two-stage re-ranking |
+| Live Grep | ripgrep (rg) / grep | 100% coverage fallback for unindexed files |
 | File Watching | watchdog ≥3.0 | Debounced file change detection |
 
 ---
@@ -92,7 +95,7 @@ Into a **single, memory-efficient MCP server** (<350MB RAM) with 12 tools for co
 
 ---
 
-## 12 Tools
+## 15 Tools
 
 ### Indexing & Search
 | Tool | Description | Engine |

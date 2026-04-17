@@ -71,7 +71,7 @@
 - [x] JSON structured logging — `NEXUS_LOG_FORMAT=json` via stdlib JsonFormatter
 - [x] Memory monitoring — RSS via resource.getrusage in `status` tool
 - [x] PyPI packaging — classifiers, keywords, URLs in pyproject.toml
-- [x] README rewrite — all 12 tools, full config table, architecture section
+- [x] README rewrite — all 15 tools, full config table, architecture section
 - [x] ADR-011: Hardening decisions
 - [x] Tests: 35 new tests (security, e2e, performance, memory) — 357 total, all passing
 - [x] ruff clean
@@ -128,6 +128,12 @@
 - [x] pyproject.toml keywords expanded (15 keywords)
 - [x] SEO/GEO strategy documented (docs-pre/SEO_GEO_STRATEGY.md)
 
+## Phase 8: Advanced Intelligence & Visualization — PLANNED
+- [ ] 8a: Ripgrep fallback for search reliability (100% coverage)
+- [ ] 8b: Visual graph export (Mermaid.js)
+- [ ] 8c: Global semantic memory (cross-repository)
+- [ ] 8d: Dynamic awareness (Log ingestion/linking)
+
 ## Recent Decisions
 | Date | Decision | Rationale | ADR |
 |------|----------|-----------|-----|
@@ -144,3 +150,4 @@
 | 2026-03-12 | Tool permission model | READ/MUTATE/WRITE categories, transport-aware | [ADR-012](docs/adr/ADR-012-tool-permission-model.md) |
 | 2026-03-12 | Pydantic v2 schemas | Strict I/O validation, FastMCP-compatible | [ADR-013](docs/adr/ADR-013-pydantic-schemas.md) |
 | 2026-03-12 | Token bucket rate limiting | Per-tool rates, off by default for stdio | [ADR-014](docs/adr/ADR-014-rate-limiting.md) |
+| 2026-04-17 | Phase 8 Expansion | Compete with ripgrep/Cursor/AppMap | N/A |

@@ -1,4 +1,7 @@
-# Nexus-MCP Progress
+# Project Progress: Nexus-MCP
+
+[![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
+[![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/score.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 
 ## Phase 1: Scaffold + Port Core Modules — COMPLETE
 - [x] Project structure created

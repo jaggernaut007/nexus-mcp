@@ -1,5 +1,8 @@
 # Nexus-MCP
 
+[![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
+[![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/score.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
+
 **The only MCP server with hybrid search + code graph + semantic memory — fully local.**
 
 Nexus-MCP is a unified, local-first code intelligence server built for the [Model Context Protocol](https://modelcontextprotocol.io). It combines vector search, BM25 keyword search, and structural graph analysis into a single process — giving AI agents precise, token-efficient code understanding without cloud dependencies.
@@ -94,7 +97,7 @@ Nexus-MCP replaces this with targeted retrieval: semantic search returns the exa
 
 ## Prerequisites
 
-- **Python 3.10+** (tested on 3.10, 3.11, 3.12)
+- **Python 3.10 to 3.13**
 - **pip** (comes with Python)
 
 ## Install

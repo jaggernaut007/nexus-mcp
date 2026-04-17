@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nexus-mcp-ci"
-version = "0.1.0"
+version = "0.1.1"
 description = "Unified MCP server with hybrid search, code graph analysis, and semantic memory"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 authors = [
     { name = "Shreyas Jagannath" },
 ]

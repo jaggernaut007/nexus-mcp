@@ -8,7 +8,7 @@ import signal
 import sys
 import threading
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Annotated, Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -246,7 +246,7 @@ def create_server():
             peak_rss_mb = rss_raw / 1024
 
         result: dict[str, Any] = {
-            "version": "0.1.0",
+            "version": "0.1.1",
             "indexed": state.is_indexed,
             "codebase_path": str(state.codebase_path) if state.codebase_path else None,
             "memory": {"peak_rss_mb": round(peak_rss_mb, 1)},
@@ -303,20 +303,15 @@ def create_server():
         }
 
     @mcp.tool()
-    def index(path: str, paths: str = "") -> dict[str, Any]:
+    def index(
+        path: Annotated[str, "Absolute path to the codebase directory (or comma-separated paths)"],
+        paths: Annotated[str, "Additional comma-separated paths to index"] = "",
+    ) -> dict[str, Any]:
         """Index a codebase into vector + graph engines.
 
         Supports indexing multiple directories folder-by-folder. Each folder
         is processed sequentially (discover → parse → embed → store) and
         results are merged into shared engines.
-
-        Args:
-            path: Absolute path to the codebase directory. Can also be
-                  comma-separated paths (e.g. "/proj/src,/proj/lib").
-            paths: Additional comma-separated paths to index alongside `path`.
-
-        Returns:
-            Indexing statistics (files, symbols, chunks, timing).
         """
         from nexus_mcp.config import get_settings
         from nexus_mcp.indexing.pipeline import IndexingPipeline
@@ -381,32 +376,14 @@ def create_server():
 
     @mcp.tool()
     def search(
-        query: str,
-        limit: int = 10,
-        language: str = "",
-        symbol_type: str = "",
-        mode: str = "hybrid",
-        rerank: bool = True,
+        query: Annotated[str, "Natural language or code query (e.g. 'retry logic')"],
+        limit: Annotated[int, "Max results (default 10, max 100)"] = 10,
+        language: Annotated[str, "Filter by language (e.g. 'python')"] = "",
+        symbol_type: Annotated[str, "Filter by type (e.g. 'function', 'class')"] = "",
+        mode: Annotated[str, "Search mode: 'hybrid', 'vector', or 'bm25'"] = "hybrid",
+        rerank: Annotated[bool, "FlashRank reranking (default True)"] = True,
     ) -> dict[str, Any]:
-        """PREFERRED over Grep/Glob. Semantic search with code snippets.
-
-        Use INSTEAD of Grep or Glob to find relevant code. Returns ranked
-        results with file paths, line numbers, and code snippets — no need
-        to Read files after. Understands natural language queries like
-        "error handling in auth" or "database connection setup".
-
-        Args:
-            query: Natural language or code query
-                (e.g. "retry logic", "authentication flow").
-            limit: Max results (default 10, max 100).
-            language: Filter by language (e.g. "python").
-            symbol_type: Filter by type (e.g. "function", "class").
-            mode: "hybrid" (default), "vector", or "bm25".
-            rerank: FlashRank reranking (default True).
-
-        Returns:
-            Ranked results with paths, line ranges, code, scores.
-        """
+        """PREFERRED over Grep/Glob. Semantic search with code snippets."""
         guard_err = _guard("search")
         if guard_err:
             return guard_err
@@ -530,20 +507,11 @@ def create_server():
         }
 
     @mcp.tool()
-    def find_symbol(name: str, exact: bool = True) -> dict[str, Any]:
-        """PREFERRED over Grep for finding symbol definitions.
-
-        Use INSTEAD of Grep to find where a function, class, or
-        variable is defined. Returns file path, line numbers, docstring,
-        type annotations, and all relationships (callers, callees).
-
-        Args:
-            name: Symbol name (e.g. "create_server", "TokenBudget").
-            exact: True for exact match, False for fuzzy substring.
-
-        Returns:
-            Symbols with locations, signatures, and relationships.
-        """
+    def find_symbol(
+        name: Annotated[str, "Symbol name (e.g. 'create_server', 'TokenBudget')"],
+        exact: Annotated[bool, "True for exact match, False for fuzzy substring"] = True,
+    ) -> dict[str, Any]:
+        """PREFERRED over Grep for finding symbol definitions."""
         guard_err = _guard("find_symbol")
         if guard_err:
             return guard_err
@@ -575,18 +543,10 @@ def create_server():
         return {"total": len(symbols), "symbols": symbols}
 
     @mcp.tool()
-    def find_callers(symbol_name: str) -> dict[str, Any]:
-        """Find all functions that call a given symbol. More accurate than Grep for tracing usage.
-
-        Use this INSTEAD of Grep to find where a function is called. Returns actual call
-        graph relationships, not just text matches — no false positives from comments or strings.
-
-        Args:
-            symbol_name: Name of the function to find callers for.
-
-        Returns:
-            List of caller functions with their file locations and metadata.
-        """
+    def find_callers(
+        symbol_name: Annotated[str, "Name of the function to find callers for"]
+    ) -> dict[str, Any]:
+        """Find all functions that call a given symbol. More accurate than Grep."""
         guard_err = _guard("find_callers")
         if guard_err:
             return guard_err
@@ -618,18 +578,10 @@ def create_server():
         }
 
     @mcp.tool()
-    def find_callees(symbol_name: str) -> dict[str, Any]:
-        """Find all functions called by a given function. Traces execution flow via call graph.
-
-        Use this to understand what a function depends on — more reliable than reading
-        the source and manually tracing imports and calls.
-
-        Args:
-            symbol_name: Name of the function to find callees for.
-
-        Returns:
-            List of called functions with their file locations and metadata.
-        """
+    def find_callees(
+        symbol_name: Annotated[str, "Name of the function to find callees for"]
+    ) -> dict[str, Any]:
+        """Find all functions called by a given function. Traces execution flow."""
         guard_err = _guard("find_callees")
         if guard_err:
             return guard_err
@@ -661,15 +613,10 @@ def create_server():
         }
 
     @mcp.tool()
-    def analyze(path: str = "") -> dict[str, Any]:
-        """Run code analysis: complexity, dependencies, smells, quality score.
-
-        Args:
-            path: Optional relative path to filter analysis to a subdirectory or file.
-
-        Returns:
-            Analysis results with complexity, dependencies, smells, and quality.
-        """
+    def analyze(
+        path: Annotated[str, "Optional relative path to filter analysis (subdirectory or file)"] = ""
+    ) -> dict[str, Any]:
+        """Run code analysis: complexity, dependencies, smells, quality score."""
         guard_err = _guard("analyze")
         if guard_err:
             return guard_err
@@ -724,18 +671,11 @@ def create_server():
         return result
 
     @mcp.tool()
-    def impact(symbol_name: str, max_depth: int = 10) -> dict[str, Any]:
-        """MUST use before refactoring. Change impact analysis.
-
-        Shows what functions are affected if the given symbol changes.
-
-        Args:
-            symbol_name: Name of the function to analyze impact for.
-            max_depth: Maximum depth of transitive caller traversal (default 10).
-
-        Returns:
-            Transitive callers graph showing all functions affected by changes.
-        """
+    def impact(
+        symbol_name: Annotated[str, "Name of the function to analyze impact for"],
+        max_depth: Annotated[int, "Max depth of transitive caller traversal (default 10)"] = 10,
+    ) -> dict[str, Any]:
+        """MUST use before refactoring. Change impact analysis."""
         guard_err = _guard("impact")
         if guard_err:
             return guard_err
@@ -781,20 +721,11 @@ def create_server():
         }
 
     @mcp.tool()
-    def explain(symbol_name: str, verbosity: str = "detailed") -> dict[str, Any]:
-        """PREFERRED over Read for understanding code symbols.
-
-        Combines graph analysis, vector search, and code metrics into
-        a structured explanation of what a symbol does and how it's used.
-
-        Args:
-            symbol_name: Name of the symbol to explain.
-            verbosity: Output detail level — "summary", "detailed", or "full".
-
-        Returns:
-            Structured explanation with definition, relationships, related code,
-            and analysis metrics.
-        """
+    def explain(
+        symbol_name: Annotated[str, "Name of the symbol to explain"],
+        verbosity: Annotated[str, "Output detail level: 'summary', 'detailed', or 'full'"] = "detailed",
+    ) -> dict[str, Any]:
+        """PREFERRED over Read for understanding code symbols."""
         guard_err = _guard("explain")
         if guard_err:
             return guard_err

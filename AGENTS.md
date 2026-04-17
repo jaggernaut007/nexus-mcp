@@ -1,5 +1,8 @@
 # Nexus-MCP Agent Guidelines
 
+[![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
+[![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/score.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
+
 ## Architecture
 Single MCP server consolidating CodeGrok + code-graph-mcp. 15 tools, <350MB RAM.
 
@@ -11,7 +14,8 @@ Single MCP server consolidating CodeGrok + code-graph-mcp. 15 tools, <350MB RAM.
 - **tree-sitter + ast-grep**: dual parsing
 
 ## Key Constraints
-- Python ≥3.10, type hints everywhere
+- **Python 3.10, 3.11, or 3.12** (Python 3.13+ is not yet supported by tree-sitter-languages)
+- **pip** (comes with Python)
 - All modules lazy-import heavy deps
 - Models unloaded after indexing (`del model; gc.collect()`)
 - Batch embedding size=32

@@ -1,8 +1,11 @@
 # Nexus-MCP Installation Guide
 
+[![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
+[![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/score.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
+
 ## Prerequisites
 
-- **Python 3.10+** (tested on 3.10, 3.11, 3.12)
+- **Python 3.10, 3.11, or 3.12** (Python 3.13+ is not yet supported by tree-sitter-languages)
 - **pip** (comes with Python)
 
 Check your Python version:

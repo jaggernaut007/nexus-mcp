@@ -7,8 +7,9 @@
   "maintainers": [
     "jaggernaut007"
   ],
-  "build": {
-    "pythonVersion": "3.12"
+  "buildSpec": {
+    "pythonVersion": "3.12",
+    "buildSteps": ["uv sync"]
   },
   "keywords": [
     "code-search",

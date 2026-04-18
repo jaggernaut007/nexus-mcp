@@ -1,0 +1,7 @@
+#!/bin/bash
+# Shim for Glama's mcp-proxy to find the executable
+if [ -f "/app/.venv/bin/nexus-mcp-ci" ]; then
+    exec /app/.venv/bin/nexus-mcp-ci "$@"
+else
+    exec python -m nexus_mcp.server "$@"
+fi

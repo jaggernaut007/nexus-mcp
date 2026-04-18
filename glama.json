@@ -10,7 +10,14 @@
   "buildSpec": {
     "pythonVersion": "3.12",
     "buildSteps": [
-      "uv pip install --system ."
+      "uv sync"
+    ],
+    "cmdArguments": [
+      "mcp-proxy",
+      "--",
+      "uv",
+      "run",
+      "nexus-mcp-ci"
     ]
   },
   "keywords": [

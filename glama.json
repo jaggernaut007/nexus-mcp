@@ -10,7 +10,7 @@
   "buildSpec": {
     "pythonVersion": "3.12",
     "buildSteps": [
-      "python -m pip install ."
+      "uv pip install --system ."
     ]
   },
   "keywords": [

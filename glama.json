@@ -7,6 +7,12 @@
   "maintainers": [
     "jaggernaut007"
   ],
+  "buildSpec": {
+    "pythonVersion": "3.12",
+    "buildSteps": [
+      "pip install ."
+    ]
+  },
   "keywords": [
     "code-search",
     "semantic-search",

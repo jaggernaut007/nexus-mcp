@@ -14,7 +14,7 @@ class Settings:
     storage_dir: str = ".nexus"
 
     # Embedding model
-    embedding_model: str = "bge-small-en"
+    embedding_model: str = "jina-code"
     embedding_device: str = "auto"
     embedding_batch_size: int = 32
 

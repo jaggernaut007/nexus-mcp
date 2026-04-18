@@ -20,6 +20,71 @@
       "nexus-mcp-ci"
     ]
   },
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "NEXUS_LOG_LEVEL": {
+        "type": "string",
+        "description": "Logging level (DEBUG, INFO, WARNING, ERROR)",
+        "default": "INFO"
+      },
+      "NEXUS_LOG_FORMAT": {
+        "type": "string",
+        "description": "Log format: text or json",
+        "default": "text"
+      },
+      "NEXUS_SEARCH_MODE": {
+        "type": "string",
+        "description": "Search mode: hybrid, vector, or bm25",
+        "default": "hybrid"
+      },
+      "NEXUS_STORAGE_DIR": {
+        "type": "string",
+        "description": "Storage directory for indexes",
+        "default": ".nexus"
+      },
+      "NEXUS_MAX_MEMORY_MB": {
+        "type": "string",
+        "description": "Memory budget (RAM)",
+        "default": "350"
+      },
+      "NEXUS_CHUNK_MAX_CHARS": {
+        "type": "string",
+        "description": "Max code snippet size per chunk",
+        "default": "4000"
+      },
+      "NEXUS_EMBEDDING_MODEL": {
+        "type": "string",
+        "description": "Embedding model (jina-code, bge-small-en)",
+        "default": "jina-code"
+      },
+      "NEXUS_EMBEDDING_DEVICE": {
+        "type": "string",
+        "description": "Device for embeddings: auto, cuda, mps, cpu",
+        "default": "auto"
+      },
+      "NEXUS_MAX_FILE_SIZE_MB": {
+        "type": "string",
+        "description": "Skip files larger than this",
+        "default": "10"
+      },
+      "NEXUS_FUSION_WEIGHT_BM25": {
+        "type": "string",
+        "description": "BM25 engine weight in RRF",
+        "default": "0.3"
+      },
+      "NEXUS_FUSION_WEIGHT_GRAPH": {
+        "type": "string",
+        "description": "Graph engine weight in RRF",
+        "default": "0.2"
+      },
+      "NEXUS_FUSION_WEIGHT_VECTOR": {
+        "type": "string",
+        "description": "Vector engine weight in RRF",
+        "default": "0.5"
+      }
+    }
+  },
   "keywords": [
     "code-search",
     "semantic-search",

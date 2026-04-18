@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nexus-mcp-ci"
-version = "0.1.1"
+version = "1.0.1"
 description = "Unified MCP server with hybrid search, code graph analysis, and semantic memory"
 readme = "README.md"
 license = "MIT"

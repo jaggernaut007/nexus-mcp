@@ -121,16 +121,16 @@
 - [x] AI discoverability files — llms.txt, llms-full.txt, CITATION.cff, smithery.yaml
 - [x] PyPI publication — `pip install nexus-mcp-ci` via GitHub Actions trusted publishing
 - [x] GitHub Actions CI/CD — `.github/workflows/publish.yml` (auto-publish on release)
-- [x] GitHub release v0.1.0
+- [x] GitHub release v1.0.1
 - [x] awesome-mcp-servers PR submitted (punkpeye/awesome-mcp-servers #3152)
 - [x] Launch posts drafted — HN, Reddit (x3), Twitter/X, Dev.to, LinkedIn
 - [x] Website/resume copy prepared
 - [x] pyproject.toml keywords expanded (15 keywords)
 - [x] SEO/GEO strategy documented (docs-pre/SEO_GEO_STRATEGY.md)
 
-## Phase 8: Advanced Intelligence & Visualization — PLANNED
-- [ ] 8a: Ripgrep fallback for search reliability (100% coverage)
-- [ ] 8b: Visual graph export (Mermaid.js)
+## Phase 8: Advanced Intelligence & Visualization — COMPLETE
+- [x] 8a: Ripgrep fallback for search reliability (100% coverage)
+- [x] 8b: Visual graph export (Mermaid.js)
 - [ ] 8c: Global semantic memory (cross-repository)
 - [ ] 8d: Dynamic awareness (Log ingestion/linking)
 

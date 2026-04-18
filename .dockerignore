@@ -1,0 +1,14 @@
+.git
+.venv
+__pycache__
+*.pyc
+.nexus
+data
+scratch
+tests
+.pytest_cache
+.ruff_cache
+# Keep source and config
+# src/
+# pyproject.toml
+# README.md

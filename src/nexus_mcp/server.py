@@ -101,13 +101,39 @@ def create_server():
         """Run all pre-execution checks: permissions, rate limiting.
 
         Returns None if all checks pass, or error dict on first failure.
+        Side-effect: emits an audit record for each invocation attempt.
         """
+        from nexus_mcp.middleware.audit import generate_correlation_id
+        import time as _time
+
+        _start = _time.monotonic()
         err = _check_tool_permission(tool_name)
         if err:
+            _audit.log_invocation(
+                tool_name=tool_name,
+                params={},
+                result_status="permission_denied",
+                duration_ms=(_time.monotonic() - _start) * 1000,
+                correlation_id=generate_correlation_id(),
+            )
             return err
         err = _check_rate_limit(tool_name)
         if err:
+            _audit.log_invocation(
+                tool_name=tool_name,
+                params={},
+                result_status="rate_limited",
+                duration_ms=(_time.monotonic() - _start) * 1000,
+                correlation_id=generate_correlation_id(),
+            )
             return err
+        _audit.log_invocation(
+            tool_name=tool_name,
+            params={},
+            result_status="invoked",
+            duration_ms=(_time.monotonic() - _start) * 1000,
+            correlation_id=generate_correlation_id(),
+        )
         return None
 
     # --- Input validation helpers ---
@@ -246,7 +272,7 @@ def create_server():
             peak_rss_mb = rss_raw / 1024
 
         result: dict[str, Any] = {
-            "version": "0.1.1",
+            "version": "1.0.1",
             "indexed": state.is_indexed,
             "codebase_path": str(state.codebase_path) if state.codebase_path else None,
             "memory": {"peak_rss_mb": round(peak_rss_mb, 1)},
@@ -475,16 +501,31 @@ def create_server():
         if live_grep or (mode == "hybrid" and len(results) < limit):
             try:
                 from nexus_mcp.engines.live_grep import LiveGrepEngine
+                from nexus_mcp.parsing.language_registry import EXTENSION_MAP
                 live_engine = LiveGrepEngine(str(state.codebase_path))
                 live_results = live_engine.search(query, limit=limit)
 
                 if live_results:
-                    # Deduplicate: use (path, line) as key
+                    # Annotate each result with language derived from extension,
+                    # then apply language/symbol_type filters to match indexed results.
+                    lang_filter = kwargs.get("language")
+                    for lr in live_results:
+                        ext = Path(lr.get("absolute_path", "")).suffix.lower()
+                        lr.setdefault("language", EXTENSION_MAP.get(ext, ""))
+                    if lang_filter:
+                        live_results = [
+                            lr for lr in live_results
+                            if lr.get("language") == lang_filter
+                        ]
+
+                    # Deduplicate: use (filepath, line_start) as key.
+                    # `absolute_path` is not set yet on existing results at this
+                    # point (the cleanup loop below sets it), so use `filepath`.
                     seen = {
-                        (r.get("absolute_path"), r.get("line_start")) for r in results
+                        (r.get("filepath", ""), r.get("line_start")) for r in results
                     }
                     for lr in live_results:
-                        key = (lr["absolute_path"], lr["line_start"])
+                        key = (lr.get("absolute_path", lr.get("filepath", "")), lr.get("line_start"))
                         if key not in seen:
                             results.append(lr)
                             seen.add(key)
@@ -500,8 +541,9 @@ def create_server():
         for r in results:
             # Remove raw embedding vector (wastes tokens, not useful to LLM)
             r.pop("vector", None)
-            # Make path relative; try each indexed root for multi-folder
-            fp = r.get("filepath", "")
+            # Make path relative; try each indexed root for multi-folder.
+            # Live-grep results only have absolute_path, not filepath.
+            fp = r.get("filepath") or r.get("absolute_path", "")
             r["absolute_path"] = fp
             for root in roots:
                 try:

@@ -3,12 +3,15 @@
 Ported from CodeGrok MCP. Uses ThreadPoolExecutor with thread-local parsers.
 """
 
+import logging
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 from nexus_mcp.core.models import Symbol
 from nexus_mcp.parsing.treesitter_parser import ThreadLocalParserFactory

@@ -26,6 +26,7 @@ class SessionState:
     _graph_engine: Any = None
     _bm25_engine: Any = None
     _memory_store: Any = None
+    _reranker: Any = None
     _shutting_down: bool = False
     _shutdown_lock: threading.Lock = field(default_factory=threading.Lock)
 

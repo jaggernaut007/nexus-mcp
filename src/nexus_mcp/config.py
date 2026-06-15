@@ -1,9 +1,12 @@
 """Configuration for Nexus-MCP with NEXUS_ env prefix."""
 
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -92,8 +95,11 @@ class Settings:
             if value is not None:
                 try:
                     setattr(self, attr, converter(value))
-                except (ValueError, TypeError):
-                    pass  # Keep default on conversion error
+                except (ValueError, TypeError) as e:
+                    logger.warning(
+                        "Invalid value for %s=%r: %s — using default %r",
+                        env_key, value, e, getattr(self, attr),
+                    )
 
     @property
     def storage_path(self) -> Path:

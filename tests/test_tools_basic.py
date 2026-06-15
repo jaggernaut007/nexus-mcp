@@ -10,7 +10,7 @@ class TestStatus:
     def test_status_before_index(self):
         mcp = server_module.create_server()
         result = asyncio.run(_call_tool(mcp, "status"))
-        assert result["version"] == "0.1.0"
+        assert result["version"] == "1.0.1"
         assert result["indexed"] is False
         assert result["codebase_path"] is None
         assert "hint" in result

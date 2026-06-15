@@ -199,27 +199,31 @@ class CodeAnalyzer:
         return dead
 
     def _detect_circular_deps(self, deps: Dict[str, Set[str]]) -> List[Dict[str, Any]]:
-        """Detect circular dependencies using DFS."""
+        """Detect circular dependencies using iterative DFS to avoid RecursionError."""
         circular: List[Dict[str, Any]] = []
         visited: Set[str] = set()
-        rec_stack: Set[str] = set()
 
-        def dfs(node: str, path: List[str]) -> None:
-            if node in rec_stack:
-                cycle_start = path.index(node)
-                cycle = path[cycle_start:] + [node]
-                circular.append({"cycle": cycle, "length": len(cycle) - 1})
-                return
-            if node in visited:
-                return
-            visited.add(node)
-            rec_stack.add(node)
-            for neighbor in deps.get(node, set()):
-                dfs(neighbor, path + [node])
-            rec_stack.remove(node)
-
-        for module in deps:
-            if module not in visited:
-                dfs(module, [])
+        for start in deps:
+            if start in visited:
+                continue
+            # Stack entries: (node, iterator-over-neighbors, path-so-far)
+            stack: List[tuple] = [(start, iter(deps.get(start, set())), [start])]
+            in_stack: Set[str] = {start}
+            visited.add(start)
+            while stack:
+                node, neighbors, path = stack[-1]
+                try:
+                    neighbor = next(neighbors)
+                    if neighbor in in_stack:
+                        cycle_start = path.index(neighbor)
+                        cycle = path[cycle_start:] + [neighbor]
+                        circular.append({"cycle": cycle, "length": len(cycle) - 1})
+                    elif neighbor not in visited:
+                        visited.add(neighbor)
+                        in_stack.add(neighbor)
+                        stack.append((neighbor, iter(deps.get(neighbor, set())), path + [neighbor]))
+                except StopIteration:
+                    stack.pop()
+                    in_stack.discard(node)
 
         return circular

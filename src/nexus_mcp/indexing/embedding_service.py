@@ -35,7 +35,7 @@ EMBEDDING_MODELS = {
     },
 }
 
-DEFAULT_MODEL = "jina-code"
+DEFAULT_MODEL = "bge-small-en"
 
 
 def _detect_device() -> str:
@@ -71,12 +71,14 @@ class EmbeddingService:
         max_batch_size: int = 128,
         normalize: bool = True,
         cache_dir: Optional[str] = None,
+        vector_dims: Optional[int] = None,
     ):
         self.model_name = model_name
         self.batch_size = batch_size
         self.max_batch_size = max_batch_size
         self.normalize = normalize
         self.cache_dir = cache_dir
+        self._vector_dims = vector_dims or 384
 
         if model_name not in EMBEDDING_MODELS:
             from nexus_mcp.core.exceptions import ConfigurationError

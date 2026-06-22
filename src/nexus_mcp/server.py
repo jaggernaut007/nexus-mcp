@@ -471,8 +471,16 @@ def create_server():
                     state.graph_engine, query, limit=limit * 2
                 )
                 if graph_results:
-                    ranked_lists["graph"] = graph_results
-                    engines_used.append("graph")
+                    # Apply filters to graph results if needed
+                    if language or symbol_type:
+                        graph_results = [
+                            r for r in graph_results
+                            if (not language or r.get("language") == language) and
+                               (not symbol_type or r.get("symbol_type") == symbol_type)
+                        ]
+                    if graph_results:
+                        ranked_lists["graph"] = graph_results
+                        engines_used.append("graph")
             except Exception as e:
                 logger.warning("Graph relevance search failed: %s", e)
 
@@ -501,36 +509,43 @@ def create_server():
         if live_grep or (mode == "hybrid" and len(results) < limit):
             try:
                 from nexus_mcp.engines.live_grep import LiveGrepEngine
-                from nexus_mcp.parsing.language_registry import EXTENSION_MAP
+                from nexus_mcp.parsing.language_registry import get_language_for_file
                 live_engine = LiveGrepEngine(str(state.codebase_path))
                 live_results = live_engine.search(query, limit=limit)
 
                 if live_results:
-                    # Annotate each result with language derived from extension,
-                    # then apply language/symbol_type filters to match indexed results.
-                    lang_filter = kwargs.get("language")
-                    for lr in live_results:
-                        ext = Path(lr.get("absolute_path", "")).suffix.lower()
-                        lr.setdefault("language", EXTENSION_MAP.get(ext, ""))
-                    if lang_filter:
-                        live_results = [
-                            lr for lr in live_results
-                            if lr.get("language") == lang_filter
-                        ]
-
-                    # Deduplicate: use (filepath, line_start) as key.
-                    # `absolute_path` is not set yet on existing results at this
-                    # point (the cleanup loop below sets it), so use `filepath`.
+                    filtered_live = []
                     seen = {
-                        (r.get("filepath", ""), r.get("line_start")) for r in results
+                        (r.get("absolute_path") or r.get("filepath", ""), r.get("line_start"))
+                        for r in results
                     }
+
                     for lr in live_results:
-                        key = (lr.get("absolute_path", lr.get("filepath", "")), lr.get("line_start"))
-                        if key not in seen:
-                            results.append(lr)
-                            seen.add(key)
-                    if "live_grep" not in engines_used:
-                        engines_used.append("live_grep")
+                        abs_p = lr.get("absolute_path") or lr.get("filepath")
+                        if not abs_p:
+                            continue
+                        key = (abs_p, lr.get("line_start"))
+                        if key in seen:
+                            continue
+
+                        # Detect language for live-grep results to apply filter
+                        lr_lang = get_language_for_file(abs_p) or "unknown"
+                        if language and lr_lang != language:
+                            continue
+
+                        # Live-grep results don't have symbol_type, so they only pass if
+                        # no symbol_type filter is requested.
+                        if symbol_type:
+                            continue
+
+                        lr["language"] = lr_lang
+                        filtered_live.append(lr)
+                        seen.add(key)
+
+                    if filtered_live:
+                        results.extend(filtered_live)
+                        if "live_grep" not in engines_used:
+                            engines_used.append("live_grep")
             except Exception as e:
                 logger.warning("Live grep failed: %s", e)
 
@@ -541,16 +556,24 @@ def create_server():
         for r in results:
             # Remove raw embedding vector (wastes tokens, not useful to LLM)
             r.pop("vector", None)
-            # Make path relative; try each indexed root for multi-folder.
-            # Live-grep results only have absolute_path, not filepath.
-            fp = r.get("filepath") or r.get("absolute_path", "")
-            r["absolute_path"] = fp
+
+            # Standardize path fields: results from engines have 'filepath',
+            # live-grep has 'absolute_path'.
+            abs_path = r.get("absolute_path") or r.get("filepath")
+            if not abs_path:
+                continue
+
+            r["absolute_path"] = str(abs_path)
+
+            # Make filepath relative for the LLM; try each indexed root for multi-folder
             for root in roots:
                 try:
-                    r["filepath"] = str(Path(fp).relative_to(root))
+                    r["filepath"] = str(Path(abs_path).relative_to(root))
                     break
                 except ValueError:
-                    continue
+                    # Not under this root, or abs_path already relative
+                    r["filepath"] = str(abs_path)
+
             # Rename 'text' to 'code_snippet' with truncation marker
             if "text" in r:
                 code = r.pop("text")
@@ -558,6 +581,11 @@ def create_server():
                     r["code_snippet"] = code[:2000] + "\n... (truncated)"
                 else:
                     r["code_snippet"] = code
+
+            # Ensure language field is present for filtering tests
+            if not r.get("language") or r.get("language") == "unknown":
+                from nexus_mcp.parsing.language_registry import get_language_for_file
+                r["language"] = get_language_for_file(r["absolute_path"]) or "unknown"
 
         return {
             "query": query,

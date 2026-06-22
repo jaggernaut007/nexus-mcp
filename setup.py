@@ -21,6 +21,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
+            "nexus-mcp=nexus_mcp.server:main",
             "nexus-mcp-ci=nexus_mcp.server:main",
         ],
     },

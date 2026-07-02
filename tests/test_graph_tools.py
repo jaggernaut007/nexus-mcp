@@ -1,4 +1,4 @@
-"""Tests for graph MCP tools: find_symbol, find_callers, find_callees."""
+"""Tests for graph MCP tools: find_symbol, graph (callers/callees direction)."""
 
 import asyncio
 
@@ -120,36 +120,44 @@ class TestFindSymbol:
         assert not file_path.startswith("/"), f"Path not relative: {file_path}"
 
 
-class TestFindCallers:
-    def test_find_callers_before_index(self):
+class TestGraphCallers:
+    def test_callers_before_index(self):
         mcp = server_module.create_server()
-        result = asyncio.run(_call_tool(mcp, "find_callers", {"symbol_name": "hello"}))
+        result = asyncio.run(
+            _call_tool(mcp, "graph", {"symbol_name": "hello", "direction": "callers"})
+        )
         assert "error" in result
 
-    def test_find_callers_not_found(self, tmp_path):
+    def test_callers_not_found(self, tmp_path):
         mcp = server_module.create_server()
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
-        result = asyncio.run(_call_tool(mcp, "find_callers", {"symbol_name": "nonexistent"}))
+        result = asyncio.run(
+            _call_tool(mcp, "graph", {"symbol_name": "nonexistent", "direction": "callers"})
+        )
         assert "error" in result
 
-    def test_find_callers_no_callers(self, tmp_path):
+    def test_callers_no_callers(self, tmp_path):
         mcp = server_module.create_server()
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
-        result = asyncio.run(_call_tool(mcp, "find_callers", {"symbol_name": "orchestrate"}))
+        result = asyncio.run(
+            _call_tool(mcp, "graph", {"symbol_name": "orchestrate", "direction": "callers"})
+        )
         assert "error" not in result
         assert result["total"] == 0
         assert result["callers"] == []
 
-    def test_find_callers_with_callers(self, tmp_path):
+    def test_callers_with_callers(self, tmp_path):
         mcp = server_module.create_server()
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
-        result = asyncio.run(_call_tool(mcp, "find_callers", {"symbol_name": "helper"}))
+        result = asyncio.run(
+            _call_tool(mcp, "graph", {"symbol_name": "helper", "direction": "callers"})
+        )
         assert "error" not in result
         assert result["symbol"] == "helper"
         assert result["total"] >= 2
@@ -157,27 +165,42 @@ class TestFindCallers:
         assert "hello" in caller_names
         assert "orchestrate" in caller_names
 
-
-class TestFindCallees:
-    def test_find_callees_before_index(self):
-        mcp = server_module.create_server()
-        result = asyncio.run(_call_tool(mcp, "find_callees", {"symbol_name": "hello"}))
-        assert "error" in result
-
-    def test_find_callees_not_found(self, tmp_path):
+    def test_callers_is_default_direction(self, tmp_path):
         mcp = server_module.create_server()
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
-        result = asyncio.run(_call_tool(mcp, "find_callees", {"symbol_name": "nonexistent"}))
+        result = asyncio.run(_call_tool(mcp, "graph", {"symbol_name": "helper"}))
+        assert result["direction"] == "callers"
+        assert "callers" in result
+
+
+class TestGraphCallees:
+    def test_callees_before_index(self):
+        mcp = server_module.create_server()
+        result = asyncio.run(
+            _call_tool(mcp, "graph", {"symbol_name": "hello", "direction": "callees"})
+        )
         assert "error" in result
 
-    def test_find_callees_with_callees(self, tmp_path):
+    def test_callees_not_found(self, tmp_path):
         mcp = server_module.create_server()
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
-        result = asyncio.run(_call_tool(mcp, "find_callees", {"symbol_name": "orchestrate"}))
+        result = asyncio.run(
+            _call_tool(mcp, "graph", {"symbol_name": "nonexistent", "direction": "callees"})
+        )
+        assert "error" in result
+
+    def test_callees_with_callees(self, tmp_path):
+        mcp = server_module.create_server()
+        state = get_state()
+        _setup_graph_with_calls(state, tmp_path)
+
+        result = asyncio.run(
+            _call_tool(mcp, "graph", {"symbol_name": "orchestrate", "direction": "callees"})
+        )
         assert "error" not in result
         assert result["symbol"] == "orchestrate"
         assert result["total"] >= 2
@@ -185,12 +208,40 @@ class TestFindCallees:
         assert "hello" in callee_names
         assert "helper" in callee_names
 
-    def test_find_callees_no_callees(self, tmp_path):
+    def test_callees_no_callees(self, tmp_path):
         mcp = server_module.create_server()
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
-        result = asyncio.run(_call_tool(mcp, "find_callees", {"symbol_name": "helper"}))
+        result = asyncio.run(
+            _call_tool(mcp, "graph", {"symbol_name": "helper", "direction": "callees"})
+        )
         assert "error" not in result
         assert result["total"] == 0
         assert result["callees"] == []
+
+    def test_invalid_direction_rejected(self, tmp_path):
+        mcp = server_module.create_server()
+        state = get_state()
+        _setup_graph_with_calls(state, tmp_path)
+
+        result = asyncio.run(
+            _call_tool(mcp, "graph", {"symbol_name": "helper", "direction": "sideways"})
+        )
+        assert "error" in result
+
+    def test_transitive_with_callees_rejected(self, tmp_path):
+        """graph_engine only has get_transitive_callers — transitive callees
+        is not a real capability and must error, not silently misbehave."""
+        mcp = server_module.create_server()
+        state = get_state()
+        _setup_graph_with_calls(state, tmp_path)
+
+        result = asyncio.run(
+            _call_tool(
+                mcp,
+                "graph",
+                {"symbol_name": "helper", "direction": "callees", "transitive": True},
+            )
+        )
+        assert "error" in result

@@ -1,4 +1,4 @@
-"""Tests for the impact MCP tool."""
+"""Tests for the graph MCP tool's transitive=True (impact) mode."""
 
 import asyncio
 
@@ -55,7 +55,7 @@ def _setup_deep_call_chain(state, codebase_path):
 class TestImpact:
     def test_impact_before_index(self):
         mcp = server_module.create_server()
-        result = asyncio.run(_call_tool(mcp, "impact", {"symbol_name": "a"}))
+        result = asyncio.run(_call_tool(mcp, "graph", {"symbol_name": "a", "transitive": True}))
         assert "error" in result
 
     def test_impact_symbol_not_found(self, tmp_path):
@@ -63,7 +63,9 @@ class TestImpact:
         state = get_state()
         _setup_deep_call_chain(state, tmp_path)
 
-        result = asyncio.run(_call_tool(mcp, "impact", {"symbol_name": "nonexistent"}))
+        result = asyncio.run(
+            _call_tool(mcp, "graph", {"symbol_name": "nonexistent", "transitive": True})
+        )
         assert "error" in result
 
     def test_impact_no_callers(self, tmp_path):
@@ -72,7 +74,7 @@ class TestImpact:
         _setup_deep_call_chain(state, tmp_path)
 
         # d is at the top of the chain, nobody calls d
-        result = asyncio.run(_call_tool(mcp, "impact", {"symbol_name": "d"}))
+        result = asyncio.run(_call_tool(mcp, "graph", {"symbol_name": "d", "transitive": True}))
         assert "error" not in result
         assert result["total_impacted"] == 0
         assert result["impacted_symbols"] == []
@@ -83,7 +85,7 @@ class TestImpact:
         _setup_deep_call_chain(state, tmp_path)
 
         # a is called by b, c (via b), d (via c->b), and e
-        result = asyncio.run(_call_tool(mcp, "impact", {"symbol_name": "a"}))
+        result = asyncio.run(_call_tool(mcp, "graph", {"symbol_name": "a", "transitive": True}))
         assert "error" not in result
         assert result["symbol"] == "a"
         assert result["total_impacted"] >= 4
@@ -99,7 +101,9 @@ class TestImpact:
         _setup_deep_call_chain(state, tmp_path)
 
         # With max_depth=1, only direct callers of a: b and e
-        result = asyncio.run(_call_tool(mcp, "impact", {"symbol_name": "a", "max_depth": 1}))
+        result = asyncio.run(
+            _call_tool(mcp, "graph", {"symbol_name": "a", "max_depth": 1, "transitive": True})
+        )
         assert "error" not in result
         assert result["max_depth"] == 1
         names = [s["name"] for s in result["impacted_symbols"]]
@@ -114,7 +118,7 @@ class TestImpact:
         state = get_state()
         _setup_deep_call_chain(state, tmp_path)
 
-        result = asyncio.run(_call_tool(mcp, "impact", {"symbol_name": "a"}))
+        result = asyncio.run(_call_tool(mcp, "graph", {"symbol_name": "a", "transitive": True}))
         assert "impacted_files" in result
         assert isinstance(result["impacted_files"], dict)
         # Each file should map to a list of symbol names

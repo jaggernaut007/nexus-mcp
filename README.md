@@ -92,7 +92,7 @@ Source files
     │           deterministic IDs: SHA256(file_path + symbol_name + line)
     │           avoids duplicate inserts on incremental reindex
     │
-    ├─ Step 6: Embed ──────────── ONNX Runtime (jina-code: 768-dim, seq_len=8192)
+    ├─ Step 6: Embed ──────────── bge-small-en: 384-dim (default) or jina-code: 768-dim via ONNX
     │           lazy-loaded, unloaded after indexing (try/finally)
     │           GPU/MPS auto-detected; falls back to CPU
     │
@@ -136,7 +136,7 @@ search("how does auth work")
 | Layer | Technology | Decision Rationale |
 |-------|-----------|-------------------|
 | **Vector store** | LanceDB | mmap disk-backed → ~20–50 MB overhead vs ChromaDB's in-memory model. Native Tantivy FTS means one store for both vector and BM25. ([ADR-002](docs/adr/ADR-002-lancedb-over-chromadb.md)) |
-| **Embeddings** | ONNX Runtime + jina-code | ~50 MB vs PyTorch ~500 MB. jina-code is code-specific (161M params, 8192 seq len). Lazy-load/unload keeps RAM flat after indexing. ([ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md)) |
+| **Embeddings** | bge-small-en (default) or ONNX Runtime + jina-code | bge-small-en is lightweight (384-dim, no trust_remote_code). jina-code is code-specific (161M params, 8192 seq len) on ONNX (~50 MB vs PyTorch ~500 MB). Lazy-load/unload keeps RAM flat after indexing. ([ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md)) |
 | **Graph engine** | rustworkx PyDiGraph | Rust-backed, O(1) node lookup, PageRank + centrality algorithms. Thread-safe with RLock. ([ADR-006](docs/adr/ADR-006-rustworkx-graph-engine.md)) |
 | **Symbol parser** | tree-sitter 0.21.3 | 25+ languages, incremental parsing, AST-level symbol extraction with metadata. Parallel via ThreadPool. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
 | **Graph parser** | ast-grep | Structural pattern matching for call/import/inheritance edges. Sequential run for graph consistency. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
@@ -156,7 +156,7 @@ Measured against equivalent agentic file-browsing workflows on a ~10,000-line Py
 | Find relevant code (agent reads 5–10 files) | 5,000–15,000 tokens | 500–2,000 tokens | **70–90%** |
 | Understand a symbol (grep + read + trace callers) | 3,000–8,000 tokens, 3–5 calls | 800–2,000 tokens, 1 call | **60–75%** |
 | Assess change impact (manual transitive trace) | 10,000–20,000 tokens | 1,000–3,000 tokens | **80–85%** |
-| Tool descriptions in context (2 MCP servers) | ~1,700 tokens (17 tools) | ~1,000 tokens (15 tools) | **40%** |
+| Tool descriptions in context (2 MCP servers) | ~1,700 tokens (17 tools) | ~700 tokens (10 tools) | **~60%** |
 | Search precision (keyword-only needs retries) | 2–3 searches × 2,000 tokens | 1 hybrid search × 1,500 tokens | **60–75%** |
 
 **Typical session savings: 15,000–40,000 tokens (30–60%)** compared to file-browsing agents.
@@ -173,42 +173,43 @@ Every tool respects a `verbosity` parameter — agents request exactly the detai
 
 ---
 
-## The 15 Tools
+## The 10 Tools
+
+**v2.0.0 breaking change:** `find_callers`/`find_callees`/`impact` merged into
+`graph`, `overview`/`architecture` merged into `map`, and `remember`/`recall`/`forget`
+merged into `memory` — see [CHANGELOG](CHANGELOG.md) for the old→new mapping and
+[ADR-017](docs/adr/ADR-017-tool-consolidation.md) for why. Fewer, richer tools route
+better under MCP Tool Search than many thin ones.
 
 ### Discovery & Indexing
 
 | Tool | Use When |
 |------|----------|
-| `index(path)` | First action in any session. Supports comma-separated multi-folder paths. Incremental by default. |
-| `status()` | Check index health: symbol count, chunk count, memory usage, engine availability. |
+| `index(path)` | First action in any session. Supports comma-separated multi-folder paths. Incremental by default, reports progress as it runs, and starts a debounced auto-reindex watcher (`NEXUS_AUTO_WATCH`) when it finishes. |
+| `status()` | Check index health: symbol count, chunk count, memory usage, engine availability, and a `stale`/`staleness_warning` pair if files changed since the last index. |
 | `health()` | Liveness probe — uptime, which engines are ready. |
-| `overview()` | **Replaces `ls` + manual browsing.** File counts, languages, top modules, quality metrics. |
-| `architecture()` | System design view: layers, module dependencies, entry points, hub symbols, hotspots. |
+| `map(detail)` | **Replaces `ls` + manual browsing.** `detail="summary"` (files/languages/quality/top-modules, was `overview()`), `"architecture"` (layers/dependencies/classes/entry points/hub symbols, was `architecture()`), or `"full"` for both. |
 
 ### Search
 
 | Tool | Use When |
 |------|----------|
-| `search(query, mode, language, type, n)` | Primary code discovery. `mode`: `hybrid` (default), `vector`, or `bm25`. |
+| `search(query, mode, language, type, n)` | Primary code discovery. `mode`: `hybrid` (default), `vector`, or `bm25`. Falls back to live grep if results are sparse. Returns a non-null `warning` if the index looked stale (a background reindex is triggered automatically; results still return immediately). |
 
 ### Graph Analysis
 
 | Tool | Use When |
 |------|----------|
 | `find_symbol(name, exact)` | Look up a specific symbol. `exact=False` for fuzzy matching. |
-| `find_callers(symbol)` | Who calls this function? Call-graph accurate, not text-search. |
-| `find_callees(symbol)` | What does this function call? Trace execution dependencies. |
+| `graph(symbol, direction, transitive, max_depth)` | `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True` — MUST run before any refactor** (was `impact()`): full transitive change blast radius across the graph. |
 | `explain(symbol)` | **Replaces `Read` for understanding code.** Graph relationships + semantic context + quality metrics in one call. |
 | `analyze(path)` | Code quality: cyclomatic complexity, cognitive complexity, code smells, dependency metrics. |
-| `impact(symbol)` | **Run before any refactor.** Transitive change blast radius across the full graph. |
 
 ### Memory
 
 | Tool | Use When |
 |------|----------|
-| `remember(content, tags, type, ttl)` | Persist a decision, note, or context across sessions. Types: `note`, `decision`, `conversation`, `status`, `preference`, `doc`. TTL: `permanent`, `month`, `week`, `day`, `session`. |
-| `recall(query, tags, type)` | Retrieve memories by semantic similarity + optional tag/type filters. |
-| `forget(id, tags, type)` | Remove stale memories by ID, tag, or type. |
+| `memory(action, ...)` | `action="store"` (was `remember`) to persist a decision/note across sessions (types: `note`, `decision`, `conversation`, `status`, `preference`, `doc`; TTL: `permanent`, `month`, `week`, `day`, `session`); `"search"` (was `recall`) for semantic retrieval; `"delete"` (was `forget`) to remove by ID, tag, or type. |
 
 ---
 
@@ -241,11 +242,11 @@ pip install -e ".[dev]"
 
 **Python 3.10–3.13 required.** Optional: `rg` (ripgrep) for 100% search coverage fallback on unindexed files.
 
-> The default `jina-code` model requires ONNX Runtime. If you see ONNX/Optimum errors:
+> The optional `jina-code` model requires ONNX Runtime. If you see ONNX/Optimum errors:
 > ```bash
 > pip install "sentence-transformers[onnx]" "optimum[onnxruntime]>=1.19.0"
 > ```
-> To skip `trust_remote_code`, use a lighter model: `NEXUS_EMBEDDING_MODEL=bge-small-en`
+> The default `bge-small-en` model needs neither ONNX nor `trust_remote_code`.
 
 ---
 
@@ -257,8 +258,8 @@ pip install -e ".[dev]"
 # Minimal
 claude mcp add nexus-mcp-ci -- nexus-mcp-ci
 
-# With lighter embedding model (no trust_remote_code)
-claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_MODEL=bge-small-en -- nexus-mcp-ci
+# With the code-specific embedding model (requires trust_remote_code)
+claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_MODEL=jina-code -- nexus-mcp-ci
 
 # GPU embeddings
 claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_DEVICE=cuda -- nexus-mcp-ci
@@ -278,7 +279,7 @@ claude mcp add nexus-mcp-ci -- /path/to/.venv/bin/nexus-mcp-ci
       "command": "nexus-mcp-ci",
       "args": [],
       "env": {
-        "NEXUS_EMBEDDING_MODEL": "bge-small-en"
+        "NEXUS_EMBEDDING_MODEL": "jina-code"
       }
     }
   }
@@ -358,9 +359,11 @@ All settings via `NEXUS_` environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NEXUS_EMBEDDING_MODEL` | `jina-code` | `jina-code` (768-dim, code-optimized) or `bge-small-en` (384-dim, lightweight) |
+| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | `bge-small-en` (384-dim, lightweight) or `jina-code` (768-dim, code-optimized) |
 | `NEXUS_EMBEDDING_DEVICE` | `auto` | `auto` (CUDA → MPS → CPU), `cuda`, `mps`, `cpu` |
 | `NEXUS_STORAGE_DIR` | `.nexus` | Index storage directory |
+| `NEXUS_AUTO_WATCH` | `true` | Auto-reindex on file change via a debounced watcher, started after `index()` |
+| `NEXUS_STALENESS_CHECK_INTERVAL` | `15` | Seconds between `status()`/`search()` staleness checks (throttled, not per-call) |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max chars per code chunk |
 | `NEXUS_MAX_MEMORY_MB` | `350` | Memory budget target |
@@ -379,8 +382,8 @@ All settings via `NEXUS_` environment variables:
 
 | Model | Key | Dims | Max Seq | Backend | `trust_remote_code` |
 |-------|-----|:----:|:-------:|---------|:-------------------:|
+| BGE Small EN v1.5 (default) | `bge-small-en` | 384 | 512 | PyTorch | No |
 | Jina Embeddings v2 Code | `jina-code` | 768 | 8,192 | ONNX | Yes |
-| BGE Small EN v1.5 | `bge-small-en` | 384 | 512 | PyTorch | No |
 
 **After changing model, re-index.** Embeddings from different models are incompatible.
 
@@ -438,7 +441,7 @@ ruff check .                 # lint
 
 ```
 src/nexus_mcp/
-├── server.py              # FastMCP entrypoint — 15 tools, input validation, graceful shutdown
+├── server.py              # FastMCP entrypoint — 10 tools, input validation, graceful shutdown
 ├── config.py              # Settings (NEXUS_ env prefix)
 ├── state.py               # Global singleton SessionState
 ├── core/
@@ -469,17 +472,14 @@ src/nexus_mcp/
 ├── security/
 │   ├── permissions.py     # READ/MUTATE/WRITE tool categories
 │   └── rate_limiter.py    # Token-bucket, per-tool, thread-safe
-├── middleware/
-│   └── audit.py           # Structured audit logs, correlation IDs, field redaction
-└── schemas/
-    ├── inputs.py          # Pydantic v2 input validation
-    └── responses.py       # Pydantic v2 response serialization
+└── middleware/
+    └── audit.py           # Structured audit logs, correlation IDs, field redaction
 ```
 
 ### Adding a New Tool
 
 1. Add the handler function to `server.py` decorated with `@mcp.tool()`
-2. Add input validation model to `schemas/inputs.py`
+2. Add inline validation (`_validate_*` helpers in `server.py`) for any new input
 3. Add permission category to `security/permissions.py`
 4. Write tests in `tests/`
 5. Update `self_test/demo_mcp.py` to exercise the tool
@@ -494,14 +494,14 @@ src/nexus_mcp/
 
 ## Self-Test
 
-Verify your installation exercises all 15 tools end-to-end:
+Verify your installation exercises all 10 tools end-to-end:
 
 ```bash
 python self_test/demo_mcp.py                   # built-in sample project
 python self_test/demo_mcp.py /path/to/project  # your own codebase
 ```
 
-Expected output: all 15 tools exercised with pass/fail per tool and a summary.
+Expected output: all 10 tools exercised with pass/fail per tool and a summary.
 
 ---
 
@@ -512,6 +512,8 @@ Expected output: all 15 tools exercised with pass/fail per tool and a summary.
 - **No incremental graph updates**: Graph is rebuilt in full on incremental reindex (only vector/BM25 are incremental at the chunk level).
 - **No SSE transport**: Only stdio transport is currently supported.
 - **Language coverage**: 25+ languages, but structural relationship extraction (callers/callees) is most accurate for Python, TypeScript, JavaScript, Go, and Rust. Other languages may have partial graph edges.
+- **Static call graph only**: `find_callers`/`find_callees`/`impact` are built from static parsing, not runtime tracing — dynamic dispatch, monkey-patching, and calls made through callbacks/closures/reflection won't show up as edges. Treat `impact` as a lower bound on blast radius in highly dynamic code.
+- **Auto-reindex has a detection lag**: with the file watcher enabled (default), edits are picked up after a short debounce, and `status()`/`search()` run a throttled staleness check as a backstop — not an instant, per-call guarantee of freshness.
 
 ---
 
@@ -524,7 +526,7 @@ Key decisions are documented in [docs/adr/](docs/adr/):
 | [ADR-001](docs/adr/ADR-001-single-mcp-consolidation.md) | Merge two MCP servers into one |
 | [ADR-002](docs/adr/ADR-002-lancedb-over-chromadb.md) | LanceDB over ChromaDB |
 | [ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md) | ONNX Runtime over PyTorch for embeddings |
-| [ADR-004](docs/adr/ADR-004-bge-small-default-model.md) | jina-code as default embedding model |
+| [ADR-004](docs/adr/ADR-004-bge-small-default-model.md) | bge-small-en as default embedding model |
 | [ADR-005](docs/adr/ADR-005-dual-parser-strategy.md) | Dual parser: tree-sitter + ast-grep |
 | [ADR-006](docs/adr/ADR-006-rustworkx-graph-engine.md) | rustworkx for graph algorithms |
 | [ADR-007](docs/adr/ADR-007-lancedb-schema-design.md) | 12-column PyArrow schema for LanceDB |
@@ -533,8 +535,11 @@ Key decisions are documented in [docs/adr/](docs/adr/):
 | [ADR-010](docs/adr/ADR-010-graph-tools-api-design.md) | Graph tools API: serialization, ambiguity handling |
 | [ADR-011](docs/adr/ADR-011-hardening-decisions.md) | Graceful shutdown, corruption recovery, JSON logging |
 | [ADR-012](docs/adr/ADR-012-tool-permission-model.md) | READ/MUTATE/WRITE permission categories |
-| [ADR-013](docs/adr/ADR-013-pydantic-schemas.md) | Pydantic v2 I/O schemas |
+| ~~[ADR-013](docs/adr/ADR-013-pydantic-schemas.md)~~ | Pydantic v2 I/O schemas — superseded by ADR-016 (never wired in, deleted) |
 | [ADR-014](docs/adr/ADR-014-rate-limiting.md) | Token-bucket rate limiting (off by default) |
+| [ADR-015](docs/adr/ADR-015-auto-watch-and-staleness-detection.md) | Auto-watch + throttled staleness detection |
+| [ADR-016](docs/adr/ADR-016-remove-unused-pydantic-schemas.md) | Removal of unused Pydantic schemas (supersedes ADR-013) |
+| [ADR-017](docs/adr/ADR-017-tool-consolidation.md) | Tool consolidation 15→10, action-aware permission categories |
 
 ---
 

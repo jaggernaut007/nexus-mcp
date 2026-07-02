@@ -1,5 +1,6 @@
 """Nexus-MCP FastMCP server with index, search, status, and graph/analysis tools."""
 
+import asyncio
 import json as _json
 import logging
 import re
@@ -8,7 +9,12 @@ import signal
 import sys
 import threading
 from pathlib import Path
-from typing import Annotated, Any, List, Optional
+from typing import TYPE_CHECKING, Annotated, Any, List, Optional
+
+from nexus_mcp import __version__
+
+if TYPE_CHECKING:
+    from nexus_mcp.security.permissions import ToolCategory
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +38,109 @@ _pipeline = None
 _pipeline_lock = threading.Lock()
 
 
+def _trigger_background_reindex(
+    codebase_path: Optional[Path], codebase_paths: Optional[list] = None
+) -> None:
+    """Kick off an incremental reindex on a daemon thread, without blocking the caller.
+
+    Skips (rather than queues or blocks) if a foreground index() is already running
+    or another background reindex is already in flight — both hold `_pipeline_lock`
+    for their full duration, so a non-blocking acquire here is enough to detect either.
+    """
+    global _pipeline
+
+    if _pipeline is None or codebase_path is None:
+        return
+
+    if not _pipeline_lock.acquire(blocking=False):
+        logger.debug("Background reindex skipped: pipeline busy.")
+        return
+
+    def _run():
+        try:
+            from nexus_mcp.state import get_state
+
+            if codebase_paths and len(codebase_paths) > 1:
+                _pipeline.multi_index(codebase_paths)
+            else:
+                _pipeline.incremental_index(codebase_path)
+
+            state = get_state()
+            state.vector_engine = _pipeline.vector_engine
+            state.bm25_engine = _pipeline.bm25_engine
+            state.graph_engine = _pipeline.graph_engine
+            state._staleness_cache = None  # force a fresh check on next status()/search()
+            logger.info("Background reindex complete for %s", codebase_path)
+        except Exception as e:
+            logger.warning("Background reindex failed for %s: %s", codebase_path, e)
+        finally:
+            _pipeline_lock.release()
+
+    threading.Thread(target=_run, daemon=True, name="nexus-bg-reindex").start()
+
+
+def _get_staleness(state) -> dict:
+    """Throttled staleness check — reuses the cached result within
+    settings.staleness_check_interval_s to avoid a filesystem walk on every call.
+    """
+    import time
+
+    global _pipeline
+
+    if _pipeline is None or not state.is_indexed:
+        return {"stale": False, "changed_files": 0, "reason": None}
+
+    now = time.monotonic()
+    interval = state.settings.staleness_check_interval_s
+    if state._staleness_cache is not None and (now - state._staleness_checked_at) < interval:
+        return state._staleness_cache
+
+    roots = state.codebase_paths or [state.codebase_path]
+    result = _pipeline.check_staleness(roots)
+    state._staleness_cache = result
+    state._staleness_checked_at = now
+    return result
+
+
+async def _ensure_file_watcher(state, auto_watch_enabled: bool) -> None:
+    """Start a DebouncedFileWatcher per indexed root, if enabled and not already running."""
+    if not auto_watch_enabled or state._file_watchers:
+        return
+
+    roots = state.codebase_paths or ([state.codebase_path] if state.codebase_path else [])
+    if not roots:
+        return
+
+    from nexus_mcp.parsing.file_watcher import DebouncedFileWatcher
+    from nexus_mcp.parsing.language_registry import get_supported_extensions
+
+    extensions = get_supported_extensions()
+
+    def _make_callback(root: Path):
+        def _on_change() -> None:
+            # Runs as an asyncio.Task on the server's event loop (see
+            # DebouncedFileWatcher._debounced_callback) — must stay non-blocking.
+            # _trigger_background_reindex only spawns a thread and returns.
+            _trigger_background_reindex(root, state.codebase_paths)
+
+        return _on_change
+
+    for root in roots:
+        watcher = DebouncedFileWatcher(
+            project_root=root,
+            callback=_make_callback(root),
+            supported_extensions=extensions,
+        )
+        try:
+            await watcher.start()
+            state._file_watchers.append(watcher)
+        except Exception as e:
+            logger.warning("Failed to start file watcher for %s: %s", root, e)
+
+
 def create_server():
     """Create and configure the FastMCP server."""
-    from fastmcp import FastMCP
+    from fastmcp import Context, FastMCP
 
     from nexus_mcp.core.graph_models import UniversalNode, UniversalRelationship
 
@@ -61,8 +167,14 @@ def create_server():
             default_burst=_settings.rate_limit_default_burst,
         )
 
-    def _check_tool_permission(tool_name: str) -> Optional[dict]:
+    def _check_tool_permission(
+        tool_name: str, category_override: Optional["ToolCategory"] = None
+    ) -> Optional[dict]:
         """Check if tool is allowed under current permission policy.
+
+        category_override lets a tool whose real category depends on a
+        call-time parameter (e.g. `memory(action=...)`) report the correct
+        category instead of a single static one for the whole tool name.
 
         Returns None if allowed, or error dict if denied.
         """
@@ -73,8 +185,8 @@ def create_server():
         )
 
         policy = policy_from_level(_settings.default_permission_level)
-        if not check_permission(tool_name, policy):
-            category = get_tool_category(tool_name)
+        if not check_permission(tool_name, policy, category_override=category_override):
+            category = get_tool_category(tool_name, category_override=category_override)
             cat_name = category.value if category else "unknown"
             return {
                 "error": (
@@ -97,44 +209,92 @@ def create_server():
             }
         return None
 
-    def _guard(tool_name: str) -> Optional[dict]:
+    def _guard(
+        tool_name: str, category_override: Optional["ToolCategory"] = None
+    ) -> Optional[dict]:
         """Run all pre-execution checks: permissions, rate limiting.
 
         Returns None if all checks pass, or error dict on first failure.
-        Side-effect: emits an audit record for each invocation attempt.
+        Denial dicts carry an internal '_audit_status' key consumed (and
+        stripped) by the _audited wrapper.
         """
-        from nexus_mcp.middleware.audit import generate_correlation_id
-        import time as _time
-
-        _start = _time.monotonic()
-        err = _check_tool_permission(tool_name)
+        err = _check_tool_permission(tool_name, category_override=category_override)
         if err:
-            _audit.log_invocation(
-                tool_name=tool_name,
-                params={},
-                result_status="permission_denied",
-                duration_ms=(_time.monotonic() - _start) * 1000,
-                correlation_id=generate_correlation_id(),
-            )
+            err["_audit_status"] = "permission_denied"
             return err
         err = _check_rate_limit(tool_name)
         if err:
-            _audit.log_invocation(
-                tool_name=tool_name,
-                params={},
-                result_status="rate_limited",
-                duration_ms=(_time.monotonic() - _start) * 1000,
-                correlation_id=generate_correlation_id(),
-            )
+            err["_audit_status"] = "rate_limited"
             return err
-        _audit.log_invocation(
-            tool_name=tool_name,
-            params={},
-            result_status="invoked",
-            duration_ms=(_time.monotonic() - _start) * 1000,
-            correlation_id=generate_correlation_id(),
-        )
         return None
+
+    def _audited(fn):
+        """Wrap a tool to emit one audit record per invocation.
+
+        Logs the actual outcome (success/error/permission_denied/rate_limited)
+        with real duration and sanitized params, after the tool completes.
+        Audit failures never block the tool call. Works for both sync and
+        async tool functions — FastMCP tells them apart via
+        inspect.iscoroutinefunction, so the wrapper must preserve that.
+        """
+        import functools
+        import time as _time
+
+        from nexus_mcp.middleware.audit import generate_correlation_id
+
+        tool_name = fn.__name__
+
+        def _log(status: str, kwargs: dict, start: float) -> None:
+            try:
+                _audit.log_invocation(
+                    tool_name=tool_name,
+                    params=kwargs,
+                    result_status=status,
+                    duration_ms=(_time.monotonic() - start) * 1000,
+                    correlation_id=generate_correlation_id(),
+                )
+            except Exception as e:
+                logger.warning("Audit logging failed for %s: %s", tool_name, e)
+
+        if asyncio.iscoroutinefunction(fn):
+
+            @functools.wraps(fn)
+            async def async_wrapper(*args, **kwargs):
+                start = _time.monotonic()
+                status = "success"
+                try:
+                    result = await fn(*args, **kwargs)
+                    if isinstance(result, dict):
+                        status = result.pop("_audit_status", None) or (
+                            "error" if "error" in result else "success"
+                        )
+                    return result
+                except Exception:
+                    status = "error"
+                    raise
+                finally:
+                    _log(status, kwargs, start)
+
+            return async_wrapper
+
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            start = _time.monotonic()
+            status = "success"
+            try:
+                result = fn(*args, **kwargs)
+                if isinstance(result, dict):
+                    status = result.pop("_audit_status", None) or (
+                        "error" if "error" in result else "success"
+                    )
+                return result
+            except Exception:
+                status = "error"
+                raise
+            finally:
+                _log(status, kwargs, start)
+
+        return wrapper
 
     # --- Input validation helpers ---
 
@@ -254,8 +414,12 @@ def create_server():
     # --- MCP Tools ---
 
     @mcp.tool()
+    @_audited
     def status() -> dict[str, Any]:
-        """Get Nexus-MCP server status including indexing stats."""
+        """Use at the start of a session, or when unsure if search results might
+        be stale. Reports whether a codebase is indexed, index size/engine
+        availability, memory usage, and a stale/staleness_warning pair if files
+        changed since the last index (a background reindex is auto-triggered)."""
         guard_err = _guard("status")
         if guard_err:
             return guard_err
@@ -272,7 +436,7 @@ def create_server():
             peak_rss_mb = rss_raw / 1024
 
         result: dict[str, Any] = {
-            "version": "1.0.1",
+            "version": __version__,
             "indexed": state.is_indexed,
             "codebase_path": str(state.codebase_path) if state.codebase_path else None,
             "memory": {"peak_rss_mb": round(peak_rss_mb, 1)},
@@ -285,6 +449,18 @@ def create_server():
                 result["bm25_fts_ready"] = state.bm25_engine._fts_index_created
             if state.graph_engine:
                 result["graph"] = state.graph_engine.get_statistics()
+
+            staleness = _get_staleness(state)
+            result["stale"] = staleness["stale"]
+            if staleness["stale"]:
+                result["staleness_warning"] = (
+                    f"Index may be out of date ({staleness['reason']}). "
+                    "A background reindex has been triggered."
+                )
+                _trigger_background_reindex(state.codebase_path, state.codebase_paths)
+            else:
+                result["staleness_warning"] = None
+
             result["hint"] = (
                 "Codebase is indexed. Use 'search' to find code (preferred over Grep/Glob), "
                 "'find_symbol' for definitions, 'find_callers'/'find_callees' for call graph, "
@@ -299,12 +475,11 @@ def create_server():
         return result
 
     @mcp.tool()
+    @_audited
     def health() -> dict[str, Any]:
-        """Health check for readiness/liveness probes.
-
-        Returns:
-            Server health status including uptime and engine availability.
-        """
+        """Use for liveness/readiness probes only (uptime, which engines are up)
+        — not for checking whether the index is fresh or complete; use `status`
+        for that."""
         guard_err = _guard("health")
         if guard_err:
             return guard_err
@@ -329,16 +504,19 @@ def create_server():
         }
 
     @mcp.tool()
-    def index(
+    @_audited
+    async def index(
         path: Annotated[str, "Absolute path to the codebase directory (or comma-separated paths)"],
         paths: Annotated[str, "Additional comma-separated paths to index"] = "",
+        ctx: Context = None,
     ) -> dict[str, Any]:
-        """Index a codebase into vector + graph engines.
-
-        Supports indexing multiple directories folder-by-folder. Each folder
-        is processed sequentially (discover → parse → embed → store) and
-        results are merged into shared engines.
-        """
+        """Use first on any new or changed codebase, before any other tool —
+        everything except `status`/`health` requires an index. Supports
+        comma-separated paths for multi-folder/monorepo indexing (processed
+        sequentially to keep RAM low). Incremental by default once an index
+        exists, and reports live progress instead of blocking silently. After
+        this completes, a file watcher keeps the index fresh automatically
+        (NEXUS_AUTO_WATCH) — re-running `index` manually is rarely needed."""
         from nexus_mcp.config import get_settings
         from nexus_mcp.indexing.pipeline import IndexingPipeline
         from nexus_mcp.state import get_state
@@ -366,41 +544,84 @@ def create_server():
             return {"error": "No valid paths provided."}
 
         settings = get_settings()
+        loop = asyncio.get_running_loop()
+        progress_throttle = {"last_sent": 0.0}
 
-        with _pipeline_lock:
+        def progress_callback(stage: str, info: dict) -> None:
+            # parallel_parse_files (indexing/parallel_indexer.py) calls this once
+            # per file with event types "file_parsed" (keys: path, symbols, index,
+            # total) or "parse_error" (keys: path, error) — from whichever thread
+            # is running the blocking pipeline call (see asyncio.to_thread below),
+            # never the event loop thread, so bridge via run_coroutine_threadsafe.
+            import time as _time
+
+            info = info or {}
+            if ctx is None:
+                logger.info("[index] %s: %s", stage, info)
+                return
+
+            # Throttle: a multi-thousand-file repo would otherwise fire one MCP
+            # progress notification per file. Cap to ~2/sec.
+            now = _time.monotonic()
+            if now - progress_throttle["last_sent"] < 0.5:
+                return
+            progress_throttle["last_sent"] = now
+
+            try:
+                processed = info.get("index", 0)
+                total = info.get("total")
+                message = f"{stage}: {info.get('path', '')}"
+                asyncio.run_coroutine_threadsafe(
+                    ctx.report_progress(processed, total, message), loop
+                )
+            except Exception as e:
+                logger.debug("Progress bridge failed for %s: %s", stage, e)
+
+        # Acquire the pipeline lock off the event loop thread — it's normally
+        # uncontended, but a background reindex could briefly hold it, and this
+        # keeps the wait from blocking other work if that happens.
+        await asyncio.to_thread(_pipeline_lock.acquire)
+        try:
             if _pipeline is None:
                 _pipeline = IndexingPipeline(settings)
 
-        # Multi-path: always use folder-by-folder indexing
-        if len(validated) > 1:
-            result = _pipeline.multi_index(validated)
-            state = get_state()
-            state.codebase_path = validated[0]
-            state.codebase_paths = validated
+            # Multi-path: always use folder-by-folder indexing
+            if len(validated) > 1:
+                result = await asyncio.to_thread(
+                    _pipeline.multi_index, validated, progress_callback
+                )
+                state = get_state()
+                state.codebase_path = validated[0]
+                state.codebase_paths = validated
+            else:
+                # Single path: determine full vs incremental
+                codebase_path = validated[0]
+                metadata_path = settings.storage_path / "index_metadata.json"
+                if metadata_path.exists():
+                    result = await asyncio.to_thread(
+                        _pipeline.incremental_index, codebase_path, progress_callback
+                    )
+                else:
+                    result = await asyncio.to_thread(
+                        _pipeline.index, codebase_path, progress_callback
+                    )
+                state = get_state()
+                state.codebase_path = codebase_path
+                state.codebase_paths = [codebase_path]
+
             state.vector_engine = _pipeline.vector_engine
             state.bm25_engine = _pipeline.bm25_engine
             state.graph_engine = _pipeline.graph_engine
-            return result.to_dict()
+            state._staleness_cache = None
+        finally:
+            _pipeline_lock.release()
 
-        # Single path: determine full vs incremental
-        codebase_path = validated[0]
-        metadata_path = settings.storage_path / "index_metadata.json"
-        if metadata_path.exists():
-            result = _pipeline.incremental_index(codebase_path)
-        else:
-            result = _pipeline.index(codebase_path)
-
-        # Wire engines into session state
-        state = get_state()
-        state.codebase_path = codebase_path
-        state.codebase_paths = [codebase_path]
-        state.vector_engine = _pipeline.vector_engine
-        state.bm25_engine = _pipeline.bm25_engine
-        state.graph_engine = _pipeline.graph_engine
+        await _ensure_file_watcher(state, settings.auto_watch_enabled)
 
         return result.to_dict()
 
     @mcp.tool()
+    @_audited
     def search(
         query: Annotated[str, "Natural language or code query (e.g. 'retry logic')"],
         limit: Annotated[int, "Max results (default 10, max 100)"] = 10,
@@ -410,7 +631,11 @@ def create_server():
         rerank: Annotated[bool, "FlashRank reranking (default True)"] = True,
         live_grep: Annotated[bool, "Force live-grep fallback (rg/grep)"] = False,
     ) -> dict[str, Any]:
-        """PREFERRED over Grep/Glob. Semantic search with code snippets."""
+        """Use for any "where is/how does/find" code question — preferred over
+        Grep/Glob, and usually answerable from the returned code_snippet without
+        a follow-up Read. Falls back to live grep automatically when hybrid
+        results are sparse. Returns a non-null `warning` if the index looked
+        stale (a background reindex is triggered; results still return now)."""
         guard_err = _guard("search")
         if guard_err:
             return guard_err
@@ -427,6 +652,15 @@ def create_server():
         state = get_state()
         if not state.is_indexed or not state.vector_engine:
             return {"error": "No codebase indexed. Run 'index' first."}
+
+        staleness = _get_staleness(state)
+        search_warning = None
+        if staleness["stale"]:
+            search_warning = (
+                f"Index may be out of date ({staleness['reason']}); "
+                "refreshing in background."
+            )
+            _trigger_background_reindex(state.codebase_path, state.codebase_paths)
 
         settings = get_settings()
         limit = max(1, min(limit, 100))
@@ -505,8 +739,10 @@ def create_server():
         else:
             results = results[:limit]
 
-        # Live Grep (Fallback or Explicit)
-        if live_grep or (mode == "hybrid" and len(results) < limit):
+        # Live Grep (Fallback or Explicit). Skipped entirely when a
+        # symbol_type filter is set: grep matches carry no symbol_type,
+        # so none of them could pass the filter.
+        if not symbol_type and (live_grep or (mode == "hybrid" and len(results) < limit)):
             try:
                 from nexus_mcp.engines.live_grep import LiveGrepEngine
                 from nexus_mcp.parsing.language_registry import get_language_for_file
@@ -533,11 +769,6 @@ def create_server():
                         if language and lr_lang != language:
                             continue
 
-                        # Live-grep results don't have symbol_type, so they only pass if
-                        # no symbol_type filter is requested.
-                        if symbol_type:
-                            continue
-
                         lr["language"] = lr_lang
                         filtered_live.append(lr)
                         seen.add(key)
@@ -557,6 +788,14 @@ def create_server():
             # Remove raw embedding vector (wastes tokens, not useful to LLM)
             r.pop("vector", None)
 
+            # Rename 'text' to 'code_snippet' with truncation marker
+            if "text" in r:
+                code = r.pop("text")
+                if len(code) > 2000:
+                    r["code_snippet"] = code[:2000] + "\n... (truncated)"
+                else:
+                    r["code_snippet"] = code
+
             # Standardize path fields: results from engines have 'filepath',
             # live-grep has 'absolute_path'.
             abs_path = r.get("absolute_path") or r.get("filepath")
@@ -574,14 +813,6 @@ def create_server():
                     # Not under this root, or abs_path already relative
                     r["filepath"] = str(abs_path)
 
-            # Rename 'text' to 'code_snippet' with truncation marker
-            if "text" in r:
-                code = r.pop("text")
-                if len(code) > 2000:
-                    r["code_snippet"] = code[:2000] + "\n... (truncated)"
-                else:
-                    r["code_snippet"] = code
-
             # Ensure language field is present for filtering tests
             if not r.get("language") or r.get("language") == "unknown":
                 from nexus_mcp.parsing.language_registry import get_language_for_file
@@ -593,6 +824,7 @@ def create_server():
             "search_mode": mode,
             "engines_used": engines_used,
             "results": results,
+            "warning": search_warning,
             "hint": (
                 "Results include code_snippet — you can often "
                 "answer without needing to Read the file."
@@ -600,11 +832,15 @@ def create_server():
         }
 
     @mcp.tool()
+    @_audited
     def find_symbol(
         name: Annotated[str, "Symbol name (e.g. 'create_server', 'TokenBudget')"],
         exact: Annotated[bool, "True for exact match, False for fuzzy substring"] = True,
     ) -> dict[str, Any]:
-        """PREFERRED over Grep for finding symbol definitions."""
+        """Use to look up a specific function/class/symbol by name — preferred
+        over Grep since it returns the definition plus its call-graph
+        relationships in one call. Set exact=False for fuzzy substring matching
+        when unsure of the exact name."""
         guard_err = _guard("find_symbol")
         if guard_err:
             return guard_err
@@ -635,49 +871,98 @@ def create_server():
 
         return {"total": len(symbols), "symbols": symbols}
 
-    @mcp.tool()
-    def find_callers(
-        symbol_name: Annotated[str, "Name of the function to find callers for"]
-    ) -> dict[str, Any]:
-        """Find all functions that call a given symbol. More accurate than Grep."""
-        guard_err = _guard("find_callers")
-        if guard_err:
-            return guard_err
+    def _graph_immediate(state, symbol_name: str, direction: str) -> dict[str, Any]:
+        """Immediate callers or callees of a symbol (was find_callers/find_callees)."""
+        matches = _resolve_symbol(state.graph_engine, symbol_name, exact=True)
+        if not matches:
+            return {"error": f"Symbol '{symbol_name}' not found."}
 
-        err = _validate_symbol_name(symbol_name)
-        if err:
-            return err
+        get_related = (
+            state.graph_engine.get_callers
+            if direction == "callers"
+            else state.graph_engine.get_callees
+        )
 
-        state, err = _require_indexed()
-        if err:
-            return err
+        all_related = []
+        seen: set[str] = set()
+        for node in matches:
+            for related in get_related(node.id):
+                if related.id not in seen:
+                    seen.add(related.id)
+                    all_related.append(_serialize_node(related, state.codebase_path))
+
+        return {
+            "symbol": symbol_name,
+            "direction": direction,
+            "total": len(all_related),
+            direction: all_related,
+        }
+
+    def _graph_transitive_impact(state, symbol_name: str, max_depth: int) -> dict[str, Any]:
+        """Transitive caller closure for change-impact analysis (was impact())."""
+        max_depth = max(1, min(max_depth, 50))
 
         matches = _resolve_symbol(state.graph_engine, symbol_name, exact=True)
         if not matches:
             return {"error": f"Symbol '{symbol_name}' not found."}
 
-        all_callers = []
+        all_impacted = []
         seen: set[str] = set()
         for node in matches:
-            for caller in state.graph_engine.get_callers(node.id):
+            for caller in state.graph_engine.get_transitive_callers(
+                node.id, max_depth=max_depth
+            ):
                 if caller.id not in seen:
                     seen.add(caller.id)
-                    all_callers.append(_serialize_node(caller, state.codebase_path))
+                    all_impacted.append(_serialize_node(caller, state.codebase_path))
+
+        by_file: dict[str, list[str]] = {}
+        for item in all_impacted:
+            fp = item["location"]["file"]
+            by_file.setdefault(fp, []).append(item["name"])
 
         return {
             "symbol": symbol_name,
-            "total": len(all_callers),
-            "callers": all_callers,
+            "direction": "callers",
+            "transitive": True,
+            "max_depth": max_depth,
+            "total_impacted": len(all_impacted),
+            "impacted_symbols": all_impacted,
+            "impacted_files": by_file,
         }
 
     @mcp.tool()
-    def find_callees(
-        symbol_name: Annotated[str, "Name of the function to find callees for"]
+    @_audited
+    def graph(
+        symbol_name: Annotated[str, "Name of the function/symbol to trace"],
+        direction: Annotated[
+            str, "'callers' (who calls this) or 'callees' (what this calls)"
+        ] = "callers",
+        transitive: Annotated[
+            bool,
+            "True = full transitive closure for change-impact analysis (MUST use "
+            "before refactoring a shared symbol). Only valid with direction='callers'.",
+        ] = False,
+        max_depth: Annotated[int, "Max traversal depth when transitive=True (default 10)"] = 10,
     ) -> dict[str, Any]:
-        """Find all functions called by a given function. Traces execution flow."""
-        guard_err = _guard("find_callees")
+        """Use to trace who calls a function (direction='callers'), what it calls
+        (direction='callees'), or — with transitive=True — the full transitive
+        blast radius of changing it. MUST use transitive=True before refactoring
+        or editing a widely-shared symbol; grep can't show transitive impact."""
+        guard_err = _guard("graph")
         if guard_err:
             return guard_err
+
+        if direction not in ("callers", "callees"):
+            return {"error": "direction must be 'callers' or 'callees'."}
+        if transitive and direction != "callers":
+            return {
+                "error": (
+                    "transitive=True is only supported with direction='callers' "
+                    "(change-impact analysis). Use direction='callees' with "
+                    "transitive=False to trace immediate callees."
+                )
+            }
 
         err = _validate_symbol_name(symbol_name)
         if err:
@@ -687,29 +972,21 @@ def create_server():
         if err:
             return err
 
-        matches = _resolve_symbol(state.graph_engine, symbol_name, exact=True)
-        if not matches:
-            return {"error": f"Symbol '{symbol_name}' not found."}
-
-        all_callees = []
-        seen: set[str] = set()
-        for node in matches:
-            for callee in state.graph_engine.get_callees(node.id):
-                if callee.id not in seen:
-                    seen.add(callee.id)
-                    all_callees.append(_serialize_node(callee, state.codebase_path))
-
-        return {
-            "symbol": symbol_name,
-            "total": len(all_callees),
-            "callees": all_callees,
-        }
+        if transitive:
+            return _graph_transitive_impact(state, symbol_name, max_depth)
+        return _graph_immediate(state, symbol_name, direction)
 
     @mcp.tool()
+    @_audited
     def analyze(
-        path: Annotated[str, "Optional relative path to filter analysis (subdirectory or file)"] = ""
+        path: Annotated[
+            str, "Optional relative path to filter analysis (subdirectory or file)"
+        ] = ""
     ) -> dict[str, Any]:
-        """Run code analysis: complexity, dependencies, smells, quality score."""
+        """Use for code review or quality assessment — cyclomatic/cognitive
+        complexity, dependency analysis, code smells (long/complex functions,
+        large classes, dead code), and an overall quality score. Optionally
+        scope to a subdirectory or file via `path`."""
         guard_err = _guard("analyze")
         if guard_err:
             return guard_err
@@ -733,7 +1010,12 @@ def create_server():
 
         # Filter by path if specified
         if path and root:
-            filter_path = str(root / path)
+            candidate = (root / path).resolve()
+            try:
+                candidate.relative_to(root.resolve())
+            except ValueError:
+                return {"error": f"Path '{path}' is outside codebase root."}
+            filter_path = str(candidate)
 
             # Filter complexity high_complexity_functions
             if "high_complexity_functions" in result["complexity"]:
@@ -764,61 +1046,17 @@ def create_server():
         return result
 
     @mcp.tool()
-    def impact(
-        symbol_name: Annotated[str, "Name of the function to analyze impact for"],
-        max_depth: Annotated[int, "Max depth of transitive caller traversal (default 10)"] = 10,
-    ) -> dict[str, Any]:
-        """MUST use before refactoring. Change impact analysis."""
-        guard_err = _guard("impact")
-        if guard_err:
-            return guard_err
-
-        err = _validate_symbol_name(symbol_name)
-        if err:
-            return err
-
-        state, err = _require_indexed()
-        if err:
-            return err
-
-        max_depth = max(1, min(max_depth, 50))
-
-        matches = _resolve_symbol(state.graph_engine, symbol_name, exact=True)
-        if not matches:
-            return {"error": f"Symbol '{symbol_name}' not found."}
-
-        all_impacted = []
-        seen: set[str] = set()
-        for node in matches:
-            for caller in state.graph_engine.get_transitive_callers(
-                node.id, max_depth=max_depth
-            ):
-                if caller.id not in seen:
-                    seen.add(caller.id)
-                    all_impacted.append(_serialize_node(caller, state.codebase_path))
-
-        # Group by file for readability
-        by_file: dict[str, list[str]] = {}
-        for item in all_impacted:
-            fp = item["location"]["file"]
-            if fp not in by_file:
-                by_file[fp] = []
-            by_file[fp].append(item["name"])
-
-        return {
-            "symbol": symbol_name,
-            "max_depth": max_depth,
-            "total_impacted": len(all_impacted),
-            "impacted_symbols": all_impacted,
-            "impacted_files": by_file,
-        }
-
-    @mcp.tool()
+    @_audited
     def explain(
         symbol_name: Annotated[str, "Name of the symbol to explain"],
-        verbosity: Annotated[str, "Output detail level: 'summary', 'detailed', or 'full'"] = "detailed",
+        verbosity: Annotated[
+            str, "Output detail level: 'summary', 'detailed', or 'full'"
+        ] = "detailed",
     ) -> dict[str, Any]:
-        """PREFERRED over Read for understanding code symbols."""
+        """Use for onboarding to an unfamiliar symbol — combines its call-graph
+        relationships, related code found via semantic search, and quality
+        metrics in one call, so Read is often unnecessary. Use verbosity='summary'
+        for a quick look, 'full' when you need everything."""
         guard_err = _guard("explain")
         if guard_err:
             return guard_err
@@ -889,24 +1127,8 @@ def create_server():
         builder = ResponseBuilder(verbosity)
         return builder.build_explain_response(symbol_data, search_results, analysis)
 
-    @mcp.tool()
-    def overview() -> dict[str, Any]:
-        """PREFERRED over Glob/ls for project exploration.
-
-        Returns language breakdown, file count, symbol counts by type,
-        code quality summary, top-level modules, and key statistics.
-
-        Returns:
-            Project overview with structure, languages, quality, and key symbols.
-        """
-        guard_err = _guard("overview")
-        if guard_err:
-            return guard_err
-
-        state, err = _require_indexed()
-        if err:
-            return err
-
+    def _build_overview(state) -> dict[str, Any]:
+        """Project-level summary (was overview())."""
         from nexus_mcp.analysis.code_analyzer import CodeAnalyzer
         from nexus_mcp.core.graph_models import NodeType
 
@@ -970,26 +1192,8 @@ def create_server():
             "top_modules": module_summaries[:20],
         }
 
-    @mcp.tool()
-    def architecture() -> dict[str, Any]:
-        """PREFERRED over manual browsing for project design.
-
-        Analyzes module dependencies, class hierarchies, key abstractions,
-        coupling metrics, circular dependencies, and entry points to
-        produce an architectural summary.
-
-        Returns:
-            Architectural documentation with layers, dependencies,
-            key abstractions, and structural insights.
-        """
-        guard_err = _guard("architecture")
-        if guard_err:
-            return guard_err
-
-        state, err = _require_indexed()
-        if err:
-            return err
-
+    def _build_architecture(state) -> dict[str, Any]:
+        """Architectural analysis: layers, dependencies, classes, hubs (was architecture())."""
         from nexus_mcp.analysis.code_analyzer import CodeAnalyzer
         from nexus_mcp.core.graph_models import NodeType, RelationshipType
 
@@ -1114,6 +1318,40 @@ def create_server():
             },
         }
 
+    def _map_impl(
+        detail: Annotated[
+            str,
+            "'summary' (files/languages/quality/top-modules), 'architecture' "
+            "(layers/dependencies/classes/entry points/hub symbols), or 'full' (both)",
+        ] = "summary",
+    ) -> dict[str, Any]:
+        """PREFERRED over Glob/ls/manual browsing for project understanding.
+        Use 'summary' for a quick project orientation, 'architecture' for
+        design/dependency structure, 'full' for both in one call."""
+        guard_err = _guard("map")
+        if guard_err:
+            return guard_err
+
+        if detail not in ("summary", "architecture", "full"):
+            return {"error": "detail must be 'summary', 'architecture', or 'full'."}
+
+        state, err = _require_indexed()
+        if err:
+            return err
+
+        if detail == "summary":
+            return _build_overview(state)
+        if detail == "architecture":
+            return _build_architecture(state)
+        return {**_build_overview(state), **_build_architecture(state)}
+
+    # `map` shadows the Python builtin, and _audited derives its audit-log tool_name
+    # from fn.__name__ — rename before wrapping so both FastMCP's registered name and
+    # the audit trail say "map", not "map_tool"/"_map_impl". Can't use @mcp.tool()/
+    # @_audited decorator syntax here since the rename must happen between the two.
+    _map_impl.__name__ = "map"
+    mcp.tool(name="map")(_audited(_map_impl))
+
     # --- Memory helpers ---
 
     def _get_memory_store():
@@ -1137,22 +1375,13 @@ def create_server():
             )
         return state.memory_store
 
-    @mcp.tool()
-    def remember(
-        content: Annotated[str, "Memory content to store"],
-        memory_type: Annotated[str, "Type of memory (e.g. 'note', 'decision')"] = "note",
-        tags: Annotated[str, "Comma-separated tags for organization"] = "",
-        ttl: Annotated[str, "Time-to-live: 'permanent', 'month', 'week', 'day', 'session'"] = "permanent",
-        project: Annotated[str, "Project name for scoping memories"] = "default",
+    def _memory_store_action(
+        content: str, memory_type: str, tags: str, ttl: str, project: str
     ) -> dict[str, Any]:
-        """Store a semantic memory for later recall."""
+        """Store a semantic memory for later recall (was remember())."""
         import uuid
 
         from nexus_mcp.core.models import Memory, MemoryType
-
-        guard_err = _guard("remember")
-        if guard_err:
-            return guard_err
 
         try:
             mem_type = MemoryType.from_string(memory_type)
@@ -1177,18 +1406,10 @@ def create_server():
         mem_id = store.remember(mem)
         return {"id": mem_id, "status": "stored"}
 
-    @mcp.tool()
-    def recall(
-        query: Annotated[str, "Natural language search query"],
-        limit: Annotated[int, "Maximum number of results (default 5)"] = 5,
-        memory_type: Annotated[str, "Filter by memory type (e.g. 'note', 'decision')"] = "",
-        tags: Annotated[str, "Comma-separated tags to filter by"] = "",
+    def _memory_search_action(
+        query: str, limit: int, memory_type: str, tags: str
     ) -> dict[str, Any]:
-        """Search memories by semantic similarity."""
-        guard_err = _guard("recall")
-        if guard_err:
-            return guard_err
-
+        """Search memories by semantic similarity (was recall())."""
         err = _validate_query(query)
         if err:
             return err
@@ -1209,17 +1430,8 @@ def create_server():
             "memories": [m.to_dict() for m in memories],
         }
 
-    @mcp.tool()
-    def forget(
-        memory_id: Annotated[str, "Specific memory ID to delete"] = "",
-        tags: Annotated[str, "Delete memories matching any of these comma-separated tags"] = "",
-        memory_type: Annotated[str, "Delete all memories of this type"] = "",
-    ) -> dict[str, Any]:
-        """Delete memories by ID, tags, or type."""
-        guard_err = _guard("forget")
-        if guard_err:
-            return guard_err
-
+    def _memory_delete_action(memory_id: str, tags: str, memory_type: str) -> dict[str, Any]:
+        """Delete memories by ID, tags, or type (was forget())."""
         store = _get_memory_store()
         tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
 
@@ -1230,6 +1442,49 @@ def create_server():
         )
 
         return {"deleted_count": deleted}
+
+    @mcp.tool()
+    @_audited
+    def memory(
+        action: Annotated[
+            str, "'store' (was remember), 'search' (was recall), or 'delete' (was forget)"
+        ],
+        content: Annotated[str, "Memory content to store (action='store')"] = "",
+        query: Annotated[str, "Natural language search query (action='search')"] = "",
+        memory_id: Annotated[str, "Specific memory ID to delete (action='delete')"] = "",
+        memory_type: Annotated[
+            str, "Type/filter, e.g. 'note', 'decision' (store: type; search/delete: filter)"
+        ] = "",
+        tags: Annotated[str, "Comma-separated tags (all actions)"] = "",
+        ttl: Annotated[
+            str, "Time-to-live for action='store': 'permanent', 'month', 'week', 'day', 'session'"
+        ] = "permanent",
+        project: Annotated[str, "Project name for scoping (action='store')"] = "default",
+        limit: Annotated[int, "Max results (action='search', default 5)"] = 5,
+    ) -> dict[str, Any]:
+        """Persist and retrieve project context across sessions. Use action='store'
+        to save a decision/note, action='search' to find memories by semantic
+        similarity, action='delete' to clean up by ID, tags, or type."""
+        from nexus_mcp.security.permissions import ToolCategory
+
+        category_override = {
+            "store": ToolCategory.WRITE,
+            "search": ToolCategory.READ,
+            "delete": ToolCategory.WRITE,
+        }.get(action)
+
+        guard_err = _guard("memory", category_override=category_override)
+        if guard_err:
+            return guard_err
+
+        if action == "store":
+            memory_type = memory_type or "note"
+            return _memory_store_action(content, memory_type, tags, ttl, project)
+        if action == "search":
+            return _memory_search_action(query, limit, memory_type, tags)
+        if action == "delete":
+            return _memory_delete_action(memory_id, tags, memory_type)
+        return {"error": "action must be 'store', 'search', or 'delete'."}
 
     return mcp
 

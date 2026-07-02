@@ -2,7 +2,7 @@
 """
 Nexus-MCP Self-Test Demo
 =========================
-Exercises all 13 MCP tools end-to-end by calling the underlying functions
+Exercises all 10 MCP tools end-to-end by calling the underlying functions
 directly (bypassing the MCP protocol transport layer).
 
 Usage:
@@ -11,6 +11,8 @@ Usage:
 If no path is given, a small sample project is created in a temp directory.
 """
 
+import asyncio
+import inspect
 import json
 import os
 import shutil
@@ -244,7 +246,7 @@ def main():
         console.print(
             Panel(
                 "[bold]Nexus-MCP Self-Test Demo[/bold]\n"
-                "Exercises all 13 MCP tools against a sample project.",
+                "Exercises all 10 MCP tools against a sample project.",
                 title="nexus-mcp",
                 border_style="blue",
             )
@@ -290,6 +292,10 @@ def _run_demo(project_path: Path, cleanup: bool):
         nonlocal passed, failed
         try:
             result = fn(*args, **kwargs)
+            # index() is async (for live MCP progress reporting) — every other
+            # tool is sync. Detect and await rather than hardcoding per-tool.
+            if inspect.isawaitable(result):
+                result = asyncio.run(result)
             if isinstance(result, dict) and result.get("error"):
                 fail(f"{label}: {result['error']}")
                 failed += 1
@@ -395,7 +401,7 @@ def _run_demo(project_path: Path, cleanup: bool):
             console.print(f"    → {total} results via {engines}")
 
     # ------------------------------------------------------------------
-    # 6. Graph tools: find_symbol, find_callers, find_callees
+    # 6. Graph tools: find_symbol, graph (direction=callers/callees)
     # ------------------------------------------------------------------
     section("6 · Graph Tools")
 
@@ -406,12 +412,16 @@ def _run_demo(project_path: Path, cleanup: bool):
         pp(sym_result)
 
     console.print()
-    callers_result = run('find_callers("User")', tools["find_callers"], "User")
+    callers_result = run(
+        'graph("User", direction="callers")', tools["graph"], "User", direction="callers"
+    )
     if callers_result:
         pp(callers_result)
 
     console.print()
-    callees_result = run('find_callees("User")', tools["find_callees"], "User")
+    callees_result = run(
+        'graph("User", direction="callees")', tools["graph"], "User", direction="callees"
+    )
     if callees_result:
         pp(callees_result)
 
@@ -428,7 +438,7 @@ def _run_demo(project_path: Path, cleanup: bool):
         console.print(f"  Fuzzy matches: {names}")
 
     # ------------------------------------------------------------------
-    # 7. Analyze
+    # 7. Analyze + map
     # ------------------------------------------------------------------
     section("7 · Code Analysis")
 
@@ -436,12 +446,19 @@ def _run_demo(project_path: Path, cleanup: bool):
     if analysis:
         pp(analysis)
 
+    console.print()
+    map_result = run('map(detail="architecture")', tools["map"], detail="architecture")
+    if map_result:
+        pp(map_result)
+
     # ------------------------------------------------------------------
-    # 8. Impact analysis
+    # 8. Impact analysis (graph with transitive=True)
     # ------------------------------------------------------------------
     section("8 · Impact Analysis")
 
-    impact_result = run('impact("User")', tools["impact"], "User")
+    impact_result = run(
+        'graph("User", transitive=True)', tools["graph"], "User", transitive=True
+    )
     if impact_result:
         pp(impact_result)
 
@@ -462,67 +479,70 @@ def _run_demo(project_path: Path, cleanup: bool):
             pp(explain_result)
 
     # ------------------------------------------------------------------
-    # 10. Memory: remember → recall → forget
+    # 10. Memory: memory(action="store"/"search"/"delete")
     # ------------------------------------------------------------------
     section("10 · Memory Tools")
 
     mem1 = run(
-        'remember("The auth module needs refactoring", tags="auth,tech-debt")',
-        tools["remember"],
-        "The auth module needs refactoring",
-        "note",
-        "auth,tech-debt",
+        'memory(action="store", content="...needs refactoring", tags="auth,tech-debt")',
+        tools["memory"],
+        action="store",
+        content="The auth module needs refactoring",
+        memory_type="note",
+        tags="auth,tech-debt",
     )
     if mem1:
         pp(mem1)
 
     mem2 = run(
-        'remember("Decided to use LanceDB over ChromaDB", type="decision")',
-        tools["remember"],
-        "Decided to use LanceDB over ChromaDB for vector storage",
-        "decision",
-        "architecture",
+        'memory(action="store", content="Decided to use LanceDB...", memory_type="decision")',
+        tools["memory"],
+        action="store",
+        content="Decided to use LanceDB over ChromaDB for vector storage",
+        memory_type="decision",
+        tags="architecture",
     )
     if mem2:
         pp(mem2)
 
     console.print()
     recall_result = run(
-        'recall("auth refactoring")',
-        tools["recall"],
-        "auth refactoring",
-        5,
+        'memory(action="search", query="auth refactoring")',
+        tools["memory"],
+        action="search",
+        query="auth refactoring",
+        limit=5,
     )
     if recall_result:
         pp(recall_result)
 
     recall_result2 = run(
-        'recall("database choice")',
-        tools["recall"],
-        "database choice",
-        5,
+        'memory(action="search", query="database choice")',
+        tools["memory"],
+        action="search",
+        query="database choice",
+        limit=5,
     )
     if recall_result2:
         pp(recall_result2)
 
-    # Forget by tags
+    # Delete by tags
     console.print()
     forget_result = run(
-        'forget(tags="auth,tech-debt")',
-        tools["forget"],
-        "",
-        "auth,tech-debt",
+        'memory(action="delete", tags="auth,tech-debt")',
+        tools["memory"],
+        action="delete",
+        tags="auth,tech-debt",
     )
     if forget_result:
         pp(forget_result)
 
-    # Forget by type
+    # Delete by type
     forget_result2 = run(
-        'forget(memory_type="decision")',
-        tools["forget"],
-        "",
-        "",
-        "decision",
+        'memory(action="delete", memory_type="decision")',
+        tools["memory"],
+        action="delete",
+        memory_type="decision",
     )
     if forget_result2:
         pp(forget_result2)

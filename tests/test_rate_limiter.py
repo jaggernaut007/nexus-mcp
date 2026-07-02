@@ -62,7 +62,8 @@ def test_tool_rate_overrides_exist():
     """Expected tool rate overrides are defined."""
     assert "index" in TOOL_RATE_OVERRIDES
     assert "search" in TOOL_RATE_OVERRIDES
-    assert "remember" in TOOL_RATE_OVERRIDES
+    assert "memory" in TOOL_RATE_OVERRIDES
+    assert "graph" in TOOL_RATE_OVERRIDES
     # index should have very low rate
     rate, burst = TOOL_RATE_OVERRIDES["index"]
     assert rate < 1.0

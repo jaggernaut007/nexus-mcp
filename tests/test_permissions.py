@@ -28,33 +28,32 @@ def clean_state():
 def test_tool_categories_defined():
     """All tools should be registered."""
     expected_tools = {
-        "status", "search", "find_symbol", "find_callers", "find_callees",
-        "explain", "overview", "architecture", "recall", "health",
-        "index", "analyze", "impact",
-        "remember", "forget",
+        "status", "search", "find_symbol",
+        "explain", "health", "graph", "map",
+        "index", "analyze",
+        "memory",
     }
     assert set(TOOL_PERMISSIONS.keys()) == expected_tools
 
 
 def test_read_tools_classified():
     """Read-only tools are classified as READ."""
-    read_tools = ["status", "search", "find_symbol", "find_callers",
-                  "find_callees", "explain", "overview", "architecture",
-                  "recall", "health"]
+    read_tools = ["status", "search", "find_symbol",
+                  "explain", "health", "graph", "map"]
     for tool in read_tools:
         assert TOOL_PERMISSIONS[tool] == ToolCategory.READ, f"{tool} should be READ"
 
 
 def test_mutate_tools_classified():
     """Mutating tools are classified as MUTATE."""
-    for tool in ["index", "analyze", "impact"]:
+    for tool in ["index", "analyze"]:
         assert TOOL_PERMISSIONS[tool] == ToolCategory.MUTATE, f"{tool} should be MUTATE"
 
 
 def test_write_tools_classified():
-    """Write tools are classified as WRITE."""
-    for tool in ["remember", "forget"]:
-        assert TOOL_PERMISSIONS[tool] == ToolCategory.WRITE, f"{tool} should be WRITE"
+    """memory's static fallback category is WRITE (the more restrictive of the
+    merged remember/recall/forget) — actual checks use category_override."""
+    assert TOOL_PERMISSIONS["memory"] == ToolCategory.WRITE
 
 
 # --- DEFAULT_POLICY ---
@@ -64,20 +63,31 @@ def test_default_policy_allows_read():
     """DEFAULT_POLICY allows read tools."""
     assert check_permission("status", DEFAULT_POLICY) is True
     assert check_permission("search", DEFAULT_POLICY) is True
-    assert check_permission("recall", DEFAULT_POLICY) is True
+    assert check_permission("graph", DEFAULT_POLICY) is True
 
 
 def test_default_policy_denies_mutate():
     """DEFAULT_POLICY denies mutate tools."""
     assert check_permission("index", DEFAULT_POLICY) is False
     assert check_permission("analyze", DEFAULT_POLICY) is False
-    assert check_permission("impact", DEFAULT_POLICY) is False
 
 
 def test_default_policy_denies_write():
-    """DEFAULT_POLICY denies write tools."""
-    assert check_permission("remember", DEFAULT_POLICY) is False
-    assert check_permission("forget", DEFAULT_POLICY) is False
+    """DEFAULT_POLICY denies write tools (memory's static WRITE fallback)."""
+    assert check_permission("memory", DEFAULT_POLICY) is False
+
+
+def test_default_policy_memory_category_override():
+    """memory()'s real category depends on the call-time `action` — this is
+    exactly the behavior category_override exists to preserve after
+    consolidating remember(WRITE)/recall(READ)/forget(WRITE) into one tool.
+    A regression here would silently reopen or close write access."""
+    assert check_permission(
+        "memory", DEFAULT_POLICY, category_override=ToolCategory.READ
+    ) is True, "memory(action='search') must be allowed under read-only policy"
+    assert check_permission(
+        "memory", DEFAULT_POLICY, category_override=ToolCategory.WRITE
+    ) is False, "memory(action='store'/'delete') must be denied under read-only policy"
 
 
 # --- FULL_ACCESS_POLICY ---
@@ -100,17 +110,17 @@ def test_custom_policy_with_allowed_tools():
     )
     assert check_permission("index", policy) is True
     assert check_permission("search", policy) is True
-    assert check_permission("remember", policy) is False
+    assert check_permission("memory", policy) is False
 
 
 def test_custom_policy_with_denied_tools():
     """Explicit denied_tools overrides everything."""
     policy = PermissionPolicy(
         allowed_categories=frozenset({ToolCategory.READ, ToolCategory.MUTATE, ToolCategory.WRITE}),
-        denied_tools=frozenset({"forget"}),
+        denied_tools=frozenset({"memory"}),
     )
-    assert check_permission("forget", policy) is False
-    assert check_permission("remember", policy) is True
+    assert check_permission("memory", policy) is False
+    assert check_permission("index", policy) is True
     assert check_permission("search", policy) is True
 
 
@@ -136,8 +146,14 @@ def test_get_tool_category():
     """get_tool_category returns correct category or None."""
     assert get_tool_category("search") == ToolCategory.READ
     assert get_tool_category("index") == ToolCategory.MUTATE
-    assert get_tool_category("remember") == ToolCategory.WRITE
+    assert get_tool_category("memory") == ToolCategory.WRITE
     assert get_tool_category("nonexistent") is None
+
+
+def test_get_tool_category_override():
+    """category_override takes precedence over the static registry entry."""
+    assert get_tool_category("memory") == ToolCategory.WRITE
+    assert get_tool_category("memory", category_override=ToolCategory.READ) == ToolCategory.READ
 
 
 def test_policy_from_level_full():

@@ -30,6 +30,13 @@ class SessionState:
     _shutting_down: bool = False
     _shutdown_lock: threading.Lock = field(default_factory=threading.Lock)
 
+    # Auto-watch (one DebouncedFileWatcher per indexed root)
+    _file_watchers: list = field(default_factory=list)
+
+    # Throttled staleness-check cache (see indexing/pipeline.py:check_staleness)
+    _staleness_cache: Optional[dict] = None
+    _staleness_checked_at: float = 0.0
+
     @property
     def is_indexed(self) -> bool:
         """Check if a codebase has been indexed."""
@@ -71,12 +78,45 @@ class SessionState:
     def shutting_down(self) -> bool:
         return self._shutting_down
 
+    async def _stop_watchers(self) -> None:
+        """Stop every active file watcher. Best-effort — one failure doesn't block the rest."""
+        for watcher in self._file_watchers:
+            try:
+                await watcher.stop()
+            except Exception as e:
+                logger.warning("Failed to stop a file watcher: %s", e)
+
     def shutdown(self) -> None:
-        """Gracefully shut down: persist graph state and clean up resources."""
+        """Gracefully shut down: stop watchers, persist graph state, and clean up resources."""
         with self._shutdown_lock:
             if self._shutting_down:
                 return
             self._shutting_down = True
+
+        # Stop file watchers before persisting graph state, so nothing mutates
+        # engine state while it's being written to SQLite. shutdown() runs from
+        # main()'s `finally` block after server.run() has already returned/raised,
+        # so there is normally no running event loop to await onto here —
+        # asyncio.run() is the correct way to drive the async stop() from this
+        # sync context. Check for a running loop *before* constructing the
+        # coroutine (rather than catching RuntimeError from asyncio.run) so an
+        # unrunnable coroutine is never created — creating one and discarding it
+        # triggers Python's "coroutine was never awaited" warning.
+        if self._file_watchers:
+            import asyncio
+
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                try:
+                    asyncio.run(self._stop_watchers())
+                except Exception as e:
+                    logger.warning("Failed to stop file watchers: %s", e)
+            else:
+                logger.warning(
+                    "Could not stop file watchers synchronously: called from "
+                    "within a running event loop."
+                )
 
         # Persist graph to SQLite if populated
         if self._graph_engine and self.codebase_path:

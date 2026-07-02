@@ -1,16 +1,49 @@
 """Tests for MCP tools: index, search, status."""
 
 import asyncio
+import time
+from unittest.mock import patch
+
+import pytest
+from fastmcp.exceptions import NotFoundError
 
 import nexus_mcp.server as server_module
-from tests.conftest import _call_tool, _setup_indexed
+from nexus_mcp.state import get_state
+from tests.conftest import _call_tool, _mock_embedding_service, _setup_indexed
+
+
+async def _index_no_watch(codebase_path, storage_dir):
+    """Like _setup_indexed, but with auto-watch off — for tests that manage
+    staleness/reindex behavior deterministically instead of racing a real watcher."""
+    with (
+        patch("nexus_mcp.indexing.pipeline.get_embedding_service") as mock_get,
+        patch.dict(
+            "os.environ",
+            {"NEXUS_STORAGE_DIR": str(storage_dir), "NEXUS_AUTO_WATCH": "false"},
+        ),
+    ):
+        from nexus_mcp.config import reset_settings
+        reset_settings()
+
+        mock_svc = _mock_embedding_service()
+        mock_get.return_value = mock_svc
+
+        mcp = server_module.create_server()
+        result = await _call_tool(mcp, "index", {"path": str(codebase_path)})
+
+        state = get_state()
+        if state.vector_engine:
+            state.vector_engine._embedding_service = mock_svc
+
+        reset_settings()
+        return mcp, result
 
 
 class TestStatus:
     def test_status_before_index(self):
         mcp = server_module.create_server()
         result = asyncio.run(_call_tool(mcp, "status"))
-        assert result["version"] == "1.0.1"
+        assert result["version"] == "2.0.0"
         assert result["indexed"] is False
         assert result["codebase_path"] is None
         assert "hint" in result
@@ -60,6 +93,7 @@ class TestIndex:
     def test_index_incremental_on_second_call(self, mini_codebase, tmp_path):
         async def run():
             from unittest.mock import patch
+
             from tests.conftest import _mock_embedding_service
 
             storage = tmp_path / ".nexus"
@@ -70,8 +104,10 @@ class TestIndex:
             # Keep embedding service patched since _setup_indexed's patch has exited
             server_module._pipeline = None
             mock_svc = _mock_embedding_service()
-            with patch("nexus_mcp.indexing.pipeline.get_embedding_service", return_value=mock_svc), \
-                 patch.dict("os.environ", {"NEXUS_STORAGE_DIR": str(storage)}):
+            with (
+                patch("nexus_mcp.indexing.pipeline.get_embedding_service", return_value=mock_svc),
+                patch.dict("os.environ", {"NEXUS_STORAGE_DIR": str(storage)}),
+            ):
                 from nexus_mcp.config import reset_settings
                 reset_settings()
                 result2 = await _call_tool(mcp, "index", {"path": str(mini_codebase)})
@@ -135,3 +171,160 @@ class TestSearch:
         result = asyncio.run(run())
         for r in result["results"]:
             assert not r["filepath"].startswith("/"), f"Path not relative: {r['filepath']}"
+
+
+class TestStaleness:
+    def test_status_not_stale_immediately_after_index(self, mini_codebase, tmp_path):
+        async def run():
+            mcp, _ = await _index_no_watch(mini_codebase, tmp_path / ".nexus")
+            return await _call_tool(mcp, "status")
+
+        status = asyncio.run(run())
+        assert status["stale"] is False
+        assert status["staleness_warning"] is None
+
+    def test_status_stale_after_file_modified(self, mini_codebase, tmp_path):
+        async def run():
+            mcp, _ = await _index_no_watch(mini_codebase, tmp_path / ".nexus")
+            time.sleep(0.05)
+            (mini_codebase / "src" / "main.py").write_text("def hello():\n    pass\n")
+            return await _call_tool(mcp, "status")
+
+        status = asyncio.run(run())
+        assert status["stale"] is True
+        assert "out of date" in status["staleness_warning"]
+
+    def test_search_warns_when_stale(self, mini_codebase, tmp_path):
+        async def run():
+            mcp, _ = await _index_no_watch(mini_codebase, tmp_path / ".nexus")
+            time.sleep(0.05)
+            (mini_codebase / "src" / "main.py").write_text("def hello():\n    pass\n")
+            return await _call_tool(mcp, "search", {"query": "hello"})
+
+        result = asyncio.run(run())
+        assert result["warning"] is not None
+        assert "refreshing in background" in result["warning"]
+
+    def test_search_no_warning_when_fresh(self, mini_codebase, tmp_path):
+        async def run():
+            mcp, _ = await _index_no_watch(mini_codebase, tmp_path / ".nexus")
+            return await _call_tool(mcp, "search", {"query": "hello"})
+
+        result = asyncio.run(run())
+        assert result["warning"] is None
+
+    def test_staleness_check_is_throttled(self, mini_codebase, tmp_path):
+        """Two status() calls within the throttle window should only recompute
+        staleness once — a per-call filesystem walk would regress search latency
+        on large repos."""
+        async def run():
+            mcp, _ = await _index_no_watch(mini_codebase, tmp_path / ".nexus")
+            pipeline = server_module._pipeline
+            with patch.object(
+                pipeline, "check_staleness", wraps=pipeline.check_staleness
+            ) as spy:
+                await _call_tool(mcp, "status")
+                await _call_tool(mcp, "status")
+                return spy.call_count
+
+        assert asyncio.run(run()) == 1
+
+
+class TestBackgroundReindex:
+    def test_skipped_when_pipeline_busy(self, mini_codebase, tmp_path):
+        asyncio.run(_index_no_watch(mini_codebase, tmp_path / ".nexus"))
+        pipeline = server_module._pipeline
+        state = get_state()
+
+        with patch.object(pipeline, "incremental_index") as mock_incr:
+            assert server_module._pipeline_lock.acquire(blocking=False)
+            try:
+                server_module._trigger_background_reindex(
+                    state.codebase_path, state.codebase_paths
+                )
+            finally:
+                server_module._pipeline_lock.release()
+            mock_incr.assert_not_called()
+
+    def test_runs_when_pipeline_free(self, mini_codebase, tmp_path):
+        asyncio.run(_index_no_watch(mini_codebase, tmp_path / ".nexus"))
+        pipeline = server_module._pipeline
+        state = get_state()
+
+        with patch.object(pipeline, "incremental_index") as mock_incr:
+            server_module._trigger_background_reindex(
+                state.codebase_path, state.codebase_paths
+            )
+            deadline = time.monotonic() + 2.0
+            while time.monotonic() < deadline and not mock_incr.called:
+                time.sleep(0.02)
+            mock_incr.assert_called_once()
+
+
+class TestFileWatcherWiring:
+    def test_debounced_change_triggers_background_reindex(self, mini_codebase, tmp_path):
+        async def run():
+            from nexus_mcp.parsing.file_watcher import DebouncedFileWatcher
+
+            await _index_no_watch(mini_codebase, tmp_path / ".nexus")
+            pipeline = server_module._pipeline
+            state = get_state()
+
+            with patch.object(pipeline, "incremental_index") as mock_incr:
+                def on_change():
+                    server_module._trigger_background_reindex(
+                        state.codebase_path, state.codebase_paths
+                    )
+
+                watcher = DebouncedFileWatcher(
+                    project_root=state.codebase_path,
+                    callback=on_change,
+                    debounce_delay=0.2,
+                )
+                await watcher.start()
+                try:
+                    (mini_codebase / "src" / "main.py").write_text(
+                        "def hello():\n    pass\n"
+                    )
+                    deadline = time.monotonic() + 3.0
+                    while time.monotonic() < deadline and not mock_incr.called:
+                        await asyncio.sleep(0.05)
+                finally:
+                    await watcher.stop()
+
+                assert mock_incr.called
+
+        asyncio.run(run())
+
+
+class TestToolConsolidation:
+    """v2.0.0 clean break: find_callers/find_callees/impact, overview/architecture,
+    and remember/recall/forget were removed outright (no deprecated aliases) in favor
+    of graph/map/memory. See ADR-017."""
+
+    def test_exact_tool_surface(self):
+        mcp = server_module.create_server()
+        names = {
+            c.name for k, c in mcp._local_provider._components.items()
+            if k.startswith("tool:")
+        }
+        assert names == {
+            "index", "status", "health", "search", "find_symbol",
+            "analyze", "explain", "graph", "map", "memory",
+        }
+
+    @pytest.mark.parametrize(
+        "old_name",
+        [
+            "find_callers", "find_callees", "impact",
+            "overview", "architecture",
+            "remember", "recall", "forget",
+        ],
+    )
+    def test_old_tool_names_are_gone(self, old_name):
+        async def run():
+            mcp = server_module.create_server()
+            with pytest.raises(NotFoundError):
+                await mcp.call_tool(old_name, {})
+
+        asyncio.run(run())

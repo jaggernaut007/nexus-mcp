@@ -83,10 +83,10 @@
   - PermissionPolicy with allowed/denied categories and per-tool overrides
   - Preset policies: DEFAULT_POLICY (read-only), FULL_ACCESS_POLICY
   - `NEXUS_PERMISSION_LEVEL=full` default for backward compat; `read` for restricted
-- [x] 6c: Pydantic v2 strict input/output schemas — `schemas/inputs.py`, `schemas/responses.py`
-  - Input models: IndexInput, SearchInput, SymbolNameInput, AnalyzeInput, ImpactInput, RememberInput, RecallInput, ForgetInput
-  - Response models: StatusResponse, HealthResponse, IndexResponse, SearchResponse, FindSymbolResponse, CallersResponse, CalleesResponse, AnalyzeResponse, ImpactResponse, ExplainResponse, MemoryResponse, RecallResponse, ForgetResponse, ErrorResponse
-  - Models used internally for validation; `.model_dump()` for serialization
+- [x] ~~6c: Pydantic v2 strict input/output schemas — `schemas/inputs.py`, `schemas/responses.py`~~
+  **Removed 2026-07-02 (ADR-016)**: never wired into any tool at runtime (tools kept
+  using inline `_validate_*` helpers + hand-built dicts); deleted as drift-prone dead
+  code rather than left in place unused.
 - [x] 6d: Audit logging with correlation IDs — `middleware/audit.py`
   - AuditLogger with structured AuditRecord dataclass
   - Correlation IDs via UUID4 (12-char hex)
@@ -106,7 +106,7 @@
 - [x] Tests: 84 new tests — 441 total, all passing
 - [x] ruff clean, Snyk scan clean
 - [x] ADR-012: Tool Permission Model
-- [x] ADR-013: Pydantic Schemas
+- [x] ~~ADR-013: Pydantic Schemas~~ — superseded by ADR-016 (2026-07-02, schemas deleted)
 - [x] ADR-014: Rate Limiting
 
 ## Self-Test Demo — COMPLETE
@@ -148,6 +148,8 @@
 | 2026-03-11 | Pipeline architecture | 8-step flow, dual parser, incremental reindex | [ADR-009](docs/adr/ADR-009-indexing-pipeline-architecture.md) |
 | 2026-03-12 | Graph tools API design | Serialization, ambiguity handling, path filtering | [ADR-010](docs/adr/ADR-010-graph-tools-api-design.md) |
 | 2026-03-12 | Tool permission model | READ/MUTATE/WRITE categories, transport-aware | [ADR-012](docs/adr/ADR-012-tool-permission-model.md) |
-| 2026-03-12 | Pydantic v2 schemas | Strict I/O validation, FastMCP-compatible | [ADR-013](docs/adr/ADR-013-pydantic-schemas.md) |
+| 2026-03-12 | ~~Pydantic v2 schemas~~ | Strict I/O validation, FastMCP-compatible — **superseded 2026-07-02, see ADR-016** | [ADR-013](docs/adr/ADR-013-pydantic-schemas.md) |
 | 2026-03-12 | Token bucket rate limiting | Per-tool rates, off by default for stdio | [ADR-014](docs/adr/ADR-014-rate-limiting.md) |
 | 2026-04-17 | Phase 8 Expansion | Compete with ripgrep/Cursor/AppMap | N/A |
+| 2026-07-02 | Auto-watch + staleness detection | Daily-driver trust: index never silently goes stale | [ADR-015](docs/adr/ADR-015-auto-watch-and-staleness-detection.md) |
+| 2026-07-02 | Remove unused Pydantic schemas | Dead code never wired into any tool at runtime | [ADR-016](docs/adr/ADR-016-remove-unused-pydantic-schemas.md) |

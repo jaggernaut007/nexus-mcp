@@ -179,8 +179,8 @@ Every tool respects a `verbosity` parameter — agents request exactly the detai
 
 | Tool | Use When |
 |------|----------|
-| `index(path)` | First action in any session. Supports comma-separated multi-folder paths. Incremental by default. |
-| `status()` | Check index health: symbol count, chunk count, memory usage, engine availability. |
+| `index(path)` | First action in any session. Supports comma-separated multi-folder paths. Incremental by default, reports progress as it runs, and starts a debounced auto-reindex watcher (`NEXUS_AUTO_WATCH`) when it finishes. |
+| `status()` | Check index health: symbol count, chunk count, memory usage, engine availability, and a `stale`/`staleness_warning` pair if files changed since the last index. |
 | `health()` | Liveness probe — uptime, which engines are ready. |
 | `overview()` | **Replaces `ls` + manual browsing.** File counts, languages, top modules, quality metrics. |
 | `architecture()` | System design view: layers, module dependencies, entry points, hub symbols, hotspots. |
@@ -189,7 +189,7 @@ Every tool respects a `verbosity` parameter — agents request exactly the detai
 
 | Tool | Use When |
 |------|----------|
-| `search(query, mode, language, type, n)` | Primary code discovery. `mode`: `hybrid` (default), `vector`, or `bm25`. |
+| `search(query, mode, language, type, n)` | Primary code discovery. `mode`: `hybrid` (default), `vector`, or `bm25`. Falls back to live grep if results are sparse. Returns a non-null `warning` if the index looked stale (a background reindex is triggered automatically; results still return immediately). |
 
 ### Graph Analysis
 
@@ -361,6 +361,8 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | `bge-small-en` (384-dim, lightweight) or `jina-code` (768-dim, code-optimized) |
 | `NEXUS_EMBEDDING_DEVICE` | `auto` | `auto` (CUDA → MPS → CPU), `cuda`, `mps`, `cpu` |
 | `NEXUS_STORAGE_DIR` | `.nexus` | Index storage directory |
+| `NEXUS_AUTO_WATCH` | `true` | Auto-reindex on file change via a debounced watcher, started after `index()` |
+| `NEXUS_STALENESS_CHECK_INTERVAL` | `15` | Seconds between `status()`/`search()` staleness checks (throttled, not per-call) |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max chars per code chunk |
 | `NEXUS_MAX_MEMORY_MB` | `350` | Memory budget target |
@@ -469,17 +471,14 @@ src/nexus_mcp/
 ├── security/
 │   ├── permissions.py     # READ/MUTATE/WRITE tool categories
 │   └── rate_limiter.py    # Token-bucket, per-tool, thread-safe
-├── middleware/
-│   └── audit.py           # Structured audit logs, correlation IDs, field redaction
-└── schemas/
-    ├── inputs.py          # Pydantic v2 input validation
-    └── responses.py       # Pydantic v2 response serialization
+└── middleware/
+    └── audit.py           # Structured audit logs, correlation IDs, field redaction
 ```
 
 ### Adding a New Tool
 
 1. Add the handler function to `server.py` decorated with `@mcp.tool()`
-2. Add input validation model to `schemas/inputs.py`
+2. Add inline validation (`_validate_*` helpers in `server.py`) for any new input
 3. Add permission category to `security/permissions.py`
 4. Write tests in `tests/`
 5. Update `self_test/demo_mcp.py` to exercise the tool
@@ -512,6 +511,8 @@ Expected output: all 15 tools exercised with pass/fail per tool and a summary.
 - **No incremental graph updates**: Graph is rebuilt in full on incremental reindex (only vector/BM25 are incremental at the chunk level).
 - **No SSE transport**: Only stdio transport is currently supported.
 - **Language coverage**: 25+ languages, but structural relationship extraction (callers/callees) is most accurate for Python, TypeScript, JavaScript, Go, and Rust. Other languages may have partial graph edges.
+- **Static call graph only**: `find_callers`/`find_callees`/`impact` are built from static parsing, not runtime tracing — dynamic dispatch, monkey-patching, and calls made through callbacks/closures/reflection won't show up as edges. Treat `impact` as a lower bound on blast radius in highly dynamic code.
+- **Auto-reindex has a detection lag**: with the file watcher enabled (default), edits are picked up after a short debounce, and `status()`/`search()` run a throttled staleness check as a backstop — not an instant, per-call guarantee of freshness.
 
 ---
 
@@ -533,8 +534,10 @@ Key decisions are documented in [docs/adr/](docs/adr/):
 | [ADR-010](docs/adr/ADR-010-graph-tools-api-design.md) | Graph tools API: serialization, ambiguity handling |
 | [ADR-011](docs/adr/ADR-011-hardening-decisions.md) | Graceful shutdown, corruption recovery, JSON logging |
 | [ADR-012](docs/adr/ADR-012-tool-permission-model.md) | READ/MUTATE/WRITE permission categories |
-| [ADR-013](docs/adr/ADR-013-pydantic-schemas.md) | Pydantic v2 I/O schemas |
+| ~~[ADR-013](docs/adr/ADR-013-pydantic-schemas.md)~~ | Pydantic v2 I/O schemas — superseded by ADR-016 (never wired in, deleted) |
 | [ADR-014](docs/adr/ADR-014-rate-limiting.md) | Token-bucket rate limiting (off by default) |
+| [ADR-015](docs/adr/ADR-015-auto-watch-and-staleness-detection.md) | Auto-watch + throttled staleness detection |
+| [ADR-016](docs/adr/ADR-016-remove-unused-pydantic-schemas.md) | Removal of unused Pydantic schemas (supersedes ADR-013) |
 
 ---
 

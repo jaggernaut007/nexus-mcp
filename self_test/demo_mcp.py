@@ -2,7 +2,7 @@
 """
 Nexus-MCP Self-Test Demo
 =========================
-Exercises all 13 MCP tools end-to-end by calling the underlying functions
+Exercises all 15 MCP tools end-to-end by calling the underlying functions
 directly (bypassing the MCP protocol transport layer).
 
 Usage:
@@ -11,6 +11,8 @@ Usage:
 If no path is given, a small sample project is created in a temp directory.
 """
 
+import asyncio
+import inspect
 import json
 import os
 import shutil
@@ -244,7 +246,7 @@ def main():
         console.print(
             Panel(
                 "[bold]Nexus-MCP Self-Test Demo[/bold]\n"
-                "Exercises all 13 MCP tools against a sample project.",
+                "Exercises all 15 MCP tools against a sample project.",
                 title="nexus-mcp",
                 border_style="blue",
             )
@@ -290,6 +292,10 @@ def _run_demo(project_path: Path, cleanup: bool):
         nonlocal passed, failed
         try:
             result = fn(*args, **kwargs)
+            # index() is async (for live MCP progress reporting) — every other
+            # tool is sync. Detect and await rather than hardcoding per-tool.
+            if inspect.isawaitable(result):
+                result = asyncio.run(result)
             if isinstance(result, dict) and result.get("error"):
                 fail(f"{label}: {result['error']}")
                 failed += 1

@@ -112,6 +112,40 @@ def discover_files(root: Path, settings: Settings) -> List[Path]:
     return sorted(files)
 
 
+def _diff_mtimes(
+    current_mtimes: Dict[str, float], stored_mtimes: Dict[str, float]
+) -> Dict[str, Set[str]]:
+    """Categorize files into new/deleted/modified given current vs. stored mtimes."""
+    current_set = set(current_mtimes.keys())
+    stored_set = set(stored_mtimes.keys())
+    return {
+        "new": current_set - stored_set,
+        "deleted": stored_set - current_set,
+        "modified": {
+            f for f in current_set & stored_set
+            if current_mtimes[f] != stored_mtimes.get(f)
+        },
+    }
+
+
+def _discover_mtimes(roots: List[Path], settings: Settings) -> Dict[str, float]:
+    """Discover files across one or more roots and return their current mtimes,
+    deduplicating files that fall under more than one root."""
+    current_mtimes: Dict[str, float] = {}
+    seen: Set[str] = set()
+    for root in roots:
+        for f in discover_files(Path(root).resolve(), settings):
+            key = str(f)
+            if key in seen:
+                continue
+            seen.add(key)
+            try:
+                current_mtimes[key] = f.stat().st_mtime
+            except OSError:
+                continue
+    return current_mtimes
+
+
 def _transfer_graph(universal_graph: UniversalGraph, code_graph: RustworkxCodeGraph) -> None:
     """Transfer nodes and relationships from UniversalGraph to RustworkxCodeGraph."""
     for node in universal_graph.nodes.values():
@@ -330,15 +364,8 @@ class IndexingPipeline:
                 continue
 
         # Categorize changes
-        current_set = set(current_mtimes.keys())
-        stored_set = set(stored_mtimes.keys())
-
-        new_files = current_set - stored_set
-        deleted_files = stored_set - current_set
-        modified_files = {
-            f for f in current_set & stored_set
-            if current_mtimes[f] != stored_mtimes.get(f)
-        }
+        diff = _diff_mtimes(current_mtimes, stored_mtimes)
+        new_files, deleted_files, modified_files = diff["new"], diff["deleted"], diff["modified"]
 
         changed_files = new_files | modified_files
 
@@ -407,6 +434,107 @@ class IndexingPipeline:
             files_deleted=len(deleted_files),
         )
 
+    def check_staleness(self, codebase_paths: List[Path]) -> Dict[str, Any]:
+        """Read-only check for whether indexed files have changed since the last
+        index/reindex. Reuses the same mtime-diff logic as incremental_index()
+        but never mutates engines or metadata — safe to call from status()/search(),
+        though callers should still throttle since this still walks the filesystem.
+        """
+        stored_mtimes = self._load_metadata()
+        if not stored_mtimes:
+            return {"stale": False, "changed_files": 0, "reason": None}
+
+        current_mtimes = _discover_mtimes(codebase_paths, self._settings)
+        diff = _diff_mtimes(current_mtimes, stored_mtimes)
+        changed = len(diff["new"]) + len(diff["deleted"]) + len(diff["modified"])
+
+        if changed == 0:
+            return {"stale": False, "changed_files": 0, "reason": None}
+
+        return {
+            "stale": True,
+            "changed_files": changed,
+            "reason": (
+                f"{len(diff['new'])} new, {len(diff['modified'])} modified, "
+                f"{len(diff['deleted'])} deleted since last index"
+            ),
+        }
+
+    def _incremental_multi_index(
+        self,
+        resolved_paths: List[Path],
+        stored_mtimes: Dict[str, float],
+        start: float,
+        progress_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+    ) -> IndexResult:
+        """Incremental re-index across multiple roots, used by multi_index() when
+        stored metadata already covers the exact same set of roots."""
+        current_mtimes = _discover_mtimes(resolved_paths, self._settings)
+        diff = _diff_mtimes(current_mtimes, stored_mtimes)
+        new_files, deleted_files, modified_files = diff["new"], diff["deleted"], diff["modified"]
+        changed_files = new_files | modified_files
+
+        if not changed_files and not deleted_files:
+            return IndexResult(time_seconds=time.time() - start)
+
+        for fp in deleted_files | modified_files:
+            self._vector_engine.delete_by_filepath(fp)
+            self._graph_engine.remove_file_nodes(fp)
+
+        changed_paths = [Path(f) for f in changed_files]
+        total_symbols = 0
+        total_chunks = 0
+        parse_errors = 0
+        file_batch_size = self._settings.index_file_batch_size
+        embed_batch_size = self._settings.embedding_batch_size
+
+        try:
+            for batch_start in range(0, len(changed_paths), file_batch_size):
+                batch_files = changed_paths[batch_start : batch_start + file_batch_size]
+
+                symbols, batch_errors = parallel_parse_files(
+                    batch_files, self._settings.max_workers, progress_callback
+                )
+                parse_errors += batch_errors
+                total_symbols += len(symbols)
+
+                universal_graph = UniversalGraph()
+                for filepath in batch_files:
+                    if self._astgrep.can_parse(str(filepath)):
+                        try:
+                            self._astgrep.parse_file(str(filepath), universal_graph)
+                        except Exception as e:
+                            logger.warning("ast-grep failed for %s: %s", filepath, e)
+                _transfer_graph(universal_graph, self._graph_engine)
+                del universal_graph
+
+                total_chunks += self._embed_and_store_symbols(symbols, embed_batch_size)
+                del symbols
+
+            self._bm25_engine.clear()
+            self._bm25_engine.ensure_fts_index()
+
+            all_files = [Path(f) for f in current_mtimes.keys()]
+            self._save_multi_metadata(resolved_paths, all_files)
+        finally:
+            self._embedding_service.unload()
+
+        graph_stats = self._graph_engine.get_statistics()
+        elapsed = time.time() - start
+
+        return IndexResult(
+            total_files=len(current_mtimes),
+            total_symbols=total_symbols,
+            total_chunks=total_chunks,
+            parse_errors=parse_errors,
+            graph_nodes=graph_stats["total_nodes"],
+            graph_relationships=graph_stats["total_relationships"],
+            time_seconds=elapsed,
+            files_added=len(new_files),
+            files_modified=len(modified_files),
+            files_deleted=len(deleted_files),
+        )
+
     def multi_index(
         self,
         codebase_paths: List[Path],
@@ -414,10 +542,12 @@ class IndexingPipeline:
     ) -> IndexResult:
         """Index multiple directories folder-by-folder into shared engines.
 
-        Processes each folder sequentially: discover → parse → embed → store,
-        then builds the FTS index and saves metadata once at the end.
-        This keeps peak RAM low since each folder's symbols are freed before
-        the next folder starts.
+        If a valid index already exists for the exact same set of roots, this
+        incrementally re-indexes only changed/new/deleted files (mirroring
+        incremental_index()). Otherwise it processes each folder sequentially:
+        discover → parse → embed → store, then builds the FTS index and saves
+        metadata once at the end. This keeps peak RAM low since each folder's
+        symbols are freed before the next folder starts.
 
         Args:
             codebase_paths: List of absolute paths to index.
@@ -438,7 +568,17 @@ class IndexingPipeline:
         # Ensure storage dir exists
         self._settings.storage_path.mkdir(parents=True, exist_ok=True)
 
-        # Clear engines once before processing all folders
+        # Incremental path: only if a valid index exists for this exact root set
+        if self._validate_index():
+            raw_meta = self._load_metadata_raw() or {}
+            stored_mtimes = raw_meta.get("mtimes")
+            stored_roots = set(raw_meta.get("codebase_paths", []))
+            if stored_mtimes and stored_roots == {str(p) for p in resolved_paths}:
+                return self._incremental_multi_index(
+                    resolved_paths, stored_mtimes, start, progress_callback
+                )
+
+        # Full rebuild: clear engines once before processing all folders
         self._graph_engine.clear()
         self._vector_engine.clear()
 
@@ -565,12 +705,18 @@ class IndexingPipeline:
         self._metadata_path.parent.mkdir(parents=True, exist_ok=True)
         self._metadata_path.write_text(json.dumps(metadata))
 
-    def _load_metadata(self) -> Optional[Dict[str, float]]:
-        """Load stored file mtimes, or None if no metadata exists."""
+    def _load_metadata_raw(self) -> Optional[Dict[str, Any]]:
+        """Load the full stored metadata dict, or None if missing/corrupt."""
         if not self._metadata_path.exists():
             return None
         try:
-            data = json.loads(self._metadata_path.read_text())
-            return data.get("mtimes", {})
+            return json.loads(self._metadata_path.read_text())
         except (json.JSONDecodeError, OSError):
             return None
+
+    def _load_metadata(self) -> Optional[Dict[str, float]]:
+        """Load stored file mtimes, or None if no metadata exists."""
+        data = self._load_metadata_raw()
+        if data is None:
+            return None
+        return data.get("mtimes", {})

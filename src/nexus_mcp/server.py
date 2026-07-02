@@ -1,5 +1,6 @@
 """Nexus-MCP FastMCP server with index, search, status, and graph/analysis tools."""
 
+import asyncio
 import json as _json
 import logging
 import re
@@ -34,9 +35,109 @@ _pipeline = None
 _pipeline_lock = threading.Lock()
 
 
+def _trigger_background_reindex(
+    codebase_path: Optional[Path], codebase_paths: Optional[list] = None
+) -> None:
+    """Kick off an incremental reindex on a daemon thread, without blocking the caller.
+
+    Skips (rather than queues or blocks) if a foreground index() is already running
+    or another background reindex is already in flight — both hold `_pipeline_lock`
+    for their full duration, so a non-blocking acquire here is enough to detect either.
+    """
+    global _pipeline
+
+    if _pipeline is None or codebase_path is None:
+        return
+
+    if not _pipeline_lock.acquire(blocking=False):
+        logger.debug("Background reindex skipped: pipeline busy.")
+        return
+
+    def _run():
+        try:
+            from nexus_mcp.state import get_state
+
+            if codebase_paths and len(codebase_paths) > 1:
+                _pipeline.multi_index(codebase_paths)
+            else:
+                _pipeline.incremental_index(codebase_path)
+
+            state = get_state()
+            state.vector_engine = _pipeline.vector_engine
+            state.bm25_engine = _pipeline.bm25_engine
+            state.graph_engine = _pipeline.graph_engine
+            state._staleness_cache = None  # force a fresh check on next status()/search()
+            logger.info("Background reindex complete for %s", codebase_path)
+        except Exception as e:
+            logger.warning("Background reindex failed for %s: %s", codebase_path, e)
+        finally:
+            _pipeline_lock.release()
+
+    threading.Thread(target=_run, daemon=True, name="nexus-bg-reindex").start()
+
+
+def _get_staleness(state) -> dict:
+    """Throttled staleness check — reuses the cached result within
+    settings.staleness_check_interval_s to avoid a filesystem walk on every call.
+    """
+    import time
+
+    global _pipeline
+
+    if _pipeline is None or not state.is_indexed:
+        return {"stale": False, "changed_files": 0, "reason": None}
+
+    now = time.monotonic()
+    interval = state.settings.staleness_check_interval_s
+    if state._staleness_cache is not None and (now - state._staleness_checked_at) < interval:
+        return state._staleness_cache
+
+    roots = state.codebase_paths or [state.codebase_path]
+    result = _pipeline.check_staleness(roots)
+    state._staleness_cache = result
+    state._staleness_checked_at = now
+    return result
+
+
+async def _ensure_file_watcher(state, auto_watch_enabled: bool) -> None:
+    """Start a DebouncedFileWatcher per indexed root, if enabled and not already running."""
+    if not auto_watch_enabled or state._file_watchers:
+        return
+
+    roots = state.codebase_paths or ([state.codebase_path] if state.codebase_path else [])
+    if not roots:
+        return
+
+    from nexus_mcp.parsing.file_watcher import DebouncedFileWatcher
+    from nexus_mcp.parsing.language_registry import get_supported_extensions
+
+    extensions = get_supported_extensions()
+
+    def _make_callback(root: Path):
+        def _on_change() -> None:
+            # Runs as an asyncio.Task on the server's event loop (see
+            # DebouncedFileWatcher._debounced_callback) — must stay non-blocking.
+            # _trigger_background_reindex only spawns a thread and returns.
+            _trigger_background_reindex(root, state.codebase_paths)
+
+        return _on_change
+
+    for root in roots:
+        watcher = DebouncedFileWatcher(
+            project_root=root,
+            callback=_make_callback(root),
+            supported_extensions=extensions,
+        )
+        try:
+            await watcher.start()
+            state._file_watchers.append(watcher)
+        except Exception as e:
+            logger.warning("Failed to start file watcher for %s: %s", root, e)
+
+
 def create_server():
     """Create and configure the FastMCP server."""
-    from fastmcp import FastMCP
+    from fastmcp import Context, FastMCP
 
     from nexus_mcp.core.graph_models import UniversalNode, UniversalRelationship
 
@@ -121,7 +222,9 @@ def create_server():
 
         Logs the actual outcome (success/error/permission_denied/rate_limited)
         with real duration and sanitized params, after the tool completes.
-        Audit failures never block the tool call.
+        Audit failures never block the tool call. Works for both sync and
+        async tool functions — FastMCP tells them apart via
+        inspect.iscoroutinefunction, so the wrapper must preserve that.
         """
         import functools
         import time as _time
@@ -129,6 +232,39 @@ def create_server():
         from nexus_mcp.middleware.audit import generate_correlation_id
 
         tool_name = fn.__name__
+
+        def _log(status: str, kwargs: dict, start: float) -> None:
+            try:
+                _audit.log_invocation(
+                    tool_name=tool_name,
+                    params=kwargs,
+                    result_status=status,
+                    duration_ms=(_time.monotonic() - start) * 1000,
+                    correlation_id=generate_correlation_id(),
+                )
+            except Exception as e:
+                logger.warning("Audit logging failed for %s: %s", tool_name, e)
+
+        if asyncio.iscoroutinefunction(fn):
+
+            @functools.wraps(fn)
+            async def async_wrapper(*args, **kwargs):
+                start = _time.monotonic()
+                status = "success"
+                try:
+                    result = await fn(*args, **kwargs)
+                    if isinstance(result, dict):
+                        status = result.pop("_audit_status", None) or (
+                            "error" if "error" in result else "success"
+                        )
+                    return result
+                except Exception:
+                    status = "error"
+                    raise
+                finally:
+                    _log(status, kwargs, start)
+
+            return async_wrapper
 
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
@@ -145,16 +281,7 @@ def create_server():
                 status = "error"
                 raise
             finally:
-                try:
-                    _audit.log_invocation(
-                        tool_name=tool_name,
-                        params=kwargs,
-                        result_status=status,
-                        duration_ms=(_time.monotonic() - start) * 1000,
-                        correlation_id=generate_correlation_id(),
-                    )
-                except Exception as e:
-                    logger.warning("Audit logging failed for %s: %s", tool_name, e)
+                _log(status, kwargs, start)
 
         return wrapper
 
@@ -308,6 +435,18 @@ def create_server():
                 result["bm25_fts_ready"] = state.bm25_engine._fts_index_created
             if state.graph_engine:
                 result["graph"] = state.graph_engine.get_statistics()
+
+            staleness = _get_staleness(state)
+            result["stale"] = staleness["stale"]
+            if staleness["stale"]:
+                result["staleness_warning"] = (
+                    f"Index may be out of date ({staleness['reason']}). "
+                    "A background reindex has been triggered."
+                )
+                _trigger_background_reindex(state.codebase_path, state.codebase_paths)
+            else:
+                result["staleness_warning"] = None
+
             result["hint"] = (
                 "Codebase is indexed. Use 'search' to find code (preferred over Grep/Glob), "
                 "'find_symbol' for definitions, 'find_callers'/'find_callees' for call graph, "
@@ -354,15 +493,17 @@ def create_server():
 
     @mcp.tool()
     @_audited
-    def index(
+    async def index(
         path: Annotated[str, "Absolute path to the codebase directory (or comma-separated paths)"],
         paths: Annotated[str, "Additional comma-separated paths to index"] = "",
+        ctx: Context = None,
     ) -> dict[str, Any]:
         """Index a codebase into vector + graph engines.
 
         Supports indexing multiple directories folder-by-folder. Each folder
         is processed sequentially (discover → parse → embed → store) and
-        results are merged into shared engines.
+        results are merged into shared engines. Reports progress as it runs
+        instead of blocking silently for the full duration.
         """
         from nexus_mcp.config import get_settings
         from nexus_mcp.indexing.pipeline import IndexingPipeline
@@ -391,37 +532,79 @@ def create_server():
             return {"error": "No valid paths provided."}
 
         settings = get_settings()
+        loop = asyncio.get_running_loop()
+        progress_throttle = {"last_sent": 0.0}
 
-        with _pipeline_lock:
+        def progress_callback(stage: str, info: dict) -> None:
+            # parallel_parse_files (indexing/parallel_indexer.py) calls this once
+            # per file with event types "file_parsed" (keys: path, symbols, index,
+            # total) or "parse_error" (keys: path, error) — from whichever thread
+            # is running the blocking pipeline call (see asyncio.to_thread below),
+            # never the event loop thread, so bridge via run_coroutine_threadsafe.
+            import time as _time
+
+            info = info or {}
+            if ctx is None:
+                logger.info("[index] %s: %s", stage, info)
+                return
+
+            # Throttle: a multi-thousand-file repo would otherwise fire one MCP
+            # progress notification per file. Cap to ~2/sec.
+            now = _time.monotonic()
+            if now - progress_throttle["last_sent"] < 0.5:
+                return
+            progress_throttle["last_sent"] = now
+
+            try:
+                processed = info.get("index", 0)
+                total = info.get("total")
+                message = f"{stage}: {info.get('path', '')}"
+                asyncio.run_coroutine_threadsafe(
+                    ctx.report_progress(processed, total, message), loop
+                )
+            except Exception as e:
+                logger.debug("Progress bridge failed for %s: %s", stage, e)
+
+        # Acquire the pipeline lock off the event loop thread — it's normally
+        # uncontended, but a background reindex could briefly hold it, and this
+        # keeps the wait from blocking other work if that happens.
+        await asyncio.to_thread(_pipeline_lock.acquire)
+        try:
             if _pipeline is None:
                 _pipeline = IndexingPipeline(settings)
 
-        # Multi-path: always use folder-by-folder indexing
-        if len(validated) > 1:
-            result = _pipeline.multi_index(validated)
-            state = get_state()
-            state.codebase_path = validated[0]
-            state.codebase_paths = validated
+            # Multi-path: always use folder-by-folder indexing
+            if len(validated) > 1:
+                result = await asyncio.to_thread(
+                    _pipeline.multi_index, validated, progress_callback
+                )
+                state = get_state()
+                state.codebase_path = validated[0]
+                state.codebase_paths = validated
+            else:
+                # Single path: determine full vs incremental
+                codebase_path = validated[0]
+                metadata_path = settings.storage_path / "index_metadata.json"
+                if metadata_path.exists():
+                    result = await asyncio.to_thread(
+                        _pipeline.incremental_index, codebase_path, progress_callback
+                    )
+                else:
+                    result = await asyncio.to_thread(
+                        _pipeline.index, codebase_path, progress_callback
+                    )
+                state = get_state()
+                state.codebase_path = codebase_path
+                state.codebase_paths = [codebase_path]
+
             state.vector_engine = _pipeline.vector_engine
             state.bm25_engine = _pipeline.bm25_engine
             state.graph_engine = _pipeline.graph_engine
-            return result.to_dict()
+            state._staleness_cache = None
+        finally:
+            _pipeline_lock.release()
 
-        # Single path: determine full vs incremental
-        codebase_path = validated[0]
-        metadata_path = settings.storage_path / "index_metadata.json"
-        if metadata_path.exists():
-            result = _pipeline.incremental_index(codebase_path)
-        else:
-            result = _pipeline.index(codebase_path)
-
-        # Wire engines into session state
-        state = get_state()
-        state.codebase_path = codebase_path
-        state.codebase_paths = [codebase_path]
-        state.vector_engine = _pipeline.vector_engine
-        state.bm25_engine = _pipeline.bm25_engine
-        state.graph_engine = _pipeline.graph_engine
+        await _ensure_file_watcher(state, settings.auto_watch_enabled)
 
         return result.to_dict()
 
@@ -453,6 +636,15 @@ def create_server():
         state = get_state()
         if not state.is_indexed or not state.vector_engine:
             return {"error": "No codebase indexed. Run 'index' first."}
+
+        staleness = _get_staleness(state)
+        search_warning = None
+        if staleness["stale"]:
+            search_warning = (
+                f"Index may be out of date ({staleness['reason']}); "
+                "refreshing in background."
+            )
+            _trigger_background_reindex(state.codebase_path, state.codebase_paths)
 
         settings = get_settings()
         limit = max(1, min(limit, 100))
@@ -616,6 +808,7 @@ def create_server():
             "search_mode": mode,
             "engines_used": engines_used,
             "results": results,
+            "warning": search_warning,
             "hint": (
                 "Results include code_snippet — you can often "
                 "answer without needing to Read the file."
@@ -762,7 +955,12 @@ def create_server():
 
         # Filter by path if specified
         if path and root:
-            filter_path = str(root / path)
+            candidate = (root / path).resolve()
+            try:
+                candidate.relative_to(root.resolve())
+            except ValueError:
+                return {"error": f"Path '{path}' is outside codebase root."}
+            filter_path = str(candidate)
 
             # Filter complexity high_complexity_functions
             if "high_complexity_functions" in result["complexity"]:

@@ -40,6 +40,10 @@ class Settings:
     # Memory limits
     max_memory_mb: int = 350
 
+    # Auto-watch / staleness
+    auto_watch_enabled: bool = True
+    staleness_check_interval_s: float = 15.0
+
     # Logging
     log_level: str = "INFO"
     log_format: str = "text"  # "text" or "json"
@@ -78,6 +82,8 @@ class Settings:
             "NEXUS_FUSION_WEIGHT_BM25": ("fusion_weight_bm25", float),
             "NEXUS_FUSION_WEIGHT_GRAPH": ("fusion_weight_graph", float),
             "NEXUS_MAX_MEMORY_MB": ("max_memory_mb", int),
+            "NEXUS_AUTO_WATCH": ("auto_watch_enabled", _bool),
+            "NEXUS_STALENESS_CHECK_INTERVAL": ("staleness_check_interval_s", float),
             "NEXUS_LOG_LEVEL": ("log_level", str),
             "NEXUS_LOG_FORMAT": ("log_format", str),
             "NEXUS_TRUST_REMOTE_CODE": ("trust_remote_code", _bool),

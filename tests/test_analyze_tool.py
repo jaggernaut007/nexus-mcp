@@ -156,6 +156,17 @@ class TestAnalyze:
             loc = f.get("location", "")
             assert "main.py" not in loc
 
+    def test_analyze_rejects_path_traversal(self, tmp_path):
+        mcp = server_module.create_server()
+        state = get_state()
+        _setup_analysis_graph(state, tmp_path)
+
+        result = asyncio.run(
+            _call_tool(mcp, "analyze", {"path": "../../../etc/passwd"})
+        )
+        assert "error" in result
+        assert "outside codebase root" in result["error"]
+
     def test_analyze_after_real_index(self, mini_codebase, tmp_path):
         """Test analyze works after a real indexing pipeline run."""
         async def run():

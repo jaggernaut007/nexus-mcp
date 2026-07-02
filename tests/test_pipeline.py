@@ -230,3 +230,122 @@ class TestIndexingPipeline:
         result = pipeline.incremental_index(mini_codebase)
         # Should still have indexed files
         assert result.total_files >= 2
+
+
+# --- check_staleness tests ---
+
+class TestCheckStaleness:
+    def test_no_metadata_is_not_stale(self, mini_codebase, settings):
+        """No prior index means nothing to compare against — not stale."""
+        pipeline = _make_pipeline(settings)
+        result = pipeline.check_staleness([mini_codebase])
+        assert result["stale"] is False
+        assert result["changed_files"] == 0
+
+    def test_clean_after_index_is_not_stale(self, mini_codebase, settings):
+        pipeline = _make_pipeline(settings)
+        pipeline.index(mini_codebase)
+
+        result = pipeline.check_staleness([mini_codebase])
+        assert result["stale"] is False
+        assert result["changed_files"] == 0
+        assert result["reason"] is None
+
+    def test_modified_file_is_stale(self, mini_codebase, settings):
+        pipeline = _make_pipeline(settings)
+        pipeline.index(mini_codebase)
+
+        time.sleep(0.05)
+        (mini_codebase / "src" / "main.py").write_text("def hello():\n    pass\n")
+
+        result = pipeline.check_staleness([mini_codebase])
+        assert result["stale"] is True
+        assert result["changed_files"] >= 1
+        assert "modified" in result["reason"]
+
+    def test_new_file_is_stale(self, mini_codebase, settings):
+        pipeline = _make_pipeline(settings)
+        pipeline.index(mini_codebase)
+
+        time.sleep(0.05)
+        (mini_codebase / "src" / "new.py").write_text("def new_func():\n    pass\n")
+
+        result = pipeline.check_staleness([mini_codebase])
+        assert result["stale"] is True
+        assert "1 new" in result["reason"]
+
+    def test_check_staleness_does_not_mutate_engines(self, mini_codebase, settings):
+        """Read-only: repeated calls must not change what's indexed."""
+        pipeline = _make_pipeline(settings)
+        pipeline.index(mini_codebase)
+        before = pipeline.vector_engine.count()
+
+        pipeline.check_staleness([mini_codebase])
+        pipeline.check_staleness([mini_codebase])
+
+        assert pipeline.vector_engine.count() == before
+
+
+# --- multi_index incremental tests ---
+
+class TestMultiIndexIncremental:
+    def test_second_call_with_no_changes_is_incremental(self, tmp_path, settings):
+        root_a = tmp_path / "a"
+        root_a.mkdir()
+        (root_a / "a.py").write_text("def a():\n    pass\n")
+        root_b = tmp_path / "b"
+        root_b.mkdir()
+        (root_b / "b.py").write_text("def b():\n    pass\n")
+
+        pipeline = _make_pipeline(settings)
+        first = pipeline.multi_index([root_a, root_b])
+        assert first.total_files == 2
+
+        with patch.object(
+            pipeline, "_incremental_multi_index", wraps=pipeline._incremental_multi_index
+        ) as spy:
+            second = pipeline.multi_index([root_a, root_b])
+            spy.assert_called_once()
+
+        assert second.files_added == 0
+        assert second.files_modified == 0
+        assert second.files_deleted == 0
+
+    def test_second_call_detects_new_file(self, tmp_path, settings):
+        root_a = tmp_path / "a"
+        root_a.mkdir()
+        (root_a / "a.py").write_text("def a():\n    pass\n")
+        root_b = tmp_path / "b"
+        root_b.mkdir()
+        (root_b / "b.py").write_text("def b():\n    pass\n")
+
+        pipeline = _make_pipeline(settings)
+        pipeline.multi_index([root_a, root_b])
+
+        time.sleep(0.05)
+        (root_a / "new.py").write_text("def new_func():\n    pass\n")
+
+        result = pipeline.multi_index([root_a, root_b])
+        assert result.files_added == 1
+
+    def test_different_root_set_forces_full_rebuild(self, tmp_path, settings):
+        root_a = tmp_path / "a"
+        root_a.mkdir()
+        (root_a / "a.py").write_text("def a():\n    pass\n")
+        root_b = tmp_path / "b"
+        root_b.mkdir()
+        (root_b / "b.py").write_text("def b():\n    pass\n")
+        root_c = tmp_path / "c"
+        root_c.mkdir()
+        (root_c / "c.py").write_text("def c():\n    pass\n")
+
+        pipeline = _make_pipeline(settings)
+        pipeline.multi_index([root_a, root_b])
+
+        with patch.object(
+            pipeline, "_incremental_multi_index", wraps=pipeline._incremental_multi_index
+        ) as spy:
+            result = pipeline.multi_index([root_a, root_b, root_c])
+            spy.assert_not_called()
+
+        assert result.total_files == 3

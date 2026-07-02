@@ -7,7 +7,7 @@ All models use frozen dataclasses for immutability and JSON serialization.
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class SymbolType(Enum):

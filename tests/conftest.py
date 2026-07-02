@@ -9,12 +9,29 @@ import nexus_mcp.server as server_module
 from nexus_mcp.state import reset_state
 
 
+def _stop_watchers() -> None:
+    """Stop any file watchers left running on session state.
+
+    Auto-watch defaults on (NEXUS_AUTO_WATCH), so any test that indexes via
+    _setup_indexed starts a real watchdog.Observer thread. reset_state() only
+    drops the reference — without this, watchers accumulate across the suite.
+    """
+    import asyncio
+
+    from nexus_mcp.state import get_state
+
+    state = get_state()
+    if state._file_watchers:
+        asyncio.run(state._stop_watchers())
+
+
 @pytest.fixture(autouse=True)
 def clean_state():
     """Reset global state before each test."""
     reset_state()
     server_module._pipeline = None
     yield
+    _stop_watchers()
     reset_state()
     server_module._pipeline = None
 

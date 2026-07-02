@@ -10,6 +10,8 @@ import threading
 from pathlib import Path
 from typing import Annotated, Any, List, Optional
 
+from nexus_mcp import __version__
+
 logger = logging.getLogger(__name__)
 
 
@@ -101,40 +103,60 @@ def create_server():
         """Run all pre-execution checks: permissions, rate limiting.
 
         Returns None if all checks pass, or error dict on first failure.
-        Side-effect: emits an audit record for each invocation attempt.
+        Denial dicts carry an internal '_audit_status' key consumed (and
+        stripped) by the _audited wrapper.
         """
-        from nexus_mcp.middleware.audit import generate_correlation_id
-        import time as _time
-
-        _start = _time.monotonic()
         err = _check_tool_permission(tool_name)
         if err:
-            _audit.log_invocation(
-                tool_name=tool_name,
-                params={},
-                result_status="permission_denied",
-                duration_ms=(_time.monotonic() - _start) * 1000,
-                correlation_id=generate_correlation_id(),
-            )
+            err["_audit_status"] = "permission_denied"
             return err
         err = _check_rate_limit(tool_name)
         if err:
-            _audit.log_invocation(
-                tool_name=tool_name,
-                params={},
-                result_status="rate_limited",
-                duration_ms=(_time.monotonic() - _start) * 1000,
-                correlation_id=generate_correlation_id(),
-            )
+            err["_audit_status"] = "rate_limited"
             return err
-        _audit.log_invocation(
-            tool_name=tool_name,
-            params={},
-            result_status="invoked",
-            duration_ms=(_time.monotonic() - _start) * 1000,
-            correlation_id=generate_correlation_id(),
-        )
         return None
+
+    def _audited(fn):
+        """Wrap a tool to emit one audit record per invocation.
+
+        Logs the actual outcome (success/error/permission_denied/rate_limited)
+        with real duration and sanitized params, after the tool completes.
+        Audit failures never block the tool call.
+        """
+        import functools
+        import time as _time
+
+        from nexus_mcp.middleware.audit import generate_correlation_id
+
+        tool_name = fn.__name__
+
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            start = _time.monotonic()
+            status = "success"
+            try:
+                result = fn(*args, **kwargs)
+                if isinstance(result, dict):
+                    status = result.pop("_audit_status", None) or (
+                        "error" if "error" in result else "success"
+                    )
+                return result
+            except Exception:
+                status = "error"
+                raise
+            finally:
+                try:
+                    _audit.log_invocation(
+                        tool_name=tool_name,
+                        params=kwargs,
+                        result_status=status,
+                        duration_ms=(_time.monotonic() - start) * 1000,
+                        correlation_id=generate_correlation_id(),
+                    )
+                except Exception as e:
+                    logger.warning("Audit logging failed for %s: %s", tool_name, e)
+
+        return wrapper
 
     # --- Input validation helpers ---
 
@@ -254,6 +276,7 @@ def create_server():
     # --- MCP Tools ---
 
     @mcp.tool()
+    @_audited
     def status() -> dict[str, Any]:
         """Get Nexus-MCP server status including indexing stats."""
         guard_err = _guard("status")
@@ -272,7 +295,7 @@ def create_server():
             peak_rss_mb = rss_raw / 1024
 
         result: dict[str, Any] = {
-            "version": "1.0.1",
+            "version": __version__,
             "indexed": state.is_indexed,
             "codebase_path": str(state.codebase_path) if state.codebase_path else None,
             "memory": {"peak_rss_mb": round(peak_rss_mb, 1)},
@@ -299,6 +322,7 @@ def create_server():
         return result
 
     @mcp.tool()
+    @_audited
     def health() -> dict[str, Any]:
         """Health check for readiness/liveness probes.
 
@@ -329,6 +353,7 @@ def create_server():
         }
 
     @mcp.tool()
+    @_audited
     def index(
         path: Annotated[str, "Absolute path to the codebase directory (or comma-separated paths)"],
         paths: Annotated[str, "Additional comma-separated paths to index"] = "",
@@ -401,6 +426,7 @@ def create_server():
         return result.to_dict()
 
     @mcp.tool()
+    @_audited
     def search(
         query: Annotated[str, "Natural language or code query (e.g. 'retry logic')"],
         limit: Annotated[int, "Max results (default 10, max 100)"] = 10,
@@ -505,8 +531,10 @@ def create_server():
         else:
             results = results[:limit]
 
-        # Live Grep (Fallback or Explicit)
-        if live_grep or (mode == "hybrid" and len(results) < limit):
+        # Live Grep (Fallback or Explicit). Skipped entirely when a
+        # symbol_type filter is set: grep matches carry no symbol_type,
+        # so none of them could pass the filter.
+        if not symbol_type and (live_grep or (mode == "hybrid" and len(results) < limit)):
             try:
                 from nexus_mcp.engines.live_grep import LiveGrepEngine
                 from nexus_mcp.parsing.language_registry import get_language_for_file
@@ -533,11 +561,6 @@ def create_server():
                         if language and lr_lang != language:
                             continue
 
-                        # Live-grep results don't have symbol_type, so they only pass if
-                        # no symbol_type filter is requested.
-                        if symbol_type:
-                            continue
-
                         lr["language"] = lr_lang
                         filtered_live.append(lr)
                         seen.add(key)
@@ -557,6 +580,14 @@ def create_server():
             # Remove raw embedding vector (wastes tokens, not useful to LLM)
             r.pop("vector", None)
 
+            # Rename 'text' to 'code_snippet' with truncation marker
+            if "text" in r:
+                code = r.pop("text")
+                if len(code) > 2000:
+                    r["code_snippet"] = code[:2000] + "\n... (truncated)"
+                else:
+                    r["code_snippet"] = code
+
             # Standardize path fields: results from engines have 'filepath',
             # live-grep has 'absolute_path'.
             abs_path = r.get("absolute_path") or r.get("filepath")
@@ -573,14 +604,6 @@ def create_server():
                 except ValueError:
                     # Not under this root, or abs_path already relative
                     r["filepath"] = str(abs_path)
-
-            # Rename 'text' to 'code_snippet' with truncation marker
-            if "text" in r:
-                code = r.pop("text")
-                if len(code) > 2000:
-                    r["code_snippet"] = code[:2000] + "\n... (truncated)"
-                else:
-                    r["code_snippet"] = code
 
             # Ensure language field is present for filtering tests
             if not r.get("language") or r.get("language") == "unknown":
@@ -600,6 +623,7 @@ def create_server():
         }
 
     @mcp.tool()
+    @_audited
     def find_symbol(
         name: Annotated[str, "Symbol name (e.g. 'create_server', 'TokenBudget')"],
         exact: Annotated[bool, "True for exact match, False for fuzzy substring"] = True,
@@ -636,6 +660,7 @@ def create_server():
         return {"total": len(symbols), "symbols": symbols}
 
     @mcp.tool()
+    @_audited
     def find_callers(
         symbol_name: Annotated[str, "Name of the function to find callers for"]
     ) -> dict[str, Any]:
@@ -671,6 +696,7 @@ def create_server():
         }
 
     @mcp.tool()
+    @_audited
     def find_callees(
         symbol_name: Annotated[str, "Name of the function to find callees for"]
     ) -> dict[str, Any]:
@@ -706,8 +732,11 @@ def create_server():
         }
 
     @mcp.tool()
+    @_audited
     def analyze(
-        path: Annotated[str, "Optional relative path to filter analysis (subdirectory or file)"] = ""
+        path: Annotated[
+            str, "Optional relative path to filter analysis (subdirectory or file)"
+        ] = ""
     ) -> dict[str, Any]:
         """Run code analysis: complexity, dependencies, smells, quality score."""
         guard_err = _guard("analyze")
@@ -764,6 +793,7 @@ def create_server():
         return result
 
     @mcp.tool()
+    @_audited
     def impact(
         symbol_name: Annotated[str, "Name of the function to analyze impact for"],
         max_depth: Annotated[int, "Max depth of transitive caller traversal (default 10)"] = 10,
@@ -814,9 +844,12 @@ def create_server():
         }
 
     @mcp.tool()
+    @_audited
     def explain(
         symbol_name: Annotated[str, "Name of the symbol to explain"],
-        verbosity: Annotated[str, "Output detail level: 'summary', 'detailed', or 'full'"] = "detailed",
+        verbosity: Annotated[
+            str, "Output detail level: 'summary', 'detailed', or 'full'"
+        ] = "detailed",
     ) -> dict[str, Any]:
         """PREFERRED over Read for understanding code symbols."""
         guard_err = _guard("explain")
@@ -890,6 +923,7 @@ def create_server():
         return builder.build_explain_response(symbol_data, search_results, analysis)
 
     @mcp.tool()
+    @_audited
     def overview() -> dict[str, Any]:
         """PREFERRED over Glob/ls for project exploration.
 
@@ -971,6 +1005,7 @@ def create_server():
         }
 
     @mcp.tool()
+    @_audited
     def architecture() -> dict[str, Any]:
         """PREFERRED over manual browsing for project design.
 
@@ -1138,11 +1173,14 @@ def create_server():
         return state.memory_store
 
     @mcp.tool()
+    @_audited
     def remember(
         content: Annotated[str, "Memory content to store"],
         memory_type: Annotated[str, "Type of memory (e.g. 'note', 'decision')"] = "note",
         tags: Annotated[str, "Comma-separated tags for organization"] = "",
-        ttl: Annotated[str, "Time-to-live: 'permanent', 'month', 'week', 'day', 'session'"] = "permanent",
+        ttl: Annotated[
+            str, "Time-to-live: 'permanent', 'month', 'week', 'day', 'session'"
+        ] = "permanent",
         project: Annotated[str, "Project name for scoping memories"] = "default",
     ) -> dict[str, Any]:
         """Store a semantic memory for later recall."""
@@ -1178,6 +1216,7 @@ def create_server():
         return {"id": mem_id, "status": "stored"}
 
     @mcp.tool()
+    @_audited
     def recall(
         query: Annotated[str, "Natural language search query"],
         limit: Annotated[int, "Maximum number of results (default 5)"] = 5,
@@ -1210,6 +1249,7 @@ def create_server():
         }
 
     @mcp.tool()
+    @_audited
     def forget(
         memory_id: Annotated[str, "Specific memory ID to delete"] = "",
         tags: Annotated[str, "Delete memories matching any of these comma-separated tags"] = "",

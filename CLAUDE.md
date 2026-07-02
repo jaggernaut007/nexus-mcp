@@ -137,7 +137,7 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 
 - LanceDB replaces ChromaDB (mmap, disk-backed vectors) — [ADR-002](docs/adr/ADR-002-lancedb-over-chromadb.md)
 - ONNX Runtime replaces PyTorch (~50MB vs ~500MB) — [ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md)
-- jina-code default; bge-small-en alternative — [ADR-004](docs/adr/ADR-004-bge-small-default-model.md)
+- bge-small-en default; jina-code alternative — [ADR-004](docs/adr/ADR-004-bge-small-default-model.md)
 - Dual parsing: tree-sitter (symbols) + ast-grep (graph) — [ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)
 - rustworkx for graph algorithms (Rust-backed) — [ADR-006](docs/adr/ADR-006-rustworkx-graph-engine.md)
 - LanceDB schema: 12-column PyArrow, flat search — [ADR-007](docs/adr/ADR-007-lancedb-schema-design.md)
@@ -164,7 +164,7 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 11. Permission default is `full` (backward compat); set `NEXUS_PERMISSION_LEVEL=read` for restricted
 12. Audit logging is on by default; set `NEXUS_AUDIT_ENABLED=false` to disable
 13. Rate limiting is off by default (stdio); enable via `NEXUS_RATE_LIMIT_ENABLED=true`
-14. `trust_remote_code` defaults to `true` (required for default jina-code model); set `NEXUS_TRUST_REMOTE_CODE=false` to disable
+14. `trust_remote_code` defaults to `true` (required only for the jina-code model; the default bge-small-en does not need it); set `NEXUS_TRUST_REMOTE_CODE=false` to disable
 15. Pydantic schemas are internal only; FastMCP tool signatures use simple params
 16. New exceptions (AuthenticationError, AuthorizationError, RateLimitError) in exceptions.py
 17. Only registered embedding models are supported; custom model names raise ConfigurationError
@@ -175,22 +175,22 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 
 | Model | Key | Dims | Seq Len | Backend | trust_remote_code | Notes |
 |-------|-----|------|---------|---------|-------------------|-------|
-| **Jina Embeddings v2 Code** | `jina-code` | 768 | 8192 | ONNX | Yes | **Default**. Code-specific, 161M params |
-| BGE Small EN v1.5 | `bge-small-en` | 384 | 512 | PyTorch | No | Lightweight general-purpose |
+| BGE Small EN v1.5 | `bge-small-en` | 384 | 512 | PyTorch | No | **Default**. Lightweight general-purpose |
+| Jina Embeddings v2 Code | `jina-code` | 768 | 8192 | ONNX | Yes | Code-specific, 161M params |
 
 ### Changing the embedding model
 
 Set the `NEXUS_EMBEDDING_MODEL` environment variable:
 
 ```bash
-# Use bge-small-en (lightweight, no trust_remote_code needed)
-NEXUS_EMBEDDING_MODEL=bge-small-en nexus-mcp-ci
+# Use jina-code (code-specific, requires trust_remote_code)
+NEXUS_EMBEDDING_MODEL=jina-code nexus-mcp-ci
 
 # Or set in your shell profile
-export NEXUS_EMBEDDING_MODEL=bge-small-en
+export NEXUS_EMBEDDING_MODEL=jina-code
 
 # For Claude Code MCP config
-claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_MODEL=bge-small-en -- nexus-mcp-ci
+claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_MODEL=jina-code -- nexus-mcp-ci
 ```
 
 ### GPU / MPS acceleration

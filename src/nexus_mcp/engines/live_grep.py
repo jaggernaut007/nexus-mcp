@@ -68,7 +68,7 @@ class LiveGrepEngine:
                     if data.get("type") == "match":
                         payload = data["data"]
                         path_text = payload["path"]["text"]
-                        
+
                         # Handle both relative and absolute paths from rg
                         if os.path.isabs(path_text):
                             abs_path = path_text

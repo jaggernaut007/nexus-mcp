@@ -92,7 +92,7 @@ Source files
     │           deterministic IDs: SHA256(file_path + symbol_name + line)
     │           avoids duplicate inserts on incremental reindex
     │
-    ├─ Step 6: Embed ──────────── ONNX Runtime (jina-code: 768-dim, seq_len=8192)
+    ├─ Step 6: Embed ──────────── bge-small-en: 384-dim (default) or jina-code: 768-dim via ONNX
     │           lazy-loaded, unloaded after indexing (try/finally)
     │           GPU/MPS auto-detected; falls back to CPU
     │
@@ -136,7 +136,7 @@ search("how does auth work")
 | Layer | Technology | Decision Rationale |
 |-------|-----------|-------------------|
 | **Vector store** | LanceDB | mmap disk-backed → ~20–50 MB overhead vs ChromaDB's in-memory model. Native Tantivy FTS means one store for both vector and BM25. ([ADR-002](docs/adr/ADR-002-lancedb-over-chromadb.md)) |
-| **Embeddings** | ONNX Runtime + jina-code | ~50 MB vs PyTorch ~500 MB. jina-code is code-specific (161M params, 8192 seq len). Lazy-load/unload keeps RAM flat after indexing. ([ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md)) |
+| **Embeddings** | bge-small-en (default) or ONNX Runtime + jina-code | bge-small-en is lightweight (384-dim, no trust_remote_code). jina-code is code-specific (161M params, 8192 seq len) on ONNX (~50 MB vs PyTorch ~500 MB). Lazy-load/unload keeps RAM flat after indexing. ([ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md)) |
 | **Graph engine** | rustworkx PyDiGraph | Rust-backed, O(1) node lookup, PageRank + centrality algorithms. Thread-safe with RLock. ([ADR-006](docs/adr/ADR-006-rustworkx-graph-engine.md)) |
 | **Symbol parser** | tree-sitter 0.21.3 | 25+ languages, incremental parsing, AST-level symbol extraction with metadata. Parallel via ThreadPool. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
 | **Graph parser** | ast-grep | Structural pattern matching for call/import/inheritance edges. Sequential run for graph consistency. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
@@ -241,11 +241,11 @@ pip install -e ".[dev]"
 
 **Python 3.10–3.13 required.** Optional: `rg` (ripgrep) for 100% search coverage fallback on unindexed files.
 
-> The default `jina-code` model requires ONNX Runtime. If you see ONNX/Optimum errors:
+> The optional `jina-code` model requires ONNX Runtime. If you see ONNX/Optimum errors:
 > ```bash
 > pip install "sentence-transformers[onnx]" "optimum[onnxruntime]>=1.19.0"
 > ```
-> To skip `trust_remote_code`, use a lighter model: `NEXUS_EMBEDDING_MODEL=bge-small-en`
+> The default `bge-small-en` model needs neither ONNX nor `trust_remote_code`.
 
 ---
 
@@ -257,8 +257,8 @@ pip install -e ".[dev]"
 # Minimal
 claude mcp add nexus-mcp-ci -- nexus-mcp-ci
 
-# With lighter embedding model (no trust_remote_code)
-claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_MODEL=bge-small-en -- nexus-mcp-ci
+# With the code-specific embedding model (requires trust_remote_code)
+claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_MODEL=jina-code -- nexus-mcp-ci
 
 # GPU embeddings
 claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_DEVICE=cuda -- nexus-mcp-ci
@@ -278,7 +278,7 @@ claude mcp add nexus-mcp-ci -- /path/to/.venv/bin/nexus-mcp-ci
       "command": "nexus-mcp-ci",
       "args": [],
       "env": {
-        "NEXUS_EMBEDDING_MODEL": "bge-small-en"
+        "NEXUS_EMBEDDING_MODEL": "jina-code"
       }
     }
   }
@@ -358,7 +358,7 @@ All settings via `NEXUS_` environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NEXUS_EMBEDDING_MODEL` | `jina-code` | `jina-code` (768-dim, code-optimized) or `bge-small-en` (384-dim, lightweight) |
+| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | `bge-small-en` (384-dim, lightweight) or `jina-code` (768-dim, code-optimized) |
 | `NEXUS_EMBEDDING_DEVICE` | `auto` | `auto` (CUDA → MPS → CPU), `cuda`, `mps`, `cpu` |
 | `NEXUS_STORAGE_DIR` | `.nexus` | Index storage directory |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
@@ -379,8 +379,8 @@ All settings via `NEXUS_` environment variables:
 
 | Model | Key | Dims | Max Seq | Backend | `trust_remote_code` |
 |-------|-----|:----:|:-------:|---------|:-------------------:|
+| BGE Small EN v1.5 (default) | `bge-small-en` | 384 | 512 | PyTorch | No |
 | Jina Embeddings v2 Code | `jina-code` | 768 | 8,192 | ONNX | Yes |
-| BGE Small EN v1.5 | `bge-small-en` | 384 | 512 | PyTorch | No |
 
 **After changing model, re-index.** Embeddings from different models are incompatible.
 
@@ -524,7 +524,7 @@ Key decisions are documented in [docs/adr/](docs/adr/):
 | [ADR-001](docs/adr/ADR-001-single-mcp-consolidation.md) | Merge two MCP servers into one |
 | [ADR-002](docs/adr/ADR-002-lancedb-over-chromadb.md) | LanceDB over ChromaDB |
 | [ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md) | ONNX Runtime over PyTorch for embeddings |
-| [ADR-004](docs/adr/ADR-004-bge-small-default-model.md) | jina-code as default embedding model |
+| [ADR-004](docs/adr/ADR-004-bge-small-default-model.md) | bge-small-en as default embedding model |
 | [ADR-005](docs/adr/ADR-005-dual-parser-strategy.md) | Dual parser: tree-sitter + ast-grep |
 | [ADR-006](docs/adr/ADR-006-rustworkx-graph-engine.md) | rustworkx for graph algorithms |
 | [ADR-007](docs/adr/ADR-007-lancedb-schema-design.md) | 12-column PyArrow schema for LanceDB |

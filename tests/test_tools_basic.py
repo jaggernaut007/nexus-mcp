@@ -60,6 +60,7 @@ class TestIndex:
     def test_index_incremental_on_second_call(self, mini_codebase, tmp_path):
         async def run():
             from unittest.mock import patch
+
             from tests.conftest import _mock_embedding_service
 
             storage = tmp_path / ".nexus"
@@ -70,8 +71,10 @@ class TestIndex:
             # Keep embedding service patched since _setup_indexed's patch has exited
             server_module._pipeline = None
             mock_svc = _mock_embedding_service()
-            with patch("nexus_mcp.indexing.pipeline.get_embedding_service", return_value=mock_svc), \
-                 patch.dict("os.environ", {"NEXUS_STORAGE_DIR": str(storage)}):
+            with (
+                patch("nexus_mcp.indexing.pipeline.get_embedding_service", return_value=mock_svc),
+                patch.dict("os.environ", {"NEXUS_STORAGE_DIR": str(storage)}),
+            ):
                 from nexus_mcp.config import reset_settings
                 reset_settings()
                 result2 = await _call_tool(mcp, "index", {"path": str(mini_codebase)})

@@ -88,7 +88,9 @@ class TestSymbolNameValidation:
     def test_callers_validates_name(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "find_callers", {"symbol_name": "\x00bad"})
+            return await _call_tool(
+                mcp, "graph", {"symbol_name": "\x00bad", "direction": "callers"}
+            )
 
         result = asyncio.run(run())
         assert "error" in result
@@ -96,7 +98,9 @@ class TestSymbolNameValidation:
     def test_callees_validates_name(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "find_callees", {"symbol_name": "x" * 501})
+            return await _call_tool(
+                mcp, "graph", {"symbol_name": "x" * 501, "direction": "callees"}
+            )
 
         result = asyncio.run(run())
         assert "error" in result
@@ -104,7 +108,7 @@ class TestSymbolNameValidation:
     def test_impact_validates_name(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "impact", {"symbol_name": ""})
+            return await _call_tool(mcp, "graph", {"symbol_name": "", "transitive": True})
 
         result = asyncio.run(run())
         assert "error" in result
@@ -146,7 +150,7 @@ class TestQueryValidation:
     def test_recall_validates_query(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "recall", {"query": "\x00"})
+            return await _call_tool(mcp, "memory", {"action": "search", "query": "\x00"})
 
         result = asyncio.run(run())
         assert "error" in result

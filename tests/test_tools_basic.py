@@ -4,6 +4,9 @@ import asyncio
 import time
 from unittest.mock import patch
 
+import pytest
+from fastmcp.exceptions import NotFoundError
+
 import nexus_mcp.server as server_module
 from nexus_mcp.state import get_state
 from tests.conftest import _call_tool, _mock_embedding_service, _setup_indexed
@@ -40,7 +43,7 @@ class TestStatus:
     def test_status_before_index(self):
         mcp = server_module.create_server()
         result = asyncio.run(_call_tool(mcp, "status"))
-        assert result["version"] == "1.0.1"
+        assert result["version"] == "2.0.0"
         assert result["indexed"] is False
         assert result["codebase_path"] is None
         assert "hint" in result
@@ -290,5 +293,38 @@ class TestFileWatcherWiring:
                     await watcher.stop()
 
                 assert mock_incr.called
+
+        asyncio.run(run())
+
+
+class TestToolConsolidation:
+    """v2.0.0 clean break: find_callers/find_callees/impact, overview/architecture,
+    and remember/recall/forget were removed outright (no deprecated aliases) in favor
+    of graph/map/memory. See ADR-017."""
+
+    def test_exact_tool_surface(self):
+        mcp = server_module.create_server()
+        names = {
+            c.name for k, c in mcp._local_provider._components.items()
+            if k.startswith("tool:")
+        }
+        assert names == {
+            "index", "status", "health", "search", "find_symbol",
+            "analyze", "explain", "graph", "map", "memory",
+        }
+
+    @pytest.mark.parametrize(
+        "old_name",
+        [
+            "find_callers", "find_callees", "impact",
+            "overview", "architecture",
+            "remember", "recall", "forget",
+        ],
+    )
+    def test_old_tool_names_are_gone(self, old_name):
+        async def run():
+            mcp = server_module.create_server()
+            with pytest.raises(NotFoundError):
+                await mcp.call_tool(old_name, {})
 
         asyncio.run(run())

@@ -2,82 +2,37 @@
 
 Unified MCP server: hybrid search + code graph + semantic memory. Target: <350MB RAM.
 
-## MANDATORY: Use Nexus-MCP Tools Before Built-in Tools
+## Use Nexus-MCP Tools Before Built-in Tools
 
-Nexus-MCP is registered as an MCP server (`nexus-mcp-ci`). **You MUST use Nexus-MCP tools as your PRIMARY method for understanding and navigating code.** This is a BLOCKING REQUIREMENT — do not skip it.
+Nexus-MCP is registered as an MCP server (`nexus-mcp-ci`) with 10 tools: `index`,
+`status`, `health`, `search`, `find_symbol`, `graph`, `explain`, `analyze`, `map`,
+`memory`. Prefer these over Read/Grep/Glob for exploring an indexed codebase — start
+with `status`, index if needed, then `search`/`find_symbol`/`graph` before falling
+back to built-in tools for files nexus-mcp has already identified.
 
-### Required workflow for EVERY code task
-
-1. **Start of session**: Run `mcp__nexus-mcp__status` to check index state. If not indexed, run `mcp__nexus-mcp__index`.
-2. **Before reading any file**: Use `mcp__nexus-mcp__search` to find relevant code first. Do NOT jump straight to Read/Grep/Glob.
-3. **Before exploring a symbol**: Use `mcp__nexus-mcp__find_symbol`, `mcp__nexus-mcp__explain`, `mcp__nexus-mcp__find_callers`, or `mcp__nexus-mcp__find_callees` instead of grepping for it.
-4. **Before refactoring**: Use `mcp__nexus-mcp__impact` to assess blast radius.
-5. **For project understanding**: Use `mcp__nexus-mcp__overview` or `mcp__nexus-mcp__architecture` instead of manually browsing directories.
-6. **Only use Read/Grep/Glob AFTER** Nexus-MCP tools have identified the specific files/lines you need to examine or edit.
-
-**Why this matters**: Nexus-MCP provides semantic search, call graph analysis, and code intelligence that built-in tools cannot. Using Read/Grep first means you miss semantic matches, don't understand call relationships, and waste time manually browsing.
-
-### Workflow: Always index first
-
-Before using any search/graph/analysis tools, index the codebase:
+**Full workflow guidance, the tool reference table, and best practices live in the
+`nexus-mcp` skill**, not here — that content changes per-task and belongs in
+on-demand skill context, not an always-loaded block in this file. Install it via:
 
 ```
-# Single directory
-mcp__nexus-mcp__index(path="/path/to/codebase")
-
-# Multiple directories (comma-separated) — indexed folder-by-folder
-mcp__nexus-mcp__index(path="/path/to/src,/path/to/lib,/path/to/tests")
-
-# Or use the paths parameter for additional directories
-mcp__nexus-mcp__index(path="/path/to/src", paths="/path/to/lib,/path/to/tests")
+/plugin marketplace add jaggernaut007/Nexus-MCP
+/plugin install nexus-mcp@nexus-mcp
 ```
 
-For subsequent sessions or after file changes, use incremental mode (auto-detected).
-
-### When to use each tool
-
-| Tool | When to use |
-|------|-------------|
-| `index` | **First thing** when working with a new or changed codebase. Supports comma-separated paths for multi-folder indexing (processed folder-by-folder). Re-run after significant file changes. |
-| `status` | Check if a codebase is indexed, how many symbols/chunks exist, memory usage. |
-| `health` | Verify the server and all engines are running before starting work. |
-| `search` | **Primary tool** for finding relevant code. Use for any "where is...", "how does...", "find..." query. Supports `mode=hybrid` (default), `vector`, or `bm25`. Use language/type filters to narrow results. |
-| `find_symbol` | Look up a specific symbol by name. Use `exact=False` for fuzzy matching when unsure of the name. |
-| `find_callers` | Understand who calls a function — use before refactoring to assess blast radius. |
-| `find_callees` | Understand what a function depends on — use to trace execution flow. |
-| `analyze` | Get code quality metrics: complexity, code smells, dependencies, maintainability. Use when reviewing or improving code. |
-| `impact` | **Before making changes**: assess transitive impact of modifying a symbol. Shows all affected symbols and files. |
-| `explain` | Get a combined graph + vector + analysis explanation of any symbol. Use for onboarding to unfamiliar code. |
-| `overview` | Get a high-level project overview: file counts, languages, symbol types, directory structure, quality metrics, top modules. Use when starting work on an unfamiliar project. |
-| `architecture` | Document the project architecture: layers, module dependencies, class hierarchies, entry points, hub symbols, complexity hotspots. Use for understanding system design. |
-| `remember` | Store project context, decisions, or notes as semantic memories with tags. Use to persist context across conversations. |
-| `recall` | Retrieve stored memories by semantic similarity. Check for existing context before starting new work. |
-| `forget` | Clean up outdated memories by ID, tags, or type. |
-
-### Best practices
-
-- **NEVER use Grep/Glob/Read as your first action for code exploration**: Always start with `search`, `find_symbol`, or `overview`. Only fall back to built-in tools for reading specific files identified by Nexus-MCP, or for files outside the indexed codebase.
-- **Search before reading files**: Use `search` to find relevant code instead of manually browsing. It's faster and finds semantic matches.
-- **Use `impact` before refactoring**: Always check change impact before modifying shared symbols.
-- **Use `explain` for unfamiliar code**: Combines graph relationships, related code, and quality metrics in one call.
-- **Store decisions with `remember`**: When making architectural decisions or noting important context, store it so future sessions have access.
-- **Check `recall` at session start**: Query memories for existing project context before asking the user to repeat information.
-- **Use `find_callers`/`find_callees` for dependency tracing**: These are more reliable than text search for understanding call graphs.
-- **Use `overview` when starting a new project**: Get a quick summary of project structure, languages, and quality before diving in.
-- **Use `architecture` for design understanding**: See layers, dependencies, entry points, and hub symbols to understand system design.
-- **Use `analyze` for code reviews**: Get objective quality metrics to guide review feedback.
-- **Use multi-folder indexing for monorepos**: Pass comma-separated paths to `index` for projects with multiple source roots. Each folder is processed sequentially to keep RAM low.
-- **Re-index incrementally after changes**: Run `index` again after making significant edits — incremental mode only processes changed files.
+(Requires `pip install nexus-mcp-ci` first — the plugin registers the MCP server, it
+doesn't install the Python package.) See `plugin/skills/nexus-mcp/SKILL.md` in this
+repo to read the skill content directly.
 
 ### Known limitations
 
-- **The call graph only sees static edges.** `find_callers`, `find_callees`, and
-  `impact` are built from tree-sitter + ast-grep parsing, not runtime tracing. They
-  will **miss**: dynamic dispatch (Python monkey-patching, Ruby metaprogramming),
-  calls made through callbacks/closures/lambdas (e.g. `.map(lambda x: foo(x))` shows
-  no edge to `foo`), and reflection-based calls. Treat `impact` results as a lower
-  bound on blast radius, not an exhaustive one — especially in highly dynamic
-  languages (Python, Ruby) or callback-heavy code (JS/TS).
+- **The call graph only sees static edges.** `graph()` (both `direction="callers"`/
+  `"callees"` and `transitive=True`) is built from tree-sitter + ast-grep parsing, not
+  runtime tracing. It will **miss**: dynamic dispatch (Python monkey-patching, Ruby
+  metaprogramming), calls made through callbacks/closures/lambdas (e.g.
+  `.map(lambda x: foo(x))` shows no edge to `foo`), and reflection-based calls. Treat
+  `graph(transitive=True)` results as a lower bound on blast radius, not an exhaustive
+  one — especially in highly dynamic languages (Python, Ruby) or callback-heavy code
+  (JS/TS).
 - **Graph fidelity varies by language.** Python, JavaScript/TypeScript, C/C++, Go,
   and Java get full call-graph edges (both tree-sitter symbols and ast-grep
   structure). Rust, Ruby, PHP, Swift, C#, Scala, Lua, and Dart get ast-grep
@@ -94,7 +49,7 @@ For subsequent sessions or after file changes, use incremental mode (auto-detect
 
 ```
 src/nexus_mcp/
-├── server.py              # FastMCP server, 15 tools + health + input validation + graceful shutdown
+├── server.py              # FastMCP server, 10 tools + health + input validation + graceful shutdown
 ├── config.py              # Settings with NEXUS_ env prefix (security, audit, rate limit)
 ├── state.py               # Session state singleton + shutdown()
 ├── core/
@@ -133,8 +88,14 @@ src/nexus_mcp/
 └── persistence/
     └── store.py               # SQLite graph persistence
 self_test/
-├── demo_mcp.py            # End-to-end demo exercising all 15 tools
+├── demo_mcp.py            # End-to-end demo exercising all 10 tools
 └── README.md              # Usage, sample project, troubleshooting
+.claude-plugin/
+└── marketplace.json       # /plugin marketplace add jaggernaut007/Nexus-MCP
+plugin/
+├── .claude-plugin/plugin.json   # Plugin metadata
+├── .mcp.json                    # Registers the nexus-mcp-ci MCP server
+└── skills/nexus-mcp/SKILL.md    # Tool routing guidance (loads on demand)
 ```
 
 ## Commands
@@ -143,11 +104,11 @@ self_test/
 pip install nexus-mcp-ci   # Install from PyPI
 pip install -e ".[dev]"    # Install from source with dev deps
 ./setup.sh                 # Setup script (venv + install + verify)
-pytest -v                  # Run tests (441 tests)
+pytest -v                  # Run tests (460 tests)
 pytest -m "not slow"       # Skip performance benchmarks
 ruff check .               # Lint
 nexus-mcp-ci               # Run server
-python self_test/demo_mcp.py  # Run self-test demo (all 15 tools)
+python self_test/demo_mcp.py  # Run self-test demo (all 10 tools)
 claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 ```
 
@@ -167,6 +128,7 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 - ~~Pydantic v2 I/O schemas: internal validation, .model_dump() serialization~~ — [ADR-013](docs/adr/ADR-013-pydantic-schemas.md), **superseded by [ADR-016](docs/adr/ADR-016-remove-unused-pydantic-schemas.md)**: the schema layer was never wired into any tool at runtime and was deleted
 - Token bucket rate limiting: per-tool, off by default — [ADR-014](docs/adr/ADR-014-rate-limiting.md)
 - Auto-watch + throttled staleness detection: warn-and-background-reindex, mtime-diff covers branch switches — [ADR-015](docs/adr/ADR-015-auto-watch-and-staleness-detection.md)
+- Tool consolidation 15→10 (`graph`/`map`/`memory`), action-aware permission categories — [ADR-017](docs/adr/ADR-017-tool-consolidation.md)
 
 ## Gotchas
 

@@ -1,0 +1,15 @@
+{
+  "name": "nexus-mcp",
+  "owner": {
+    "name": "Shreyas Jagannath",
+    "url": "https://github.com/jaggernaut007"
+  },
+  "description": "Hybrid search + code graph + semantic memory MCP server, packaged with a routing skill",
+  "plugins": [
+    {
+      "name": "nexus-mcp",
+      "source": "./plugin",
+      "description": "Registers the nexus-mcp-ci MCP server and a skill that routes code exploration through it instead of Grep/Glob/Read"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "nexus-mcp",
+  "displayName": "Nexus-MCP",
+  "description": "Hybrid search + code graph + semantic memory for Claude Code, via the nexus-mcp-ci pip package. Requires `pip install nexus-mcp-ci` first — this plugin registers the MCP server and teaches Claude when to use it, it does not install the Python package.",
+  "version": "2.0.0",
+  "author": {
+    "name": "Shreyas Jagannath",
+    "url": "https://github.com/jaggernaut007"
+  },
+  "homepage": "https://github.com/jaggernaut007/Nexus-MCP",
+  "repository": "https://github.com/jaggernaut007/Nexus-MCP",
+  "license": "MIT",
+  "keywords": ["code-search", "code-graph", "semantic-search", "mcp", "code-intelligence"]
+}

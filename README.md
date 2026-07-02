@@ -156,7 +156,7 @@ Measured against equivalent agentic file-browsing workflows on a ~10,000-line Py
 | Find relevant code (agent reads 5–10 files) | 5,000–15,000 tokens | 500–2,000 tokens | **70–90%** |
 | Understand a symbol (grep + read + trace callers) | 3,000–8,000 tokens, 3–5 calls | 800–2,000 tokens, 1 call | **60–75%** |
 | Assess change impact (manual transitive trace) | 10,000–20,000 tokens | 1,000–3,000 tokens | **80–85%** |
-| Tool descriptions in context (2 MCP servers) | ~1,700 tokens (17 tools) | ~1,000 tokens (15 tools) | **40%** |
+| Tool descriptions in context (2 MCP servers) | ~1,700 tokens (17 tools) | ~700 tokens (10 tools) | **~60%** |
 | Search precision (keyword-only needs retries) | 2–3 searches × 2,000 tokens | 1 hybrid search × 1,500 tokens | **60–75%** |
 
 **Typical session savings: 15,000–40,000 tokens (30–60%)** compared to file-browsing agents.
@@ -173,7 +173,13 @@ Every tool respects a `verbosity` parameter — agents request exactly the detai
 
 ---
 
-## The 15 Tools
+## The 10 Tools
+
+**v2.0.0 breaking change:** `find_callers`/`find_callees`/`impact` merged into
+`graph`, `overview`/`architecture` merged into `map`, and `remember`/`recall`/`forget`
+merged into `memory` — see [CHANGELOG](CHANGELOG.md) for the old→new mapping and
+[ADR-017](docs/adr/ADR-017-tool-consolidation.md) for why. Fewer, richer tools route
+better under MCP Tool Search than many thin ones.
 
 ### Discovery & Indexing
 
@@ -182,8 +188,7 @@ Every tool respects a `verbosity` parameter — agents request exactly the detai
 | `index(path)` | First action in any session. Supports comma-separated multi-folder paths. Incremental by default, reports progress as it runs, and starts a debounced auto-reindex watcher (`NEXUS_AUTO_WATCH`) when it finishes. |
 | `status()` | Check index health: symbol count, chunk count, memory usage, engine availability, and a `stale`/`staleness_warning` pair if files changed since the last index. |
 | `health()` | Liveness probe — uptime, which engines are ready. |
-| `overview()` | **Replaces `ls` + manual browsing.** File counts, languages, top modules, quality metrics. |
-| `architecture()` | System design view: layers, module dependencies, entry points, hub symbols, hotspots. |
+| `map(detail)` | **Replaces `ls` + manual browsing.** `detail="summary"` (files/languages/quality/top-modules, was `overview()`), `"architecture"` (layers/dependencies/classes/entry points/hub symbols, was `architecture()`), or `"full"` for both. |
 
 ### Search
 
@@ -196,19 +201,15 @@ Every tool respects a `verbosity` parameter — agents request exactly the detai
 | Tool | Use When |
 |------|----------|
 | `find_symbol(name, exact)` | Look up a specific symbol. `exact=False` for fuzzy matching. |
-| `find_callers(symbol)` | Who calls this function? Call-graph accurate, not text-search. |
-| `find_callees(symbol)` | What does this function call? Trace execution dependencies. |
+| `graph(symbol, direction, transitive, max_depth)` | `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True` — MUST run before any refactor** (was `impact()`): full transitive change blast radius across the graph. |
 | `explain(symbol)` | **Replaces `Read` for understanding code.** Graph relationships + semantic context + quality metrics in one call. |
 | `analyze(path)` | Code quality: cyclomatic complexity, cognitive complexity, code smells, dependency metrics. |
-| `impact(symbol)` | **Run before any refactor.** Transitive change blast radius across the full graph. |
 
 ### Memory
 
 | Tool | Use When |
 |------|----------|
-| `remember(content, tags, type, ttl)` | Persist a decision, note, or context across sessions. Types: `note`, `decision`, `conversation`, `status`, `preference`, `doc`. TTL: `permanent`, `month`, `week`, `day`, `session`. |
-| `recall(query, tags, type)` | Retrieve memories by semantic similarity + optional tag/type filters. |
-| `forget(id, tags, type)` | Remove stale memories by ID, tag, or type. |
+| `memory(action, ...)` | `action="store"` (was `remember`) to persist a decision/note across sessions (types: `note`, `decision`, `conversation`, `status`, `preference`, `doc`; TTL: `permanent`, `month`, `week`, `day`, `session`); `"search"` (was `recall`) for semantic retrieval; `"delete"` (was `forget`) to remove by ID, tag, or type. |
 
 ---
 
@@ -440,7 +441,7 @@ ruff check .                 # lint
 
 ```
 src/nexus_mcp/
-├── server.py              # FastMCP entrypoint — 15 tools, input validation, graceful shutdown
+├── server.py              # FastMCP entrypoint — 10 tools, input validation, graceful shutdown
 ├── config.py              # Settings (NEXUS_ env prefix)
 ├── state.py               # Global singleton SessionState
 ├── core/
@@ -493,14 +494,14 @@ src/nexus_mcp/
 
 ## Self-Test
 
-Verify your installation exercises all 15 tools end-to-end:
+Verify your installation exercises all 10 tools end-to-end:
 
 ```bash
 python self_test/demo_mcp.py                   # built-in sample project
 python self_test/demo_mcp.py /path/to/project  # your own codebase
 ```
 
-Expected output: all 15 tools exercised with pass/fail per tool and a summary.
+Expected output: all 10 tools exercised with pass/fail per tool and a summary.
 
 ---
 
@@ -538,6 +539,7 @@ Key decisions are documented in [docs/adr/](docs/adr/):
 | [ADR-014](docs/adr/ADR-014-rate-limiting.md) | Token-bucket rate limiting (off by default) |
 | [ADR-015](docs/adr/ADR-015-auto-watch-and-staleness-detection.md) | Auto-watch + throttled staleness detection |
 | [ADR-016](docs/adr/ADR-016-remove-unused-pydantic-schemas.md) | Removal of unused Pydantic schemas (supersedes ADR-013) |
+| [ADR-017](docs/adr/ADR-017-tool-consolidation.md) | Tool consolidation 15→10, action-aware permission categories |
 
 ---
 

@@ -57,3 +57,8 @@ repro_*.py
 repro_tmp/
 scratch/
 package-lock.json
+
+# Benchmark harness: cloned repos, run results, isolated CLI config
+benchmarks/repos/
+benchmarks/results/
+benchmarks/.claude-bench/

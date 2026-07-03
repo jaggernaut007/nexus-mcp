@@ -67,6 +67,9 @@ gpu = [
 reranker = [
     "flashrank>=0.2.0",
 ]
+bench = [
+    "pyyaml>=6.0",
+]
 
 [project.scripts]
 nexus-mcp = "nexus_mcp.server:main"

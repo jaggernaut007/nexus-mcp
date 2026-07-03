@@ -1,0 +1,6 @@
+{"type": "system", "subtype": "init", "session_id": "s4", "tools": ["Read"], "mcp_servers": [], "model": "claude-sonnet-5"}
+this is not json at all {{{
+{"type": "assistant", "message": {"id": "msg1", "role": "assistant", "content": [{"type": "tool_use", "id": "call1", "name": "Read", "input": {"file_path": "a.py"}}], "usage": {"input_tokens": 10, "output_tokens": 2}}, "session_id": "s4"}
+
+{"type": "result", "subtype": "success", "is_error": false, "duration_ms": 100, "num_turns": 1, "total_cost_usd": 0.001, "result": "ok", "usage": {"input_tokens": 10, "output_tokens": 2}, "session_id": "s4"}
+{unterminated json

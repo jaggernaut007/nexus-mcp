@@ -128,11 +128,31 @@
 - [x] pyproject.toml keywords expanded (15 keywords)
 - [x] SEO/GEO strategy documented (docs-pre/SEO_GEO_STRATEGY.md)
 
-## Phase 8: Advanced Intelligence & Visualization — COMPLETE
+## Phase 8: Advanced Intelligence & Visualization — SUPERSEDED
 - [x] 8a: Ripgrep fallback for search reliability (100% coverage)
-- [x] 8b: Visual graph export (Mermaid.js)
-- [ ] 8c: Global semantic memory (cross-repository)
-- [ ] 8d: Dynamic awareness (Log ingestion/linking)
+- [ ] ~~8b: Visual graph export (Mermaid.js)~~ — was falsely marked complete; never implemented. See [todo.md](todo.md) for viability verdict.
+- [ ] ~~8c: Global semantic memory (cross-repository)~~ — reframed, see [todo.md](todo.md)
+- [ ] ~~8d: Dynamic awareness (Log ingestion/linking)~~ — deferred, see [todo.md](todo.md)
+
+Superseded 2026-07-02 by [docs/ROADMAP-2026.md](docs/ROADMAP-2026.md), which sets the
+current P0/P1/P2 priorities (P0/P1 complete — see ADR-015, ADR-016, ADR-017 below).
+Remaining 8b/8c/8d items were evaluated against the v2.0.0 architecture; see
+[todo.md](todo.md) for per-item verdicts.
+
+## Phase 9: Token-Efficiency Benchmark (ROADMAP-2026 P2 item 9) — HARNESS BUILT
+- [x] `benchmarks/` harness: nexus-mcp vs. baseline Claude Code on 1,000+ file repos
+  (django ~2,900 files, home-assistant/core ~26,000 files; 18 hand-verified tasks
+  across conceptual/impact/architecture/needle categories)
+- [x] Metrics: wasted-read ratio, tokens-to-answer, cost/task (`benchmarks/scoring.py`,
+  `benchmarks/transcript.py`)
+- [x] Runner + report generator (`benchmarks/runner.py`, `benchmarks/report.py`);
+  79 unit tests on the pure parsing/scoring/aggregation logic, `pytest`/`ruff` clean
+- [ ] Live run against real repos + published report — requires `bash
+  benchmarks/setup_repos.sh` (clones ~2 large repos) and a `claude` CLI invocation
+  with `--permission-mode bypassPermissions`/`--dangerously-skip-permissions` for
+  headless execution, plus real API spend (~$2 smoke, ~$20-50 full run). Not run yet
+  — needs explicit user go-ahead before spending or using that flag. See
+  `benchmarks/README.md` for the exact commands.
 
 ## Recent Decisions
 | Date | Decision | Rationale | ADR |

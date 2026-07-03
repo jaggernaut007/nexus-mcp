@@ -1,0 +1,111 @@
+repo:
+  name: home-assistant-core
+  url: https://github.com/home-assistant/core.git
+  pin: 5b0d396bd84113aabf694d23cdbddbdaf574ca78
+  pinned_date: "2026-07-03"
+  why: ">26,000 Python files, very fast-moving, pinned commit is at/after the model's
+    training cutoff so needle-style tasks resist answer-from-memory contamination"
+
+defaults:
+  max_budget_usd: 1.00
+  timeout_s: 600
+
+tasks:
+  - id: ha-concept-event-bus
+    category: conceptual
+    prompt: >
+      In this repo, where is the core event bus implemented — the thing
+      responsible for firing events and dispatching them to listeners?
+      Name the file and the key class/method.
+    ground_truth:
+      relevant_files:
+        - homeassistant/core.py
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["class EventBus"]
+        - any_of: ["async_fire"]
+      must_mention_files:
+        - homeassistant/core.py
+
+  - id: ha-concept-service-call
+    category: conceptual
+    prompt: >
+      Where is the logic that handles calling a registered service (like
+      light.turn_on) implemented? Name the file and the class/method that
+      actually invokes the service handler.
+    ground_truth:
+      relevant_files:
+        - homeassistant/core.py
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["ServiceRegistry"]
+        - any_of: ["async_call"]
+      must_mention_files:
+        - homeassistant/core.py
+
+  - id: ha-impact-async-setup-component
+    category: impact
+    prompt: >
+      If I change the signature of async_setup_component in
+      homeassistant/setup.py, what in the bootstrap flow directly calls
+      it, and what would break? List callers with file paths.
+    ground_truth:
+      relevant_files:
+        - homeassistant/setup.py
+        - homeassistant/bootstrap.py
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["async_setup_hass", "async_from_config_dict"]
+        - any_of: ["bootstrap.py"]
+      must_mention_files:
+        - homeassistant/setup.py
+
+  - id: ha-impact-entity-update-state
+    category: impact
+    prompt: >
+      If I change the signature of Entity.async_update_ha_state on the
+      base Entity class, what parts of the entity/platform lifecycle in
+      this codebase depend on it? List the relevant files.
+    ground_truth:
+      relevant_files:
+        - homeassistant/helpers/entity.py
+      acceptable_extra_files:
+        - homeassistant/helpers/entity_platform.py
+      facts:
+        - any_of: ["async_update_ha_state"]
+        - any_of: ["entity_platform.py", "EntityPlatform"]
+      must_mention_files:
+        - homeassistant/helpers/entity.py
+
+  - id: ha-arch-startup-flow
+    category: architecture
+    prompt: >
+      Describe how Home Assistant boots up: from the entry point down to
+      individual components/entities being set up. Name the key
+      modules/functions involved in order.
+    ground_truth:
+      relevant_files:
+        - homeassistant/bootstrap.py
+        - homeassistant/setup.py
+        - homeassistant/helpers/entity_platform.py
+      acceptable_extra_files:
+        - homeassistant/core.py
+      facts:
+        - any_of: ["bootstrap"]
+        - any_of: ["async_setup_component", "setup.py"]
+        - any_of: ["entity_platform", "EntityPlatform"]
+      must_mention_files: []
+
+  - id: ha-needle-eventbus-fire-line
+    category: needle
+    prompt: >
+      What line number and file define the async_fire method on EventBus?
+    ground_truth:
+      relevant_files:
+        - homeassistant/core.py
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["1567"]
+        - any_of: ["async_fire"]
+      must_mention_files:
+        - homeassistant/core.py

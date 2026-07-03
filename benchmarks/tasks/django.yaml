@@ -1,0 +1,221 @@
+repo:
+  name: django
+  url: https://github.com/django/django.git
+  pin: 318a316a4c86a65bede68144f9546a6056d91379
+  pinned_date: "2026-05-06"
+  why: ">2,900 Python files, canonical large well-organized Python codebase, rich call graph across ORM/HTTP/dispatch layers"
+
+defaults:
+  max_budget_usd: 1.00
+  timeout_s: 600
+
+tasks:
+  - id: dj-concept-signal-dispatch
+    category: conceptual
+    prompt: >
+      In this repo, where is the logic that dispatches signals to receivers,
+      including the weak-reference handling for dead receivers? Name the
+      file(s) and the key function/method names, and briefly explain the flow.
+    ground_truth:
+      relevant_files:
+        - django/dispatch/dispatcher.py
+      acceptable_extra_files:
+        - django/dispatch/__init__.py
+      facts:
+        - any_of: ["Signal.send", "def send"]
+        - any_of: ["_live_receivers", "weakref", "WeakMethod"]
+      must_mention_files:
+        - django/dispatch/dispatcher.py
+
+  - id: dj-concept-field-validation
+    category: conceptual
+    prompt: >
+      Which exact class validates the max_length constraint on a CharField,
+      and what error code does it raise when the value is too long?
+    ground_truth:
+      relevant_files:
+        - django/core/validators.py
+      acceptable_extra_files:
+        - django/db/models/fields/__init__.py
+      facts:
+        - any_of: ["MaxLengthValidator"]
+        - any_of: ["max_length"]
+      must_mention_files:
+        - django/core/validators.py
+
+  - id: dj-impact-sqlcompiler-as-sql
+    category: impact
+    prompt: >
+      I want to change the signature of the SQLCompiler.as_sql method used
+      for compiling SELECT queries. What are the direct callers of this
+      method in this codebase, and what would transitively break? List
+      caller functions with file paths.
+    ground_truth:
+      relevant_files:
+        - django/db/models/sql/compiler.py
+        - django/db/models/query.py
+      acceptable_extra_files:
+        - django/db/models/sql/subqueries.py
+        - django/db/models/expressions.py
+        - django/db/models/sql/where.py
+      facts:
+        - any_of: ["execute_sql"]
+        - any_of: ["compiler.py"]
+      must_mention_files:
+        - django/db/models/sql/compiler.py
+
+  - id: dj-impact-field-validate
+    category: impact
+    prompt: >
+      If I change the signature of Field.validate on the base model field
+      class, which subclasses override it and would need updating? List
+      the overriding classes and their file paths.
+    ground_truth:
+      relevant_files:
+        - django/db/models/fields/__init__.py
+      acceptable_extra_files:
+        - django/db/models/fields/related.py
+        - django/contrib/postgres/fields/array.py
+      facts:
+        - any_of: ["def validate"]
+        - any_of: ["ChoiceField", "override"]
+      must_mention_files:
+        - django/db/models/fields/__init__.py
+
+  - id: dj-arch-request-to-query
+    category: architecture
+    prompt: >
+      Give me the main architectural layers of this codebase and how a
+      request flows from a WSGI handler down to a database query. Name the
+      top-level packages/modules involved in order.
+    ground_truth:
+      relevant_files:
+        - django/core/handlers/wsgi.py
+        - django/core/handlers/base.py
+        - django/urls/resolvers.py
+        - django/db/models/sql/compiler.py
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["core/handlers", "handlers"]
+        - any_of: ["urls", "resolver"]
+        - any_of: ["middleware"]
+        - any_of: ["ORM", "db/models", "compiler"]
+      must_mention_files: []
+
+  - id: dj-arch-orm-layers
+    category: architecture
+    prompt: >
+      Describe the layered structure of Django's ORM: how does a QuerySet
+      turn into SQL? Name the key modules/classes involved from QuerySet
+      down to the compiled SQL string.
+    ground_truth:
+      relevant_files:
+        - django/db/models/query.py
+        - django/db/models/sql/query.py
+        - django/db/models/sql/compiler.py
+      acceptable_extra_files:
+        - django/db/models/sql/where.py
+      facts:
+        - any_of: ["QuerySet"]
+        - any_of: ["sql/query.py", "sql.Query", "Query class"]
+        - any_of: ["SQLCompiler", "compiler.py"]
+      must_mention_files:
+        - django/db/models/sql/compiler.py
+
+  - id: dj-needle-charfield-class
+    category: needle
+    prompt: >
+      What line number and file define the CharField class in this
+      codebase?
+    ground_truth:
+      relevant_files:
+        - django/db/models/fields/__init__.py
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["1247"]
+        - any_of: ["class CharField"]
+      must_mention_files:
+        - django/db/models/fields/__init__.py
+
+  - id: dj-needle-signal-send-robust
+    category: needle
+    prompt: >
+      Name the exact method on the Signal class that catches exceptions
+      raised by receivers instead of propagating them, and what does it do
+      with the exception?
+    ground_truth:
+      relevant_files:
+        - django/dispatch/dispatcher.py
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["send_robust"]
+        - any_of: ["exception", "err"]
+      must_mention_files:
+        - django/dispatch/dispatcher.py
+
+  - id: dj-needle-max-length-validator-code
+    category: needle
+    prompt: >
+      What is the exact string value of the `code` class attribute on
+      MaxLengthValidator?
+    ground_truth:
+      relevant_files:
+        - django/core/validators.py
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["\"max_length\"", "'max_length'", "code = max_length"]
+      must_mention_files:
+        - django/core/validators.py
+
+  - id: dj-concept-middleware-chain
+    category: conceptual
+    prompt: >
+      How does Django build and execute its middleware chain around a
+      view? Name the file(s) responsible and describe the wrapping
+      mechanism briefly.
+    ground_truth:
+      relevant_files:
+        - django/core/handlers/base.py
+      acceptable_extra_files:
+        - django/core/handlers/exception.py
+      facts:
+        - any_of: ["load_middleware"]
+        - any_of: ["get_response", "_view_middleware", "middleware chain"]
+      must_mention_files:
+        - django/core/handlers/base.py
+
+  - id: dj-impact-urls-resolver
+    category: impact
+    prompt: >
+      If I change the signature of URLResolver.resolve, what in this
+      codebase directly calls it, and what would break? List callers with
+      file paths.
+    ground_truth:
+      relevant_files:
+        - django/urls/resolvers.py
+        - django/core/handlers/base.py
+      acceptable_extra_files:
+        - django/core/handlers/exception.py
+      facts:
+        - any_of: ["resolve"]
+        - any_of: ["resolvers.py"]
+      must_mention_files:
+        - django/urls/resolvers.py
+
+  - id: dj-arch-validators-vs-fields
+    category: architecture
+    prompt: >
+      Explain the relationship between django/core/validators.py and
+      django/db/models/fields/__init__.py — how do model fields use
+      validators, and where in the field's lifecycle are they invoked?
+    ground_truth:
+      relevant_files:
+        - django/core/validators.py
+        - django/db/models/fields/__init__.py
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["self.validators"]
+        - any_of: ["clean", "validate", "run_validators"]
+      must_mention_files:
+        - django/core/validators.py
+        - django/db/models/fields/__init__.py

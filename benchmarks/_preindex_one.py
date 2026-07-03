@@ -1,0 +1,62 @@
+"""Pre-index a single benchmark repo and record wall-clock setup cost.
+
+Invoked by setup_repos.sh with PYTHONPATH already pointing at src/, so
+nexus_mcp is importable without additional sys.path surgery here.
+
+Usage: python3 _preindex_one.py <repo_path> <repo_name> <meta_json_path>
+"""
+
+import asyncio
+import inspect
+import json
+import sys
+import time
+from pathlib import Path
+
+
+def main() -> None:
+    repo_path, repo_name, meta_file = sys.argv[1], sys.argv[2], sys.argv[3]
+
+    from nexus_mcp.server import create_server
+
+    mcp = create_server()
+    tool_map = {}
+    for key, component in mcp._local_provider._components.items():
+        if key.startswith("tool:"):
+            tool_map[component.name] = component.fn
+
+    start = time.time()
+    result = tool_map["index"](repo_path)
+    if inspect.isawaitable(result):
+        result = asyncio.run(result)
+    elapsed = time.time() - start
+
+    if isinstance(result, dict) and result.get("error"):
+        print(
+            f"[setup] index() reported an error for {repo_name}: {result['error']}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    meta_path = Path(meta_file)
+    meta_path.parent.mkdir(parents=True, exist_ok=True)
+    entries = {}
+    if meta_path.exists():
+        try:
+            entries = json.loads(meta_path.read_text())
+        except (json.JSONDecodeError, OSError):
+            entries = {}
+    result_summary = None
+    if isinstance(result, dict):
+        result_summary = {k: v for k, v in result.items() if k != "error"}
+    entries[repo_name] = {
+        "index_seconds": round(elapsed, 1),
+        "result": result_summary,
+    }
+    meta_path.write_text(json.dumps(entries, indent=2, default=str))
+
+    print(f"[setup] {repo_name} indexed in {elapsed:.1f}s")
+
+
+if __name__ == "__main__":
+    main()

@@ -146,7 +146,10 @@ Remaining 8b/8c/8d items were evaluated against the v2.0.0 architecture; see
 - [x] Metrics: wasted-read ratio, tokens-to-answer, cost/task (`benchmarks/scoring.py`,
   `benchmarks/transcript.py`)
 - [x] Runner + report generator (`benchmarks/runner.py`, `benchmarks/report.py`);
-  79 unit tests on the pure parsing/scoring/aggregation logic, `pytest`/`ruff` clean
+  91 unit tests on the pure parsing/scoring/aggregation logic, `pytest`/`ruff` clean
+- [x] ADR-018 (benchmark methodology); code-reviewer pass (ITERATE → all 5 findings
+  fixed: rep-count-from-max, incremental writes + per-run error capture, token
+  totals None on crashed runs, `group_by` test, FastMCP-internals note)
 - [ ] Live run against real repos + published report — requires `bash
   benchmarks/setup_repos.sh` (clones ~2 large repos) and a `claude` CLI invocation
   with `--permission-mode bypassPermissions`/`--dangerously-skip-permissions` for
@@ -173,3 +176,5 @@ Remaining 8b/8c/8d items were evaluated against the v2.0.0 architecture; see
 | 2026-04-17 | Phase 8 Expansion | Compete with ripgrep/Cursor/AppMap | N/A |
 | 2026-07-02 | Auto-watch + staleness detection | Daily-driver trust: index never silently goes stale | [ADR-015](docs/adr/ADR-015-auto-watch-and-staleness-detection.md) |
 | 2026-07-02 | Remove unused Pydantic schemas | Dead code never wired into any tool at runtime | [ADR-016](docs/adr/ADR-016-remove-unused-pydantic-schemas.md) |
+| 2026-07-02 | Tool consolidation 15→10 | Fewer richer tools route better under Tool Search | [ADR-017](docs/adr/ADR-017-tool-consolidation.md) |
+| 2026-07-03 | Token-efficiency benchmark | Drive real `claude` CLI; wasted-read ratio + tokens-to-answer; honest, reproducible | [ADR-018](docs/adr/ADR-018-token-efficiency-benchmark.md) |

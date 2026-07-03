@@ -120,8 +120,16 @@ def run_suite(
     reps: int,
     model: str,
     config_dir: Path,
+    out_path: Path,
     task_ids: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
+    """Run the suite, writing each record to `out_path` as it completes.
+
+    Records are appended incrementally so a crash (or Ctrl-C) partway through
+    a multi-run — which can cost tens of dollars — keeps everything already
+    finished. A single run that raises is captured as an error record and the
+    batch continues rather than discarding the whole run.
+    """
     repo = suite["repo"]
     repo_dir = repo_dir_for(suite)
     if not repo_dir.exists():
@@ -146,17 +154,34 @@ def run_suite(
                     f"[{done}/{total}] {merged_task['id']} / {condition} / rep {rep + 1}",
                     file=sys.stderr,
                 )
-                record = run_once(merged_task, condition, repo, repo_dir, model, config_dir)
+                try:
+                    record = run_once(merged_task, condition, repo, repo_dir, model, config_dir)
+                except Exception as exc:  # noqa: BLE001 — one bad run must not kill the batch
+                    print(
+                        f"    run failed ({type(exc).__name__}: {exc}); recording and continuing",
+                        file=sys.stderr,
+                    )
+                    record = {
+                        "task_id": merged_task["id"],
+                        "category": merged_task.get("category"),
+                        "condition": condition,
+                        "repo": repo["name"],
+                        "repo_sha": repo["pin"],
+                        "model": model,
+                        "run_error": f"{type(exc).__name__}: {exc}",
+                        "is_error": True,
+                    }
                 record["rep"] = rep
                 records.append(record)
+                write_record(record, out_path)
     return records
 
 
-def write_records(records: List[Dict[str, Any]], out_path: Path) -> None:
+def write_record(record: Dict[str, Any], out_path: Path) -> None:
+    """Append a single record to the JSONL output, creating the file if needed."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "a") as f:
-        for record in records:
-            f.write(json.dumps(record, default=str) + "\n")
+        f.write(json.dumps(record, default=str) + "\n")
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -183,10 +208,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         reps = 1
 
     config_dir = BENCH_DIR / ".claude-bench"
-    records = run_suite(suite, condition_names, reps, args.model, config_dir, task_ids)
-
     out_path = Path(args.out) if args.out else RESULTS_DIR / f"runs-{int(time.time())}.jsonl"
-    write_records(records, out_path)
+    records = run_suite(
+        suite, condition_names, reps, args.model, config_dir, out_path, task_ids
+    )
     print(f"Wrote {len(records)} records to {out_path}", file=sys.stderr)
     return 0
 

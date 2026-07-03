@@ -119,7 +119,9 @@ def render_markdown(records: List[Dict[str, Any]]) -> str:
     repo = records[0].get("repo", "?")
     sha = records[0].get("repo_sha", "?")
     model = records[0].get("model", "?")
-    reps = records[0].get("rep", 0) + 1
+    # rep is 0-indexed; the run count is the max seen + 1, not whatever
+    # record happens to be first in the list.
+    reps = max((r.get("rep", 0) for r in records), default=0) + 1
     n_tasks = len({r["task_id"] for r in records})
 
     by_condition = aggregate_by_condition(records)

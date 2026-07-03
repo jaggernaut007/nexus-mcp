@@ -97,6 +97,38 @@ def test_parse_stream_empty_input_returns_empty_trace():
     assert trace.final_answer == ""
 
 
+def test_total_tokens_none_when_no_result_event():
+    # An assistant turn but no result event (crashed/killed mid-run): the
+    # per-turn usage must NOT be reported as the cumulative total.
+    events = [
+        {
+            "type": "assistant",
+            "message": {
+                "content": [{"type": "text", "text": "partial"}],
+                "usage": {"input_tokens": 700, "output_tokens": 45},
+            },
+        }
+    ]
+    trace = parse_stream(events)
+    assert trace.has_result_event is False
+    assert trace.total_tokens is None
+    assert trace.fresh_tokens is None
+
+
+def test_total_tokens_present_when_result_event_seen():
+    trace = parse_lines(_load_lines("baseline_run.jsonl"))
+    assert trace.has_result_event is True
+    assert trace.total_tokens == 850 + 0 + 100 + 80
+
+
+def test_budget_capped_run_has_result_event_and_tokens():
+    # A budget-capped run is still a *clean* result event (error subtype), so
+    # its cumulative usage is trustworthy — distinct from no-result-at-all.
+    trace = parse_lines(_load_lines("budget_capped_run.jsonl"))
+    assert trace.has_result_event is True
+    assert trace.total_tokens is not None
+
+
 def test_files_surfaced_nexus_dedupes_read_and_result_overlap():
     events = [
         {

@@ -9,6 +9,7 @@ from benchmarks.report import (
     aggregate_by_category,
     aggregate_by_condition,
     aggregate_condition,
+    group_by,
     iqr,
     load_records,
     median,
@@ -100,10 +101,43 @@ class TestAggregateByCategory:
         assert ("impact", "nexus") in agg
 
 
+class TestGroupBy:
+    def test_group_by_single_key_uses_scalar_key(self):
+        records = [_record(condition="baseline"), _record(condition="nexus")]
+        groups = group_by(records, "condition")
+        assert set(groups.keys()) == {"baseline", "nexus"}
+        assert len(groups["baseline"]) == 1
+
+    def test_group_by_multi_key_uses_tuple_key(self):
+        records = [
+            _record(category="impact", condition="nexus"),
+            _record(category="impact", condition="nexus"),
+            _record(category="impact", condition="baseline"),
+        ]
+        groups = group_by(records, "category", "condition")
+        assert ("impact", "nexus") in groups
+        assert len(groups[("impact", "nexus")]) == 2
+        assert len(groups[("impact", "baseline")]) == 1
+
+    def test_group_by_empty_records(self):
+        assert group_by([], "condition") == {}
+
+
 class TestRenderMarkdown:
     def test_render_markdown_empty_records(self):
         md = render_markdown([])
         assert "No records found" in md
+
+    def test_render_markdown_rep_count_uses_max_not_first_record(self):
+        # Regression: rep count must reflect the true number of reps, not
+        # whichever record is first in the list (order-independent).
+        records = [
+            _record(rep=2, condition="baseline"),
+            _record(rep=0, condition="baseline"),
+            _record(rep=1, condition="baseline"),
+        ]
+        md = render_markdown(records)
+        assert "N=3 reps" in md
 
     def test_render_markdown_includes_conditions_table(self):
         records = [_record(condition="baseline"), _record(condition="nexus")]

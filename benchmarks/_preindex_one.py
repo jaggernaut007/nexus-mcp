@@ -20,6 +20,10 @@ def main() -> None:
     from nexus_mcp.server import create_server
 
     mcp = create_server()
+    # NOTE: reaches into FastMCP internals (`_local_provider._components`), same
+    # as self_test/demo_mcp.py. Fragile to a FastMCP upgrade — if a version bump
+    # moves the tool registry, this AttributeErrors loudly (setup tooling, out of
+    # the shipped package, so a hard failure here is acceptable).
     tool_map = {}
     for key, component in mcp._local_provider._components.items():
         if key.startswith("tool:"):

@@ -41,6 +41,7 @@ class RunTrace:
     final_answer: str = ""
     is_error: bool = False
     result_subtype: Optional[str] = None
+    has_result_event: bool = False
     mcp_servers: List[Dict[str, Any]] = field(default_factory=list)
     parse_errors: int = 0
 
@@ -62,7 +63,18 @@ class RunTrace:
         return sorted(set(self.read_files) | set(self.nexus_result_files))
 
     @property
-    def total_tokens(self) -> int:
+    def total_tokens(self) -> Optional[int]:
+        """Cumulative tokens-to-answer, or None if the run had no result event.
+
+        The final `result` event is the only event carrying *cumulative* usage;
+        assistant-event usage is per-turn. On a crashed or timed-out run there is
+        no result event, so a total computed from the last assistant turn would
+        silently undercount. Return None in that case rather than a wrong number
+        — the report's median() drops None, keeping incomplete runs out of the
+        published token figures.
+        """
+        if not self.has_result_event:
+            return None
         return (
             self.usage.get("input_tokens", 0)
             + self.usage.get("cache_creation_input_tokens", 0)
@@ -71,8 +83,13 @@ class RunTrace:
         )
 
     @property
-    def fresh_tokens(self) -> int:
-        """Tokens excluding cache reads (cache_creation still counts as fresh work)."""
+    def fresh_tokens(self) -> Optional[int]:
+        """Tokens excluding cache reads, or None if the run had no result event.
+
+        See total_tokens for why an absent result event yields None.
+        """
+        if not self.has_result_event:
+            return None
         return (
             self.usage.get("input_tokens", 0)
             + self.usage.get("cache_creation_input_tokens", 0)
@@ -165,6 +182,7 @@ def _handle_user_event(event: Dict[str, Any], trace: RunTrace, pending: Dict[str
 
 
 def _handle_result_event(event: Dict[str, Any], trace: RunTrace) -> None:
+    trace.has_result_event = True
     trace.result_subtype = event.get("subtype")
     trace.is_error = bool(event.get("is_error", False))
     trace.num_turns = event.get("num_turns")

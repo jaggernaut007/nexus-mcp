@@ -146,10 +146,24 @@ Remaining 8b/8c/8d items were evaluated against the v2.0.0 architecture; see
 - [x] Metrics: wasted-read ratio, tokens-to-answer, cost/task (`benchmarks/scoring.py`,
   `benchmarks/transcript.py`)
 - [x] Runner + report generator (`benchmarks/runner.py`, `benchmarks/report.py`);
-  91 unit tests on the pure parsing/scoring/aggregation logic, `pytest`/`ruff` clean
+  128 unit tests on the pure parsing/scoring/aggregation logic, `pytest`/`ruff` clean
 - [x] ADR-018 (benchmark methodology); code-reviewer pass (ITERATE → all 5 findings
   fixed: rep-count-from-max, incremental writes + per-run error capture, token
   totals None on crashed runs, `group_by` test, FastMCP-internals note)
+- [x] Triple-agent audit (code-review + testing + docs, run in parallel):
+  code-review ITERATE fixed (HIGH: `.nexus` index was landing outside the repo
+  dir it was built for, so every nexus-condition run silently re-indexed from
+  scratch inside its own budget/timeout window — same bug transitively broke
+  `setup_repos.sh`'s idempotency skip-check; MEDIUM/LOW: timeout now kills the
+  whole process group instead of orphaning `claude`'s children,
+  `report.load_records` skips malformed JSONL lines instead of aborting);
+  testing gaps closed (`run_once` now has direct baseline/nexus/timeout tests
+  instead of only being exercised through mocks, plus `_preindex_one.py`,
+  both CLI `main()`s, and several previously-untested public helpers); docs
+  gaps closed (README: full task-suite YAML schema, `retrieval_tokens_est`
+  metric, named default model `claude-sonnet-5`; docstrings on
+  `group_by`/`main`/`load_task_suite`/`repo_dir_for`/`normalize_path`'s
+  precondition). 128 harness tests total, full suite 585 passing, ruff clean.
 - [ ] Live run against real repos + published report — requires `bash
   benchmarks/setup_repos.sh` (clones ~2 large repos) and a `claude` CLI invocation
   with `--permission-mode bypassPermissions`/`--dangerously-skip-permissions` for

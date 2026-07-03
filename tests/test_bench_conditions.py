@@ -10,6 +10,7 @@ from benchmarks.conditions import (
     build_env,
     build_run,
     has_api_key,
+    load_skill_body,
     strip_frontmatter,
 )
 
@@ -26,6 +27,18 @@ class TestStripFrontmatter:
     def test_strip_frontmatter_unterminated_block_returns_unchanged(self):
         text = "---\nname: x\nno closing delimiter"
         assert strip_frontmatter(text) == text
+
+
+class TestLoadSkillBody:
+    def test_load_skill_body_strips_frontmatter(self, tmp_path):
+        skill_path = tmp_path / "SKILL.md"
+        skill_path.write_text("---\nname: nexus-mcp\ndescription: x\n---\n\nUse nexus tools.")
+        assert load_skill_body(skill_path) == "Use nexus tools."
+
+    def test_load_skill_body_no_frontmatter(self, tmp_path):
+        skill_path = tmp_path / "SKILL.md"
+        skill_path.write_text("Just a body.")
+        assert load_skill_body(skill_path) == "Just a body."
 
 
 class TestBuildArgv:
@@ -86,11 +99,25 @@ class TestBuildEnv:
         assert env["CLAUDE_CONFIG_DIR"] == str(tmp_path)
         assert env["PATH"] == "/usr/bin"
 
+    def test_build_env_defaults_to_os_environ(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("BENCH_TEST_SENTINEL", "present")
+        env = build_env(tmp_path)
+        assert env["BENCH_TEST_SENTINEL"] == "present"
+        assert env["CLAUDE_CONFIG_DIR"] == str(tmp_path)
+
     def test_has_api_key_true(self):
         assert has_api_key({"ANTHROPIC_API_KEY": "sk-x"}) is True
 
     def test_has_api_key_false(self):
         assert has_api_key({}) is False
+
+    def test_has_api_key_defaults_to_os_environ(self, monkeypatch):
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-from-env")
+        assert has_api_key() is True
+
+    def test_has_api_key_defaults_to_os_environ_missing(self, monkeypatch):
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        assert has_api_key() is False
 
 
 class TestIsolation:

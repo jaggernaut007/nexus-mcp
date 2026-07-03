@@ -11,7 +11,15 @@ MECHANICAL_PASS_THRESHOLD = 0.75
 
 
 def normalize_path(path: str, repo_root: Optional[str] = None) -> str:
-    """Normalize a path for comparison: forward slashes, repo-relative, no './' prefix."""
+    """Normalize a path for comparison: forward slashes, repo-relative, no './' prefix.
+
+    Only strips `repo_root` via an exact prefix match. A path that is NOT
+    under `repo_root` (e.g. an absolute path with a different prefix, such
+    as a container mount point) is returned unchanged — it will then never
+    match a repo-relative `relevant_files` entry, and gets silently counted
+    as wasted. This matters because runner.py passes absolute `Read` paths
+    against repo-relative ground truth.
+    """
     p = path.replace("\\", "/")
     if repo_root:
         root = repo_root.replace("\\", "/").rstrip("/") + "/"

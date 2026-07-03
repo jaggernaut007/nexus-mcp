@@ -16,14 +16,27 @@ from typing import Any, Dict, List, Optional, Sequence
 
 
 def load_records(paths: Sequence[str]) -> List[Dict[str, Any]]:
+    """Load JSONL records from one or more glob patterns.
+
+    Malformed lines (e.g. a partially-written record from a run that crashed
+    mid-write) are skipped with a warning rather than aborting the whole
+    report — a report over N-1 good records beats no report at all.
+    """
     records = []
     for pattern in paths:
         for path in sorted(glob.glob(pattern)):
             with open(path) as f:
-                for line in f:
+                for lineno, line in enumerate(f, start=1):
                     line = line.strip()
-                    if line:
+                    if not line:
+                        continue
+                    try:
                         records.append(json.loads(line))
+                    except json.JSONDecodeError as exc:
+                        print(
+                            f"Skipping malformed line {path}:{lineno}: {exc}",
+                            file=sys.stderr,
+                        )
     return records
 
 
@@ -43,6 +56,13 @@ def iqr(values: Sequence[float]) -> Optional[float]:
 
 
 def group_by(records: List[Dict[str, Any]], *keys: str) -> Dict[Any, List[Dict[str, Any]]]:
+    """Group records by one or more field values.
+
+    A single key groups by that field's scalar value directly
+    (`group_by(records, "condition")` -> keys like `"baseline"`). Multiple
+    keys group by a tuple of values (`group_by(records, "category",
+    "condition")` -> keys like `("impact", "nexus")`).
+    """
     groups: Dict[Any, List[Dict[str, Any]]] = {}
     for record in records:
         key = tuple(record.get(k) for k in keys) if len(keys) > 1 else record.get(keys[0])
@@ -105,6 +125,7 @@ def aggregate_by_category(records: List[Dict[str, Any]]) -> Dict[Any, Dict[str, 
 
 
 def _fmt(value: Optional[float], suffix: str = "", digits: int = 2) -> str:
+    """Format a metric for a markdown cell: em-dash for None, else fixed-digit float."""
     if value is None:
         return "—"
     if isinstance(value, float):
@@ -179,6 +200,11 @@ def write_csv(records: List[Dict[str, Any]], out_path: Path) -> None:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    """CLI entrypoint: load JSONL result files, render a markdown report.
+
+    `paths` accepts one or more glob patterns. Writes markdown to --out if
+    given, else prints to stdout; optionally also writes --csv. Returns 0.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="+", help="Glob(s) matching runs-*.jsonl files")
     parser.add_argument("--out", default=None, help="Markdown output path (default: stdout)")

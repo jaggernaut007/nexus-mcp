@@ -129,6 +129,52 @@ def test_budget_capped_run_has_result_event_and_tokens():
     assert trace.total_tokens is not None
 
 
+def test_result_event_usage_overrides_earlier_assistant_usage():
+    # total_tokens relies on the result event's usage being *cumulative* and
+    # winning over any earlier per-turn assistant usage — not the other way
+    # around, and not summed together.
+    events = [
+        {
+            "type": "assistant",
+            "message": {"content": [], "usage": {"input_tokens": 100, "output_tokens": 5}},
+        },
+        {
+            "type": "result",
+            "subtype": "success",
+            "is_error": False,
+            "result": "done",
+            "usage": {"input_tokens": 1950, "output_tokens": 65},
+        },
+    ]
+    trace = parse_stream(events)
+    assert trace.usage["input_tokens"] == 1950
+    assert trace.total_tokens == 1950 + 65
+
+
+def test_parse_stream_system_init_records_mcp_servers():
+    events = [
+        {
+            "type": "system",
+            "subtype": "init",
+            "mcp_servers": [{"name": "nexus-mcp", "status": "connected"}],
+        }
+    ]
+    trace = parse_stream(events)
+    assert trace.mcp_servers == [{"name": "nexus-mcp", "status": "connected"}]
+
+
+def test_parse_stream_system_non_init_subtype_ignored():
+    events = [{"type": "system", "subtype": "warning", "mcp_servers": [{"name": "x"}]}]
+    trace = parse_stream(events)
+    assert trace.mcp_servers == []
+
+
+def test_parse_stream_system_init_non_list_mcp_servers_ignored():
+    events = [{"type": "system", "subtype": "init", "mcp_servers": "not-a-list"}]
+    trace = parse_stream(events)
+    assert trace.mcp_servers == []
+
+
 def test_files_surfaced_nexus_dedupes_read_and_result_overlap():
     events = [
         {

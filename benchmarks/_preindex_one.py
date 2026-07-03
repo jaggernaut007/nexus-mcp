@@ -9,6 +9,7 @@ Usage: python3 _preindex_one.py <repo_path> <repo_name> <meta_json_path>
 import asyncio
 import inspect
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -16,6 +17,15 @@ from pathlib import Path
 
 def main() -> None:
     repo_path, repo_name, meta_file = sys.argv[1], sys.argv[2], sys.argv[3]
+
+    # nexus_mcp's default storage_dir (".nexus") is resolved relative to the
+    # process CWD, not the indexed codebase path. The runner later launches
+    # `claude`/nexus-mcp-ci with cwd=repo_dir, which looks for `.nexus` under
+    # repo_dir using the SAME default — so the index built here must land
+    # there too, or every nexus-condition run re-indexes from scratch inside
+    # its (budget-capped, timed) measurement window. Must be set before
+    # Settings() is constructed (create_server() below triggers that).
+    os.environ.setdefault("NEXUS_STORAGE_DIR", str(Path(repo_path) / ".nexus"))
 
     from nexus_mcp.server import create_server
 

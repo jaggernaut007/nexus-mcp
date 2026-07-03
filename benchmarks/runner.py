@@ -11,6 +11,8 @@ Each run is a subprocess with a wall-clock timeout independent of
 
 import argparse
 import json
+import os
+import signal
 import subprocess
 import sys
 import time
@@ -33,11 +35,13 @@ PROMPT_SUFFIX = "\n\nDo not edit any files. End your response with a concise fin
 
 
 def load_task_suite(path: Path) -> Dict[str, Any]:
+    """Load and YAML-parse a task suite file (see benchmarks/tasks/*.yaml)."""
     with open(path) as f:
         return yaml.safe_load(f)
 
 
 def repo_dir_for(suite: Dict[str, Any]) -> Path:
+    """Local clone directory for a suite's repo, under benchmarks/repos/."""
     return REPOS_DIR / suite["repo"]["name"]
 
 
@@ -58,21 +62,29 @@ def run_once(
     argv, env, isolation_mode = built["argv"], built["env"], built["isolation_mode"]
 
     started = time.time()
+    # Popen + start_new_session (not subprocess.run) so a timeout can kill the
+    # whole process group, not just the `claude` PID. `claude` spawns its own
+    # MCP server / model subprocesses; killing only the parent on timeout can
+    # leave those orphaned and still spending the run's budget.
+    proc = subprocess.Popen(
+        argv,
+        cwd=str(repo_dir),
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
     try:
-        proc = subprocess.run(
-            argv,
-            cwd=str(repo_dir),
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=timeout_s,
-        )
-        stdout = proc.stdout
+        stdout, _stderr = proc.communicate(timeout=timeout_s)
         timed_out = False
-    except subprocess.TimeoutExpired as exc:
-        raw_stdout = exc.stdout or ""
-        stdout = raw_stdout.decode() if isinstance(raw_stdout, bytes) else raw_stdout
+    except subprocess.TimeoutExpired:
         timed_out = True
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        stdout, _stderr = proc.communicate()
     wall_s = time.time() - started
 
     trace = tx.parse_lines(stdout.splitlines())
@@ -185,6 +197,12 @@ def write_record(record: Dict[str, Any], out_path: Path) -> None:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    """CLI entrypoint: parse args, run the suite, write JSONL results.
+
+    --smoke overrides --reps to 1 and limits to the suite's first 2 tasks,
+    for a cheap end-to-end sanity check before a full paid run. Returns 0 on
+    completion (per-run failures are captured as error records, not raised).
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tasks", required=True, help="Path to a task suite YAML file")
     parser.add_argument(

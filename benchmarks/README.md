@@ -25,6 +25,8 @@ python -m benchmarks.runner --tasks benchmarks/tasks/django.yaml --smoke   # 2 t
 python -m benchmarks.report benchmarks/results/runs-*.jsonl
 ```
 
+Default model is `claude-sonnet-5`; override with `--model <id>` on `runner.py`.
+
 Full run (all tasks, both conditions, 3 reps — expect **$20-50** in API spend
 and tens of minutes of wall time):
 
@@ -66,6 +68,40 @@ overview, needle-in-haystack symbol lookup. Each task specifies
 file-recall scoring, falls back to `relevant_files` when empty), and `facts`
 (groups of acceptable phrasings, at least one of which must appear).
 
+Full task-suite YAML schema:
+
+```yaml
+repo:
+  name: django          # local clone dir under benchmarks/repos/<name>
+  url: https://...       # git clone URL
+  pin: <commit-sha>      # pinned SHA, checked out by setup_repos.sh
+  pinned_date: "2026-..." # for the contamination check (see below)
+  why: "..."              # why this repo, free text
+
+defaults:                 # optional; merged under each task, task keys win
+  max_budget_usd: 1.00
+  timeout_s: 600
+
+tasks:
+  - id: some-unique-id
+    category: conceptual   # conceptual | impact | architecture | needle
+    prompt: "The question asked verbatim (a runner-added suffix forbids edits)."
+    max_budget_usd: 1.00   # optional override of defaults
+    timeout_s: 600         # optional override of defaults
+    ground_truth:
+      relevant_files: ["path/to/file.py"]
+      acceptable_extra_files: []
+      must_mention_files: ["path/to/file.py"]   # optional, see above
+      facts:
+        - any_of: ["phrase one", "phrase two"]  # at least one must appear
+        - any_of: ["another required phrase"]
+```
+
+`facts` is a list of groups; each group's `any_of` is a list of acceptable
+phrasings (case-insensitive substring match) — the group is satisfied if
+**any one** of them appears in the final answer, and `fact_score` is the
+fraction of groups satisfied.
+
 **Metrics** (see `benchmarks/scoring.py` and `benchmarks/transcript.py` for
 exact formulas):
 - **Wasted-read ratio** = fraction of files surfaced to the model that are
@@ -80,6 +116,11 @@ exact formulas):
   cross-run comparison since cache hit rates vary) and **cost/task** in USD.
   The ~500-token nexus SKILL.md body is counted as part of nexus's input —
   it's a real cost of using the tool, not hidden.
+- **Retrieval tokens** (`retrieval_tokens_est`, recorded per-run but not in
+  the headline table) = an estimated token count for all tool-result
+  payloads seen (`len(text) // 4`), diagnostic-only — it isolates how much of
+  a run's tokens went to retrieval versus everything else (reasoning,
+  conversation scaffolding).
 - **Correctness** = `0.5 * file_recall + 0.5 * fact_score`, pass at ≥ 0.75.
   Mechanical only (substring/regex matching against the final answer) unless
   a judge pass is run — see `scoring.judge_prompt`/`parse_judge_output` for
@@ -94,15 +135,20 @@ files; home-assistant/core: ~26,000) that no single conversation could read
 the whole thing, but the model may have memorized parts of django from
 training. Mitigations: home-assistant/core is pinned to a commit dated at
 model training-cutoff or later (check the `pinned_date` field in its task
-YAML against the model's actual cutoff before publishing); wasted-read ratio
-is contamination-resistant by construction since it measures *reads*, not
-recalled knowledge; needle tasks ask for exact line numbers, which models
-don't reliably memorize even for famous code.
+YAML against the **default model's** — `claude-sonnet-5`, or whatever
+`--model` you actually ran with — training cutoff before publishing);
+wasted-read ratio is contamination-resistant by construction since it
+measures *reads*, not recalled knowledge; needle tasks ask for exact line
+numbers, which models don't reliably memorize even for famous code.
 
 ## File layout
 
 - `tasks/*.yaml` — task suites (schema above)
-- `mcp-configs/nexus.json` — MCP server config for the `nexus` condition
+- `mcp-configs/nexus.json` — MCP server config for the `nexus` condition;
+  its `env` is intentionally empty so the server inherits nexus-mcp's default
+  embedding model. Assumes the target repo was already pre-indexed by
+  `setup_repos.sh` — pointing this at an un-indexed repo means the first
+  nexus tool call has to index from scratch inside the measured run.
 - `conditions.py` — pure argv/env builders (no subprocess calls)
 - `transcript.py` — pure stream-json event parser -> `RunTrace`
 - `scoring.py` — pure per-run metrics against ground truth

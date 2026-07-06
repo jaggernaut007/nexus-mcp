@@ -2,9 +2,9 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/nexus-mcp-ci)](https://pypi.org/project/nexus-mcp-ci/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.org/project/nexus-mcp-ci/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-441-green)](tests/)
-[![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/score.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![CI](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml/badge.svg)](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml)
+[![Glama MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 
 **Hybrid search + code graph + semantic memory in a single local MCP server — under 350 MB RAM.**
 

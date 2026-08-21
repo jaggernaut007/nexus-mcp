@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+import nexus_mcp.core_api as core_api
 import nexus_mcp.server as server_module
 from nexus_mcp.state import reset_state
 
@@ -29,11 +30,11 @@ def _stop_watchers() -> None:
 def clean_state():
     """Reset global state before each test."""
     reset_state()
-    server_module._pipeline = None
+    core_api._pipeline = None
     yield
     _stop_watchers()
     reset_state()
-    server_module._pipeline = None
+    core_api._pipeline = None
 
 
 @pytest.fixture

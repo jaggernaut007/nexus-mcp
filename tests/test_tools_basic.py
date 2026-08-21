@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 from fastmcp.exceptions import NotFoundError
 
+import nexus_mcp.core_api as core_api
 import nexus_mcp.server as server_module
 from nexus_mcp.state import get_state
 from tests.conftest import _call_tool, _mock_embedding_service, _setup_indexed
@@ -102,7 +103,7 @@ class TestIndex:
 
             # Second call should be incremental (metadata exists)
             # Keep embedding service patched since _setup_indexed's patch has exited
-            server_module._pipeline = None
+            core_api._pipeline = None
             mock_svc = _mock_embedding_service()
             with (
                 patch("nexus_mcp.indexing.pipeline.get_embedding_service", return_value=mock_svc),
@@ -219,7 +220,7 @@ class TestStaleness:
         on large repos."""
         async def run():
             mcp, _ = await _index_no_watch(mini_codebase, tmp_path / ".nexus")
-            pipeline = server_module._pipeline
+            pipeline = core_api._pipeline
             with patch.object(
                 pipeline, "check_staleness", wraps=pipeline.check_staleness
             ) as spy:
@@ -233,26 +234,26 @@ class TestStaleness:
 class TestBackgroundReindex:
     def test_skipped_when_pipeline_busy(self, mini_codebase, tmp_path):
         asyncio.run(_index_no_watch(mini_codebase, tmp_path / ".nexus"))
-        pipeline = server_module._pipeline
+        pipeline = core_api._pipeline
         state = get_state()
 
         with patch.object(pipeline, "incremental_index") as mock_incr:
-            assert server_module._pipeline_lock.acquire(blocking=False)
+            assert core_api._pipeline_lock.acquire(blocking=False)
             try:
-                server_module._trigger_background_reindex(
+                core_api._trigger_background_reindex(
                     state.codebase_path, state.codebase_paths
                 )
             finally:
-                server_module._pipeline_lock.release()
+                core_api._pipeline_lock.release()
             mock_incr.assert_not_called()
 
     def test_runs_when_pipeline_free(self, mini_codebase, tmp_path):
         asyncio.run(_index_no_watch(mini_codebase, tmp_path / ".nexus"))
-        pipeline = server_module._pipeline
+        pipeline = core_api._pipeline
         state = get_state()
 
         with patch.object(pipeline, "incremental_index") as mock_incr:
-            server_module._trigger_background_reindex(
+            core_api._trigger_background_reindex(
                 state.codebase_path, state.codebase_paths
             )
             deadline = time.monotonic() + 2.0
@@ -267,12 +268,12 @@ class TestFileWatcherWiring:
             from nexus_mcp.parsing.file_watcher import DebouncedFileWatcher
 
             await _index_no_watch(mini_codebase, tmp_path / ".nexus")
-            pipeline = server_module._pipeline
+            pipeline = core_api._pipeline
             state = get_state()
 
             with patch.object(pipeline, "incremental_index") as mock_incr:
                 def on_change():
-                    server_module._trigger_background_reindex(
+                    core_api._trigger_background_reindex(
                         state.codebase_path, state.codebase_paths
                     )
 

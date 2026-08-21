@@ -176,31 +176,38 @@ class AstGrepParser:
         self, sg_node, filepath: str, language: str, module_id: str,
         graph: UniversalGraph,
     ) -> int:
-        """Extract function definitions from ast-grep node."""
+        """Extract function definitions from ast-grep node.
+
+        Matches by tree-sitter node *kind* rather than a source pattern: a
+        pattern like "def $NAME($$$PARAMS): $$$BODY" silently fails to match
+        any function carrying a return annotation (`def f() -> int:`), which
+        is most of a typed codebase. Kind matching is annotation-agnostic.
+        """
         count = 0
-        patterns = {
-            "python": "def $NAME($$$PARAMS): $$$BODY",
-            "javascript": "function $NAME($$$PARAMS) { $$$BODY }",
-            "typescript": "function $NAME($$$PARAMS) { $$$BODY }",
-            "go": "func $NAME($$$PARAMS) $$$BODY",
-            "java": "$$$MODS $TYPE $NAME($$$PARAMS) { $$$BODY }",
-            "rust": "fn $NAME($$$PARAMS) $$$BODY",
+        kinds = {
+            "python": ("function_definition",),
+            "javascript": ("function_declaration",),
+            "typescript": ("function_declaration",),
+            "go": ("function_declaration", "method_declaration"),
+            "java": ("method_declaration",),
+            "rust": ("function_item",),
         }
 
-        pattern = patterns.get(language)
-        if not pattern:
+        lang_kinds = kinds.get(language)
+        if not lang_kinds:
             return 0
 
-        try:
-            matches = sg_node.find_all(pattern=pattern)
-        except Exception as e:
-            logger.debug("ast-grep find_all failed: %s", e)
-            return 0
+        matches = []
+        for kind in lang_kinds:
+            try:
+                matches.extend(sg_node.find_all(kind=kind))
+            except Exception as e:
+                logger.debug("ast-grep find_all failed for kind %s: %s", kind, e)
 
         for match in matches:
             try:
                 rng = match.range()
-                name_text = match.get_match("NAME")
+                name_text = match.field("name")
                 func_name = name_text.text() if name_text else f"anonymous_{self._node_counter}"
 
                 func_id = self._make_id("func")
@@ -239,29 +246,36 @@ class AstGrepParser:
         self, sg_node, filepath: str, language: str, module_id: str,
         graph: UniversalGraph,
     ) -> int:
-        """Extract class definitions from ast-grep node."""
+        """Extract class definitions from ast-grep node.
+
+        Kind-based for the same reason as _extract_functions: the old
+        "class $NAME: $$$BODY" pattern matched only base-less classes, so
+        every `class Foo(Base):` was missing from the graph.
+        """
         count = 0
-        patterns = {
-            "python": "class $NAME: $$$BODY",
-            "javascript": "class $NAME { $$$BODY }",
-            "typescript": "class $NAME { $$$BODY }",
-            "java": "class $NAME { $$$BODY }",
-            "rust": "struct $NAME { $$$BODY }",
+        kinds = {
+            "python": ("class_definition",),
+            "javascript": ("class_declaration",),
+            "typescript": ("class_declaration",),
+            "java": ("class_declaration",),
+            "rust": ("struct_item",),
         }
 
-        pattern = patterns.get(language)
-        if not pattern:
+        lang_kinds = kinds.get(language)
+        if not lang_kinds:
             return 0
 
-        try:
-            matches = sg_node.find_all(pattern=pattern)
-        except Exception:
-            return 0
+        matches = []
+        for kind in lang_kinds:
+            try:
+                matches.extend(sg_node.find_all(kind=kind))
+            except Exception as e:
+                logger.debug("ast-grep find_all failed for kind %s: %s", kind, e)
 
         for match in matches:
             try:
                 rng = match.range()
-                name_text = match.get_match("NAME")
+                name_text = match.field("name")
                 class_name = name_text.text() if name_text else f"class_{self._node_counter}"
 
                 class_id = self._make_id("class")

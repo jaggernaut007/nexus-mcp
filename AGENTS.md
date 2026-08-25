@@ -32,3 +32,12 @@ Single MCP server consolidating CodeGrok + code-graph-mcp. 15 tools, <350MB RAM.
 - Frozen dataclasses for immutable models
 - ABC interfaces for swappable components
 - Thread-safe singletons with locks
+
+## Cross-harness compatibility
+`AGENTS.md` is the single source of truth for every agent harness driving this repo. Per-tool bridges:
+- Claude Code → `CLAUDE.md` + `.claude/rules/`
+- Codex CLI → reads this file natively (keep it lean)
+- Cline → `.clinerules/00-source-of-truth.md`; no parallel Memory Bank
+- Antigravity CLI → `GEMINI.md` thin bridge, speculative until its discovery mechanism is documented
+Durable rules go here (portable) — never into a tool-specific file.
+

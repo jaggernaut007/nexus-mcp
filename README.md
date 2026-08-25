@@ -1,7 +1,7 @@
 # Nexus-MCP
 
 [![PyPI version](https://img.shields.io/pypi/v/nexus-mcp-ci)](https://pypi.org/project/nexus-mcp-ci/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.org/project/nexus-mcp-ci/)
+[![Python 3.10–3.12](https://img.shields.io/badge/python-3.10%2D3.12-blue)](https://pypi.org/project/nexus-mcp-ci/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml/badge.svg)](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml)
 [![Glama MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
@@ -240,7 +240,7 @@ cd Nexus-MCP
 pip install -e ".[dev]"
 ```
 
-**Python 3.10–3.13 required.** Optional: `rg` (ripgrep) for 100% search coverage fallback on unindexed files.
+**Python 3.10–3.12 supported.** Python 3.13+ is not yet supported by the current dependency stack, and the packaged Glama/Docker build uses Python 3.12 for compatibility. Optional: `rg` (ripgrep) for 100% search coverage fallback on unindexed files.
 
 > The optional `jina-code` model requires ONNX Runtime. If you see ONNX/Optimum errors:
 > ```bash

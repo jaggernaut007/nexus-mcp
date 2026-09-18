@@ -2,9 +2,9 @@ cff-version: 1.2.0
 message: "If you use Nexus-MCP, please cite it as below."
 title: "Nexus-MCP: Unified Code Intelligence Server"
 type: software
-version: 2.0.2
+version: 2.0.3
 date-released: 2026-09-18
-license: LicenseRef-All-Rights-Reserved
+license: PolyForm-Noncommercial-1.0.0
 url: "https://github.com/jaggernaut007/Nexus-MCP"
 repository-code: "https://github.com/jaggernaut007/Nexus-MCP"
 authors:

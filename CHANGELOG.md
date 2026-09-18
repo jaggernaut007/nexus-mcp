@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.3] - 2026-09-18
+
+### Changed
+
+- **License: All Rights Reserved → PolyForm Noncommercial 1.0.0.** Free to
+  use, copy, modify, and distribute for any noncommercial purpose;
+  commercial use still requires a separate license. The 2.0.1 license
+  change removed the LICENSE file entirely, which broke GitHub's license
+  detection and the SPDX `LicenseRef-*` convention it used (a `LicenseRef-`
+  identifier is meant to reference accompanying license text that wasn't
+  present). Distribution platforms that gate on a detectable license (e.g.
+  Glama) could not deploy the server without a LICENSE file. Restored the
+  file — now under PolyForm Noncommercial, a recognized SPDX identifier —
+  and wired it into the package build via `license-files` in
+  `pyproject.toml`. Versions before 2.0.1 remain available under their
+  original MIT terms.
+
 ## [2.0.2] - 2026-09-18
 
 ### Fixed

@@ -67,13 +67,13 @@ def _setup_graph_with_calls(state, codebase_path):
 class TestFindSymbol:
     def test_find_symbol_before_index(self):
         mcp = server_module.create_server()
-        result = asyncio.run(_call_tool(mcp, "find_symbol", {"name": "hello"}))
+        result = asyncio.run(_call_tool(mcp, "find_symbol", {"symbol_name": "hello"}))
         assert "error" in result
 
     def test_find_symbol_exact_match(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "find_symbol", {"name": "hello"})
+            return await _call_tool(mcp, "find_symbol", {"symbol_name": "hello"})
 
         result = asyncio.run(run())
         assert "error" not in result
@@ -83,7 +83,7 @@ class TestFindSymbol:
     def test_find_symbol_no_match(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "find_symbol", {"name": "nonexistent_xyz"})
+            return await _call_tool(mcp, "find_symbol", {"symbol_name": "nonexistent_xyz"})
 
         result = asyncio.run(run())
         assert "error" in result
@@ -91,7 +91,7 @@ class TestFindSymbol:
     def test_find_symbol_fuzzy_match(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "find_symbol", {"name": "hell", "exact": False})
+            return await _call_tool(mcp, "find_symbol", {"symbol_name": "hell", "exact": False})
 
         result = asyncio.run(run())
         assert "error" not in result
@@ -103,7 +103,7 @@ class TestFindSymbol:
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
-        result = asyncio.run(_call_tool(mcp, "find_symbol", {"name": "hello"}))
+        result = asyncio.run(_call_tool(mcp, "find_symbol", {"symbol_name": "hello"}))
         assert "error" not in result
         symbol = result["symbols"][0]
         assert "relationships_out" in symbol
@@ -114,7 +114,7 @@ class TestFindSymbol:
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
-        result = asyncio.run(_call_tool(mcp, "find_symbol", {"name": "hello"}))
+        result = asyncio.run(_call_tool(mcp, "find_symbol", {"symbol_name": "hello"}))
         symbol = result["symbols"][0]
         file_path = symbol["location"]["file"]
         assert not file_path.startswith("/"), f"Path not relative: {file_path}"

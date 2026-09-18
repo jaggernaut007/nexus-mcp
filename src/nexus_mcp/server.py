@@ -289,7 +289,7 @@ def create_server():
     @mcp.tool()
     @_audited
     def find_symbol(
-        name: Annotated[str, "Symbol name (e.g. 'create_server', 'TokenBudget')"],
+        symbol_name: Annotated[str, "Symbol name (e.g. 'create_server', 'TokenBudget')"],
         exact: Annotated[bool, "True for exact match, False for fuzzy substring"] = True,
     ) -> dict[str, Any]:
         """Use to look up a specific function/class/symbol by name — preferred
@@ -299,7 +299,7 @@ def create_server():
         guard_err = _guard("find_symbol")
         if guard_err:
             return guard_err
-        return core_api.find_symbol(name, exact=exact)
+        return core_api.find_symbol(symbol_name, exact=exact)
 
     @mcp.tool()
     @_audited

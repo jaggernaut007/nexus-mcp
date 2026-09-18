@@ -200,7 +200,7 @@ better under MCP Tool Search than many thin ones.
 
 | Tool | Use When |
 |------|----------|
-| `find_symbol(name, exact)` | Look up a specific symbol. `exact=False` for fuzzy matching. |
+| `find_symbol(symbol_name, exact)` | Look up a specific symbol. `exact=False` for fuzzy matching. |
 | `graph(symbol, direction, transitive, max_depth)` | `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True` — MUST run before any refactor** (was `impact()`): full transitive change blast radius across the graph. |
 | `explain(symbol)` | **Replaces `Read` for understanding code.** Graph relationships + semantic context + quality metrics in one call. |
 | `analyze(path)` | Code quality: cyclomatic complexity, cognitive complexity, code smells, dependency metrics. |

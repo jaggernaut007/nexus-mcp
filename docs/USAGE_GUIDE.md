@@ -123,7 +123,7 @@ Returns version, indexing state, chunk counts, graph stats, peak RSS memory, and
 Preferred over Grep for finding symbol definitions. Returns file path, line numbers, docstring, type annotations, and all relationships (callers, callees).
 
 ```
-find_symbol(name="UserService", exact=True)
+find_symbol(symbol_name="UserService", exact=True)
 ```
 
 Use `exact=False` for case-insensitive fuzzy matching.

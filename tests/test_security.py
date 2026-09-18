@@ -42,7 +42,7 @@ class TestSymbolNameValidation:
     def test_symbol_name_null_bytes(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "find_symbol", {"name": "hello\x00world"})
+            return await _call_tool(mcp, "find_symbol", {"symbol_name": "hello\x00world"})
 
         result = asyncio.run(run())
         assert "error" in result
@@ -51,7 +51,7 @@ class TestSymbolNameValidation:
     def test_symbol_name_too_long(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "find_symbol", {"name": "a" * 501})
+            return await _call_tool(mcp, "find_symbol", {"symbol_name": "a" * 501})
 
         result = asyncio.run(run())
         assert "error" in result
@@ -60,7 +60,7 @@ class TestSymbolNameValidation:
     def test_symbol_name_empty(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "find_symbol", {"name": ""})
+            return await _call_tool(mcp, "find_symbol", {"symbol_name": ""})
 
         result = asyncio.run(run())
         assert "error" in result
@@ -68,7 +68,7 @@ class TestSymbolNameValidation:
     def test_symbol_name_no_alphanumeric(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "find_symbol", {"name": "---"})
+            return await _call_tool(mcp, "find_symbol", {"symbol_name": "---"})
 
         result = asyncio.run(run())
         assert "error" in result
@@ -77,7 +77,7 @@ class TestSymbolNameValidation:
     def test_symbol_name_valid_passes(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "find_symbol", {"name": "hello"})
+            return await _call_tool(mcp, "find_symbol", {"symbol_name": "hello"})
 
         result = asyncio.run(run())
         # Should not be a validation error (may or may not find the symbol)

@@ -49,7 +49,7 @@ class TestPerformanceBenchmarks:
             mcp, _, _ = await _setup_indexed(mini_codebase, storage)
 
             start = time.monotonic()
-            await _call_tool(mcp, "find_symbol", {"name": "hello"})
+            await _call_tool(mcp, "find_symbol", {"symbol_name": "hello"})
             elapsed = time.monotonic() - start
 
             # May or may not find symbol, but should be fast

@@ -29,7 +29,7 @@ description: Route code search, symbol lookup, call-graph analysis, and codebase
 | `index(path, paths)` | First run on a new/changed codebase. Comma-separated paths for multi-folder/monorepo indexing. Incremental by default; auto-reindex watcher starts after it completes. |
 | `status()` / `health()` | Index freshness/stats (`status`) vs. liveness probe (`health`). |
 | `search(query, mode, ...)` | Primary "where is / how does / find" tool. Falls back to live grep when sparse. |
-| `find_symbol(name, exact)` | Look up a specific symbol; `exact=False` for fuzzy matching. |
+| `find_symbol(symbol_name, exact)` | Look up a specific symbol; `exact=False` for fuzzy matching. |
 | `graph(symbol_name, direction, transitive, max_depth)` | `direction="callers"`/`"callees"` for immediate call-graph edges; `transitive=True` (direction must be `"callers"`) for full change-impact analysis. |
 | `explain(symbol_name, verbosity)` | Combined graph + semantic + quality-metrics view of one symbol — usually replaces a `Read`. |
 | `analyze(path)` | Code quality: complexity, dependencies, smells, quality score. |

@@ -26,7 +26,7 @@ class TestFullLifecycle:
             assert search_result["total"] >= 0
 
             # Find symbol
-            find_result = await _call_tool(mcp, "find_symbol", {"name": "hello"})
+            find_result = await _call_tool(mcp, "find_symbol", {"symbol_name": "hello"})
             assert "error" not in find_result or "not found" in find_result.get("error", "").lower()
 
             # Analyze

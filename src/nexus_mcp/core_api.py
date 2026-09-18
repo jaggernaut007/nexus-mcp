@@ -593,9 +593,9 @@ def search(
 
 # --- Graph analysis -----------------------------------------------------------
 
-def find_symbol(name: str, exact: bool = True) -> dict[str, Any]:
+def find_symbol(symbol_name: str, exact: bool = True) -> dict[str, Any]:
     """Look up a symbol by name, with its call-graph relationships."""
-    err = validate_symbol_name(name)
+    err = validate_symbol_name(symbol_name)
     if err:
         return err
 
@@ -603,9 +603,9 @@ def find_symbol(name: str, exact: bool = True) -> dict[str, Any]:
     if err:
         return err
 
-    matches = _resolve_symbol(state.graph_engine, name, exact=exact)
+    matches = _resolve_symbol(state.graph_engine, symbol_name, exact=exact)
     if not matches:
-        msg = f"Symbol '{name}' not found."
+        msg = f"Symbol '{symbol_name}' not found."
         if exact:
             msg += " Try exact=False for fuzzy matching."
         return {"error": msg}

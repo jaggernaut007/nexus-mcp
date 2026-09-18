@@ -1227,6 +1227,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
 gpu = [
     { name = "optimum", extra = ["onnxruntime-gpu"] },
@@ -1256,6 +1257,7 @@ requires-dist = [
     { name = "rustworkx", specifier = ">=0.15.0" },
     { name = "sentence-transformers", specifier = ">=3.0.0" },
     { name = "sentence-transformers", extras = ["onnx-gpu"], marker = "extra == 'gpu'", specifier = ">=3.0.0" },
+    { name = "tomli", marker = "python_full_version < '3.11' and extra == 'dev'", specifier = ">=2.0.0" },
     { name = "tree-sitter", specifier = "==0.21.3" },
     { name = "tree-sitter-languages", specifier = ">=1.10.0" },
     { name = "watchdog", specifier = ">=3.0.0" },

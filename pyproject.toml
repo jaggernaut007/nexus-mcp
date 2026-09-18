@@ -36,7 +36,7 @@ dependencies = [
     "lancedb>=0.4.0",
     "sentence-transformers>=3.0.0",
     "optimum>=1.19.0",
-    "onnxruntime>=1.17.0",
+    "onnxruntime>=1.17.0,<1.24.0",  # 1.24.0+ dropped Python 3.10 wheels
     "tree-sitter==0.21.3",
     "tree-sitter-languages>=1.10.0",
     "ast-grep-py>=0.28.0",

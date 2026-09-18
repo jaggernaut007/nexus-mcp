@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.2] - 2026-09-18
+
+### Fixed
+
+- `serverInfo.version` reported FastMCP's own library version instead of
+  nexus-mcp-ci's actual package version; now correctly reports the installed
+  package version.
+- Dockerfile: `pip install torch onnxruntime --index-url
+  https://download.pytorch.org/whl/cpu` failed because PyTorch's package
+  index never hosts `onnxruntime` and `--index-url` fully replaces the
+  default PyPI index rather than adding to it. Split into separate installs.
+- Restored the `requires-python <3.13` upper bound (dropped in a prior
+  release), which lets `uv sync` self-select a compatible Python version
+  even when the host environment defaults to a newer, unsupported one
+  (`tree-sitter-languages` has no wheel beyond cp312).
+- `CITATION.cff` claimed 15 tools; corrected to the current count of 10
+  after the earlier tool consolidation.
+- `analyze` tool description brought in line with the other tools' usage
+  guidance (preferred-over, read-only, requires an index).
+- Bumped fastmcp, mcp, cryptography, torch, and several transitive
+  dependencies to versions with known CVEs fixed.
+
 ## [2.0.1] - 2026-09-18
 
 ### Changed

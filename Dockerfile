@@ -12,7 +12,8 @@ WORKDIR /app
 
 # Copy and install package
 COPY . .
-RUN pip install --no-cache-dir torch onnxruntime --index-url https://download.pytorch.org/whl/cpu && \
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir onnxruntime && \
     pip install --no-cache-dir .
 
 # Ensure nexus-mcp-ci is in PATH

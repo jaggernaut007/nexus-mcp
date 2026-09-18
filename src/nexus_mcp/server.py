@@ -38,9 +38,16 @@ class JsonFormatter(logging.Formatter):
 
 def create_server():
     """Create and configure the FastMCP server."""
+    from importlib.metadata import version as _pkg_version
+
     from fastmcp import Context, FastMCP
 
-    mcp = FastMCP("Nexus-MCP")
+    try:
+        _nexus_version = _pkg_version("nexus-mcp-ci")
+    except Exception:
+        _nexus_version = "unknown"
+
+    mcp = FastMCP("Nexus-MCP", version=_nexus_version)
 
     # --- Middleware: permissions, rate limiting, audit ---
 
@@ -326,10 +333,13 @@ def create_server():
             str, "Optional relative path to filter analysis (subdirectory or file)"
         ] = ""
     ) -> dict[str, Any]:
-        """Use for code review or quality assessment — cyclomatic/cognitive
-        complexity, dependency analysis, code smells (long/complex functions,
-        large classes, dead code), and an overall quality score. Optionally
-        scope to a subdirectory or file via `path`."""
+        """Use for code review or quality assessment — preferred over manually
+        reading files to eyeball complexity, since it computes cyclomatic/
+        cognitive complexity, dependency analysis, code smells (long/complex
+        functions, large classes, dead code), and an overall quality score in
+        one call. Read-only; requires an index (see `index`). Optionally scope
+        to a subdirectory or file via `path` to keep results focused and fast
+        on large codebases — omit it to analyze the whole indexed codebase."""
         guard_err = _guard("analyze")
         if guard_err:
             return guard_err

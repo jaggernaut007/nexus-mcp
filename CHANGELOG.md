@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.1] - 2026-09-18
+
+### Changed
+
+- **License: MIT → All Rights Reserved.** The LICENSE file has been removed; no
+  license is granted to use, copy, modify, or distribute this software or any
+  part of it without a separate commercial agreement. `pyproject.toml`,
+  `CITATION.cff`, and `plugin/.claude-plugin/plugin.json` metadata updated to
+  match. Versions published before this release remain available under their
+  original MIT terms for anyone who already obtained them.
+- Added cross-harness compatibility bridges (Cline, Codex, Antigravity).
+- Corrected supported Python range in docs to 3.10-3.12.
+
 ## [2.0.0] - 2026-07-02
 
 ### Breaking Changes

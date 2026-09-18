@@ -2,7 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/nexus-mcp-ci)](https://pypi.org/project/nexus-mcp-ci/)
 [![Python 3.10–3.12](https://img.shields.io/badge/python-3.10%2D3.12-blue)](https://pypi.org/project/nexus-mcp-ci/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License: All Rights Reserved](https://img.shields.io/badge/license-all%20rights%20reserved-red.svg)](#license)
 [![CI](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml/badge.svg)](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml)
 [![Glama MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 
@@ -405,7 +405,7 @@ All settings via `NEXUS_` environment variables:
 | Change impact analysis | ✅ | partial | ❌ | ❌ | ❌ |
 | Token-budgeted responses | ✅ 3 levels | ❌ | ❌ | ❌ | ❌ |
 | Languages | 25+ | 30+ | many | many | many |
-| Cost | **Free** | $$$ | $40/mo | $10–39/mo | Free |
+| Cost | **Paid license** | $$$ | $40/mo | $10–39/mo | Free |
 | API keys required | **No** | Yes | Yes | Yes | No |
 
 ### vs. AI Code Tools
@@ -419,8 +419,8 @@ All settings via `NEXUS_` environment variables:
 | Code graph | ✅ | unknown | unknown | ✅ SCIP | basic | ❌ |
 | Semantic memory | ✅ persistent | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Token-budgeted output | ✅ | — | — | — | — | — |
-| Open source | ✅ MIT | ❌ | ❌ | partial | ✅ | ✅ |
-| Cost | **Free** | $20–40/mo | $10–39/mo | $0–49/mo | Free | Free |
+| Open source | ❌ all rights reserved | ❌ | ❌ | partial | ✅ | ✅ |
+| Cost | **Paid license** | $20–40/mo | $10–39/mo | $0–49/mo | Free | Free |
 
 ---
 
@@ -566,4 +566,4 @@ Source files retain "Ported from" attribution in their module docstrings. See [A
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+All rights reserved. No license is granted to use, copy, modify, or distribute this software or any part of it. Contact Shreyas Jagannath to inquire about a commercial license.

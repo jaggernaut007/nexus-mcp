@@ -1,7 +1,7 @@
 # Nexus-MCP
 
 [![PyPI version](https://img.shields.io/pypi/v/nexus-mcp-ci)](https://pypi.org/project/nexus-mcp-ci/)
-[![Python 3.10–3.12](https://img.shields.io/badge/python-3.10%2D3.12-blue)](https://pypi.org/project/nexus-mcp-ci/)
+[![Python 3.10–3.12](https://img.shields.io/badge/python-3.10--3.12-blue)](https://pypi.org/project/nexus-mcp-ci/)
 [![License: All Rights Reserved](https://img.shields.io/badge/license-all%20rights%20reserved-red.svg)](#license)
 [![CI](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml/badge.svg)](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml)
 [![Glama MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)

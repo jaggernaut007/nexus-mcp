@@ -53,4 +53,4 @@ Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexe
 ## Optional
 
 - [Research Notes](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/RESEARCH.md): Deep dives on LanceDB, ONNX, rustworkx, embedding models
-- [Self-Test Demo](https://github.com/jaggernaut007/Nexus-MCP/blob/main/self_test/README.md): End-to-end demo exercising all 15 tools
+- [Self-Test Demo](https://github.com/jaggernaut007/Nexus-MCP/blob/main/self_test/README.md): End-to-end demo exercising all 10 tools

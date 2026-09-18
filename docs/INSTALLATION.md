@@ -124,7 +124,7 @@ python3 -c "import nexus_mcp; print('OK')"
 # Check the CLI is available
 nexus-mcp --help
 
-# Run the self-test demo (exercises all 15 tools)
+# Run the self-test demo (exercises all 10 tools)
 python self_test/demo_mcp.py
 ```
 

@@ -98,7 +98,7 @@ Nexus-MCP replaces this with targeted retrieval: semantic search returns the exa
 - **Incremental indexing** — Only re-processes changed files; file watcher support
 - **Low memory** — <350MB RAM target (ONNX Runtime ~50MB, mmap vectors, lazy model loading)
 - **Fully local** — Zero cloud dependencies, no API keys, all processing on your machine
-- **15 tools, one server** — Consolidates what previously required 2 MCP servers (17 tools) into one
+- **10 tools, one server** — Consolidates what previously required 2 MCP servers (17 tools) into one
 
 ## Install
 
@@ -178,7 +178,7 @@ All settings can be overridden via `NEXUS_` environment variables:
 
 ## Self-Test Demo
 
-Verify your installation by running the end-to-end demo that exercises all 15 tools:
+Verify your installation by running the end-to-end demo that exercises all 10 tools:
 
 ```bash
 python self_test/demo_mcp.py                  # Uses built-in sample project
@@ -980,7 +980,7 @@ nexus-mcp --help
 ```
 Nexus-MCP/
 ├── src/nexus_mcp/          # Source code (5,300+ lines)
-│   ├── server.py           # FastMCP server, 15 tools, entry point
+│   ├── server.py           # FastMCP server, 10 tools, entry point
 │   ├── config.py           # Settings with NEXUS_ env prefix
 │   ├── state.py            # Session state singleton
 │   ├── core/               # Data models, interfaces, exceptions

@@ -4,7 +4,7 @@
 [![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/score.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 
 ## Architecture
-Single MCP server consolidating CodeGrok + code-graph-mcp. 15 tools, <350MB RAM.
+Single MCP server consolidating CodeGrok + code-graph-mcp. 10 tools, <350MB RAM.
 
 ## Stack
 - **LanceDB**: vectors + FTS (replaces ChromaDB)

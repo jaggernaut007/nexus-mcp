@@ -28,7 +28,7 @@ nexus-mcp --help
 ```
 Nexus-MCP/
 ├── src/nexus_mcp/          # Source code (5,300+ lines)
-│   ├── server.py           # FastMCP server, 15 tools, entry point
+│   ├── server.py           # FastMCP server, 10 tools, entry point
 │   ├── config.py           # Settings with NEXUS_ env prefix
 │   ├── state.py            # Session state singleton
 │   ├── core/               # Data models, interfaces, exceptions

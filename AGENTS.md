@@ -4,12 +4,12 @@
 [![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/score.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 
 ## Architecture
-Single MCP server consolidating CodeGrok + code-graph-mcp. 10 tools, <350MB RAM.
+Single MCP server consolidating CodeGrok + code-graph-mcp. 10 tools (`index`, `status`, `health`, `search`, `find_symbol`, `graph`, `explain`, `analyze`, `map`, `memory`), <350MB RAM. `server.py` holds thin MCP wrappers; the tool logic lives in `core_api.py`.
 
 ## Stack
 - **LanceDB**: vectors + FTS (replaces ChromaDB)
-- **ONNX Runtime**: inference (replaces PyTorch)
-- **bge-small-en**: default embedding model (50MB)
+- **ONNX Runtime**: inference for `jina-code` (replaces PyTorch)
+- **bge-small-en**: default embedding model (384d, ~50MB download, PyTorch backend)
 - **rustworkx**: in-memory directed graph
 - **tree-sitter + ast-grep**: dual parsing
 
@@ -21,11 +21,22 @@ Single MCP server consolidating CodeGrok + code-graph-mcp. 10 tools, <350MB RAM.
 - Batch embedding size=32
 - Graph payloads: {id, name, type, file, line} only
 
+## Commands
+- `pip install -e ".[dev]"` — install with dev dependencies
+- `pytest -v` — all tests (602); `pytest -m "not slow"` is what CI runs
+- `ruff check .` — lint
+- `nexus-mcp-ci` — run the server; `python self_test/demo_mcp.py` — end-to-end demo
+
 ## Testing
 - Tests first (spec-driven)
 - `pytest -v` for all tests
 - `ruff check .` must pass
-- Target: 140+ tests by Phase 5
+- Every public function has at least one test (see `.claude/rules/test-standards.md`)
+
+## Documentation
+- Update `README.md`, `docs/USAGE_GUIDE.md`, `llms.txt` and `plugin/skills/nexus-mcp/SKILL.md` when the tool surface changes.
+- Rebuild `llms-full.txt` with `python scripts/build_llms_full.py` after any change to its source docs.
+- Add a `CHANGELOG.md` entry for each user-visible change.
 
 ## Code Style
 - ruff for linting (line-length=100)

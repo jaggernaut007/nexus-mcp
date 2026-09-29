@@ -171,6 +171,43 @@ Remaining 8b/8c/8d items were evaluated against the v2.0.0 architecture; see
   — needs explicit user go-ahead before spending or using that flag. See
   `benchmarks/README.md` for the exact commands.
 
+## Discoverability & Setup Audit — 2026-09-23
+- [x] Audited agent-facing surfaces (tool descriptions, README, `llms.txt`,
+  `llms-full.txt`, `docs/USAGE_GUIDE.md`, plugin skill, marketplace manifests)
+  against the registered 10-tool surface from ADR-017. No code changed.
+- [x] 7 issues filed, each with file:line evidence:
+  - [#4](https://github.com/jaggernaut007/nexus-mcp/issues/4) stale pre-2.0.0 tool names in agent-facing docs and AI manifests
+  - [#5](https://github.com/jaggernaut007/nexus-mcp/issues/5) no server-level MCP `instructions`
+  - [#6](https://github.com/jaggernaut007/nexus-mcp/issues/6) `mcp__nexus-mcp__*` prefix matches no single documented `claude mcp add` line
+  - [#7](https://github.com/jaggernaut007/nexus-mcp/issues/7) `glama.json`/`smithery.yaml` default `jina-code`, code default is `bge-small-en`
+  - [#8](https://github.com/jaggernaut007/nexus-mcp/issues/8) bundled Claude Code plugin + routing skill undocumented
+  - [#9](https://github.com/jaggernaut007/nexus-mcp/issues/9) `_has_optimum` imports the wrong module — 3 slow tests fail on plain `pytest`
+  - [#10](https://github.com/jaggernaut007/nexus-mcp/issues/10) no tool-selection eval; the routing claim of ADR-017 is unmeasured
+- [x] Reproduced #9: `.venv/bin/python -m pytest -q` → 3 failed, 598 passed, 1 skipped
+  (`ModuleNotFoundError: No module named 'optimum.onnxruntime'`). CI hides it via
+  `-m "not slow"` in `.github/workflows/ci.yml`.
+- [x] `ruff check .` clean at time of audit.
+
+## Documentation Currency Audit — 2026-09-29
+- [x] Audited live docs against the code with nexus (`search`, `graph`, `explain`,
+  `map`) plus `pytest --collect-only`, `config.py` and `server.py`.
+- [x] Fixed stale content in `README.md`, `CLAUDE.md`, `AGENTS.md`, `llms.txt`,
+  `docs/{USAGE_GUIDE,DEVELOPER_GUIDE,PROJECT_INFO,ARCHITECTURE,INSTALLATION}.md`,
+  `self_test/README.md` and the plugin skill: pre-2.0.0 tool names (15 tools),
+  test counts (602 now), default model (`bge-small-en`), `core_api.py` layer, the
+  `_pipeline` lock location, ADR-018, env vars, MIT/"all rights reserved" text.
+- [x] Added `scripts/build_llms_full.py`; `llms-full.txt` is now generated from the
+  source docs instead of hand-copied. `embedding_service.py` docstring named the wrong default.
+- [x] Historical docs left as written: `docs/adr/`, `IMPLEMENTATION_PLAN.md`,
+  `RESEARCH.md`, `ROADMAP-2026.md`, `FUTURE_CONTRIBUTIONS.md`, `docs/plans/`, `CHANGELOG.md`.
+- [ ] **Code gap found, docs now say so:** nothing creates `CALLS` edges. Real indexes
+  hold `CONTAINS`/`IMPORTS` only, so `graph()` and the `callers`/`callees` fields of
+  `explain()` return empty lists, and ast-grep nodes have zero complexity and no
+  docstrings. Tests hide it because they build `CALLS` edges by hand, and
+  `self_test/demo_mcp.py` passes on empty results. Same finding as `todo.md` item 8b.
+- [ ] Not changed (behavior, not docs): `Dockerfile`, `smithery.yaml`, `glama.json`
+  default to `jina-code` while the package defaults to `bge-small-en` (issue #7).
+
 ## Recent Decisions
 | Date | Decision | Rationale | ADR |
 |------|----------|-----------|-----|

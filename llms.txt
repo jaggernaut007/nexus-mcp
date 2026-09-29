@@ -1,26 +1,21 @@
 # Nexus-MCP
 
-> Unified, local-first MCP server combining hybrid search (vector + BM25 + graph), structural code graph analysis, and persistent semantic memory in a single process. Designed for AI coding agents via the Model Context Protocol. <350MB RAM, no API keys, no cloud dependencies. MIT licensed.
+> Unified, local-first MCP server combining hybrid search (vector + BM25 + graph), structural code graph analysis, and persistent semantic memory in a single process. Designed for AI coding agents via the Model Context Protocol. <350MB RAM, no API keys, no cloud dependencies. Source-available under PolyForm Noncommercial 1.0.0.
 
-Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexes codebases into three engines (vector embeddings, BM25 keyword index, rustworkx code graph) and fuses results via Reciprocal Rank Fusion with FlashRank re-ranking. Agents get exactly the code they need in 500-2000 tokens instead of reading entire files (5000-15000 tokens). Supports 25+ programming languages via dual parsing (tree-sitter + ast-grep).
+Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexes codebases into three engines (vector embeddings, BM25 keyword index, rustworkx code graph) and fuses results via Reciprocal Rank Fusion with FlashRank re-ranking. Agents get the code they need in 500-2000 tokens instead of reading entire files (5000-15000 tokens). Supports 25+ programming languages via dual parsing (tree-sitter + ast-grep).
 
-## Core Tools (15 MCP tools)
+## Core Tools (10 MCP tools)
 
-- [search](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Hybrid code search — vector semantic + BM25 keyword + graph structural, fused via RRF, re-ranked with FlashRank. Supports language/type filters, path scoping, three verbosity levels (summary/detailed/full).
-- [index](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Index a codebase — parallel parsing, incremental reindex on changed files, 8-step pipeline.
+- [index](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Index one or more folders — parallel parsing, incremental reindex on changed files, 8-step pipeline. Starts a file watcher for auto-reindex.
+- [status](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Index stats, memory usage, and a staleness warning when files changed since the last index.
+- [health](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Liveness/readiness probe.
+- [search](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Hybrid code search — vector semantic + BM25 keyword + graph structural, fused via RRF, re-ranked with FlashRank. Language/type filters, live-grep fallback.
 - [find_symbol](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Look up a symbol by name — definition, location, relationships. Exact or fuzzy matching.
-- [find_callers](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Find all direct callers of a function — essential before refactoring.
-- [find_callees](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Find all functions called by a given function — trace execution flow.
-- [explain](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Combined graph + vector + analysis explanation of a symbol — one call replaces 3-5 tool calls.
-- [impact](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Transitive change impact analysis — "what breaks if I change X?"
+- [graph](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Callers or callees of a symbol; `transitive=True` for change-impact analysis. Replaces find_callers, find_callees and impact. Call edges are not extracted yet, so results are empty today.
+- [explain](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Combined graph + semantic + metrics explanation of a symbol, with `verbosity` summary/detailed/full.
 - [analyze](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Code complexity, dependencies, smells, and quality metrics.
-- [overview](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): High-level project overview — files, languages, symbols, quality.
-- [architecture](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Architectural analysis — layers, dependencies, entry points, hubs.
-- [remember](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Store semantic memory with tags and TTL — persists context across sessions.
-- [recall](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Search memories by semantic similarity.
-- [forget](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Delete memories by ID, tags, or type.
-- [status](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Server status, indexing stats, memory usage.
-- [health](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Readiness/liveness probe.
+- [map](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Project overview (`detail="summary"`), architecture (`"architecture"`), or both (`"full"`). Replaces overview and architecture.
+- [memory](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): `action="store"`/`"search"`/`"delete"` — persist and retrieve project context with tags and TTL. Replaces remember, recall and forget.
 
 ## Install
 
@@ -38,17 +33,17 @@ Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexe
 
 - [Architecture](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/ARCHITECTURE.md): System design, data flow, engine composition, memory budget
 - [Developer Guide](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/DEVELOPER_GUIDE.md): Contributing, testing, adding tools/engines
-- [ADRs](https://github.com/jaggernaut007/Nexus-MCP/tree/main/docs/adr): 14 Architecture Decision Records
+- [ADRs](https://github.com/jaggernaut007/Nexus-MCP/tree/main/docs/adr): 18 Architecture Decision Records
 
 ## Key Technical Details
 
 - **Search pipeline**: query -> [vector, BM25, graph] parallel -> RRF fusion (weights 0.5/0.3/0.2) -> FlashRank re-rank -> token budget truncation
 - **Storage**: LanceDB (vectors + FTS, mmap disk-backed), SQLite (graph persistence), no ChromaDB
-- **Embedding**: ONNX Runtime with bge-small-en-v1.5 default (~50MB), optional CodeRankEmbed (~500MB)
-- **Graph**: rustworkx PyDiGraph — callers, callees, imports, inheritance, centrality, impact analysis
-- **Parsing**: tree-sitter (symbol extraction for embeddings) + ast-grep (structural relationships for graph)
+- **Embedding**: bge-small-en-v1.5 default (384d), optional jina-code (768d, ONNX Runtime)
+- **Graph**: rustworkx PyDiGraph — containment and import edges today; caller/callee and impact traversal are implemented but call edges are not extracted yet
+- **Parsing**: tree-sitter (symbol extraction for embeddings) + ast-grep (containment and import structure for the graph)
 - **Memory**: LanceDB-backed semantic memory with 6 types, TTL expiration, tag filtering
-- **Token budgets**: summary ~500tok, detailed ~2000tok, full ~8000tok — agents request only what they need
+- **Token budgets**: responses are truncated to a token budget; `explain` takes a `verbosity` of summary (~500 tok), detailed (~2000 tok) or full (~8000 tok)
 
 ## Optional
 

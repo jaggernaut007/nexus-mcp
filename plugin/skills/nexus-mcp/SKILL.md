@@ -38,6 +38,11 @@ description: Route code search, symbol lookup, call-graph analysis, and codebase
 
 ## Known limitations
 
+- **Call edges are not populated yet.** The graph holds `CONTAINS` and `IMPORTS`
+  edges only, so `graph()` (callers, callees and `transitive=True`) and the
+  `callers`/`callees` fields of `explain()` return empty lists today. An empty result
+  does NOT mean a symbol is unused. Use `search` to find call sites before you
+  refactor.
 - The call graph (`graph()`) only sees static edges — dynamic dispatch, closures,
   callbacks, and reflection are invisible to it. Treat `transitive=True` results as a
   lower bound on blast radius, not exhaustive, in highly dynamic code.

@@ -1,8 +1,8 @@
 """Embedding service with ONNX Runtime support and GPU/MPS auto-detection.
 
 Supported models:
-- jina-code (768d, 8192 seq len, ONNX) — DEFAULT, code-specific
-- bge-small-en (384d, 512 seq len, PyTorch) — lightweight general
+- bge-small-en (384d, 512 seq len, PyTorch) — DEFAULT, lightweight general
+- jina-code (768d, 8192 seq len, ONNX) — code-specific
 """
 
 import gc

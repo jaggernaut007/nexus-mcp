@@ -194,7 +194,7 @@ Remaining 8b/8c/8d items were evaluated against the v2.0.0 architecture; see
 - [x] Fixed stale content in `README.md`, `CLAUDE.md`, `AGENTS.md`, `llms.txt`,
   `docs/{USAGE_GUIDE,DEVELOPER_GUIDE,PROJECT_INFO,ARCHITECTURE,INSTALLATION}.md`,
   `self_test/README.md` and the plugin skill: pre-2.0.0 tool names (15 tools),
-  test counts (602 now), default model (`bge-small-en`), `core_api.py` layer, the
+  test counts (607 now), default model (`bge-small-en`), `core_api.py` layer, the
   `_pipeline` lock location, ADR-018, env vars, MIT/"all rights reserved" text.
 - [x] Added `scripts/build_llms_full.py`; `llms-full.txt` is now generated from the
   source docs instead of hand-copied. `embedding_service.py` docstring named the wrong default.

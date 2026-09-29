@@ -29,7 +29,7 @@ AI coding agents are token-inefficient by default. An agent trying to understand
 
 With Nexus-MCP:
 
-1. `explain("verify_credentials")` → symbol definition + all callers + all callees + complexity metrics → **~1,500 tokens, 1 tool call**
+1. `explain("verify_credentials")` → symbol definition + related code + quality metrics (callers and callees once call edges are extracted) → **~1,500 tokens, 1 tool call**
 
 Or for discovery:
 
@@ -61,7 +61,7 @@ Use nexus-mcp-ci tools before built-in file tools:
 - Start sessions with `mcp__nexus-mcp__status`; run `index` if needed
 - `search` before `Read/Grep`
 - `explain` instead of reading a file to understand a symbol
-- `impact` before any refactor
+- `graph(..., transitive=True)` before any refactor (the graph has no `CALLS` edges yet, so also use `search` to find call sites)
 ```
 
 That's it. Claude will index your project on first use and use Nexus-MCP tools automatically.
@@ -82,7 +82,7 @@ Source files
     │           captures: name, signature, docstring, line_start/end, language
     │
     ├─ Step 3: Parse graph ────── ast-grep (sequential for consistency)
-    │           extracts: call edges, import edges, inheritance edges
+    │           extracts: containment edges, import edges (no call/inheritance edges yet)
     │           output: UniversalGraph(nodes=[], edges=[])
     │
     ├─ Step 4: Transfer graph ── populate rustworkx PyDiGraph
@@ -311,8 +311,8 @@ Every code task in this project MUST follow this workflow:
 1. **Session start**: `mcp__nexus-mcp__status` → if not indexed, `mcp__nexus-mcp__index`
 2. **Before any file read**: `mcp__nexus-mcp__search` to locate relevant code
 3. **To understand a symbol**: `mcp__nexus-mcp__explain` (not Read)
-4. **Before refactoring**: `mcp__nexus-mcp__impact` to assess blast radius
-5. **For project orientation**: `mcp__nexus-mcp__overview` or `mcp__nexus-mcp__architecture`
+4. **Before refactoring**: `mcp__nexus-mcp__graph` with `transitive=True` to assess blast radius. The current graph has no `CALLS` edges, so use `mcp__nexus-mcp__search` to find call sites.
+5. **For project orientation**: `mcp__nexus-mcp__map` with `detail="summary"` or `detail="architecture"`
 ```
 
 ### Typical agent tool-call sequence
@@ -322,23 +322,24 @@ Every code task in this project MUST follow this workflow:
 status()               → "indexed: True, 8,412 chunks, 1,203 symbols, 87 MB"
 
 # Code discovery
-search("JWT token validation", mode="hybrid", n=10)
+search("JWT token validation", mode="hybrid", limit=10)
   → auth/jwt.py:42  validate_token()         score=0.94
   → auth/middleware.py:18  require_auth()    score=0.87
   → tests/test_auth.py:91  test_valid_jwt()  score=0.81
 
 # Deep symbol understanding
 explain("validate_token")
-  → definition, docstring, params, complexity
-  → callers: [require_auth, login_required, api_key_check]
-  → callees: [decode_jwt, check_expiry, verify_signature]
-  → quality: complexity=6, smells=[], maintainability=A
+  → definition, location, related code
+  → callers: [], callees: []   # empty until call edges are extracted (see Known Limitations)
 
 # Pre-refactor safety check
 graph("validate_token", direction="callers", transitive=True)
-  → direct callers: 3 symbols
-  → transitive impact: 12 symbols across 4 files
-  → high-risk: auth/middleware.py (5 dependents)
+  → total_impacted: 0          # no CALLS edges on a real index yet, so this is NOT proof of no callers
+
+# Locate call sites with search instead
+search("validate_token(", mode="bm25")
+  → auth/middleware.py:18  require_auth()  ...
+  → auth/login.py:57  login_required()     ...
 ```
 
 ### Multi-folder monorepo indexing
@@ -433,7 +434,7 @@ git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 pip install -e ".[dev]"
 
-pytest -v                    # 602 tests
+pytest -v                    # 607 tests
 pytest -m "not slow"         # skip performance benchmarks
 pytest tests/test_hybrid_search.py  # single module
 ruff check .                 # lint
@@ -525,7 +526,7 @@ Expected output: all 10 tools exercised with pass/fail per tool and a summary.
 - **No incremental graph updates**: Graph is rebuilt in full on incremental reindex (only vector/BM25 are incremental at the chunk level).
 - **No SSE transport**: Only stdio transport is currently supported.
 - **Language coverage**: 25+ languages get tree-sitter symbol extraction. ast-grep structure (functions, classes, imports) covers Python, JavaScript, TypeScript, Go, Java, and Rust; other languages have no graph structure.
-- **Call edges are not populated yet**: the graph holds `CONTAINS` and `IMPORTS` edges only. No parser creates `CALLS` edges, so `graph(direction="callers"/"callees")`, `graph(transitive=True)` and the `callers`/`callees` fields of `explain` return empty lists today. Use `search` and `find_symbol` to locate call sites until call-edge extraction lands. Function complexity and docstring fields on graph nodes are also empty, so `analyze` complexity scores are not yet meaningful.
+- **Call edges are not populated yet**: the graph holds `CONTAINS` and `IMPORTS` edges only. No parser creates `CALLS` edges, so `graph(direction="callers"/"callees")`, `graph(transitive=True)` and the `callers`/`callees` fields of `explain` return empty lists today. Use `search` to locate call sites until call-edge extraction lands. `find_symbol` returns definitions, not callers. Function complexity and docstring fields on graph nodes are also empty, so `analyze` complexity scores are not yet meaningful.
 - **Static call graph only (once populated)**: call edges will come from static parsing, not runtime tracing — dynamic dispatch, monkey-patching, and calls made through callbacks/closures/reflection won't show up. Treat `graph(transitive=True)` as a lower bound on blast radius in highly dynamic code.
 - **Auto-reindex has a detection lag**: with the file watcher enabled (default), edits are picked up after a short debounce, and `status()`/`search()` run a throttled staleness check as a backstop — not an instant, per-call guarantee of freshness.
 

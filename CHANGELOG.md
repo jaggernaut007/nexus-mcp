@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- `find_symbol`'s keyword parameter was renamed from `name` to `symbol_name`, to
+  match `graph()` and `explain()`. Callers that pass `find_symbol(name=...)` must
+  switch to `find_symbol(symbol_name=...)`.
+
 ### Documentation
 
 - Replaced pre-2.0.0 tool names (`find_callers`, `impact`, `remember`, ...) with

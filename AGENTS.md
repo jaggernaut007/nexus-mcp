@@ -23,7 +23,7 @@ Single MCP server consolidating CodeGrok + code-graph-mcp. 10 tools (`index`, `s
 
 ## Commands
 - `pip install -e ".[dev]"` — install with dev dependencies
-- `pytest -v` — all tests (602); `pytest -m "not slow"` is what CI runs
+- `pytest -v` — all tests (607); `pytest -m "not slow"` is what CI runs
 - `ruff check .` — lint
 - `nexus-mcp-ci` — run the server; `python self_test/demo_mcp.py` — end-to-end demo
 

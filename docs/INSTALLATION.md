@@ -360,7 +360,7 @@ NEXUS_LOG_LEVEL=DEBUG NEXUS_SEARCH_MODE=vector nexus-mcp
 ## Running Tests
 
 ```bash
-# All tests (602)
+# All tests (607)
 pytest -v
 
 # Skip slow performance benchmarks

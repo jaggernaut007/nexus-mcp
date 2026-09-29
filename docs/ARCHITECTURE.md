@@ -28,7 +28,7 @@ flowchart TB
         direction TB
         Parse["parsing/\ntree-sitter (symbols, parallel) +\nast-grep (relationships, sequential) +\nfile_watcher (NEXUS_AUTO_WATCH)"]
         Chunk["indexing/chunker.py\nsymbols → CodeChunks"]
-        Embed["indexing/embedding_service.py\nONNX Runtime: bge-small-en / jina-code"]
+        Embed["indexing/embedding_service.py\nbge-small-en (PyTorch) / jina-code (ONNX Runtime)"]
         Parse --> Chunk --> Embed
     end
 
@@ -144,7 +144,7 @@ After `index()` finishes, `core_api._ensure_file_watcher` starts a debounced wat
 ```
 Source files → tree-sitter → Symbols → Chunker → CodeChunks
                                                       ↓
-Source files → ast-grep → UniversalGraph → rustworkx   ONNX embed
+Source files → ast-grep → UniversalGraph → rustworkx   embed (PyTorch / ONNX)
                                                       ↓
                                               LanceDB (chunks table)
 ```

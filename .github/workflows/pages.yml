@@ -6,6 +6,7 @@ on:
     paths:
       - "site/**"
       - "llms.txt"
+      - "llms-full.txt"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -32,6 +33,7 @@ jobs:
           mkdir -p _site
           cp -R site/. _site/
           cp llms.txt _site/llms.txt
+          cp llms-full.txt _site/llms-full.txt
           touch _site/.nojekyll
 
       - uses: actions/configure-pages@v5

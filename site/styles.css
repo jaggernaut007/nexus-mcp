@@ -126,7 +126,7 @@ h1 em { color: var(--accent); }
 @keyframes blink { 50% { opacity: 0; } }
 
 /* Sections */
-.section { padding: 104px 0; border-top: 1px solid var(--line); }
+.section { padding: 104px 0; border-top: 1px solid var(--line); scroll-margin-top: 64px; }
 .kicker { margin: 0 0 14px; font: 500 .78rem var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--accent); }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
 .pain { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
@@ -156,6 +156,16 @@ h1 em { color: var(--accent); }
 .split td:last-child { text-align: right; white-space: nowrap; }
 .pill { font: 500 .8rem var(--mono); background: var(--accent-soft); color: var(--accent); padding: 4px 10px; border-radius: 999px; }
 .pill.muted { background: var(--paper-2); color: var(--ink-2); }
+
+/* What is it */
+.what { background: var(--paper-2); }
+.what-grid { display: grid; grid-template-columns: 1fr 1.6fr; gap: 56px; align-items: start; }
+.what-copy > p { margin: 0 0 24px; font-size: 1.12rem; color: var(--ink-2); }
+.what-copy strong { color: var(--ink); font-weight: 600; }
+.facts { margin: 0; display: grid; border-top: 1px solid var(--line); }
+.facts div { display: grid; grid-template-columns: 8.5em 1fr; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: .96rem; }
+.facts dt { font: 500 .78rem var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); padding-top: .25em; }
+.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 
 /* Tools */
 .tool-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; margin-top: 48px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
@@ -212,7 +222,7 @@ h1 em { color: var(--accent); }
   .grid4 { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 880px) {
-  .hero-grid, .feature, .complement-grid, .faq-wrap { grid-template-columns: 1fr; gap: 36px; }
+  .hero-grid, .feature, .complement-grid, .faq-wrap, .what-grid { grid-template-columns: 1fr; gap: 36px; }
   .feature.flip .feature-copy { order: 0; }
   .grid3 { grid-template-columns: 1fr; }
   .term { transform: none; }

@@ -47,7 +47,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/jaggernaut007/Nexus-MCP"
+Homepage = "https://jaggernaut007.github.io/nexus-mcp/"
 Repository = "https://github.com/jaggernaut007/Nexus-MCP"
 Documentation = "https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md"
 Issues = "https://github.com/jaggernaut007/Nexus-MCP/issues"

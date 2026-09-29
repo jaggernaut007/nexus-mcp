@@ -3,15 +3,154 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Nexus-MCP — Context for AI coding agents</title>
-  <meta name="description" content="Nexus-MCP is a local MCP server that gives AI coding agents durable project memory, a live map of your codebase, and plain explanations of any symbol. No API keys. Nothing leaves your machine.">
-  <meta property="og:title" content="Nexus-MCP — Context for AI coding agents">
-  <meta property="og:description" content="Durable project memory, a live codebase map and symbol explanations for any MCP agent. Local, private, under 350 MB RAM.">
+  <title>Nexus-MCP: MCP Server for AI Coding Agent Memory &amp; Code Search</title>
+  <meta name="description" content="Local MCP server that gives Claude Code, Cursor and other AI coding agents persistent project memory, a live codebase map and code explanations. No API keys.">
+  <meta name="keywords" content="MCP server, Model Context Protocol, Claude Code memory, AI coding agent context, code search MCP, codebase documentation, semantic code search">
+  <meta name="author" content="Shreyas Jagannath">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <link rel="canonical" href="https://jaggernaut007.github.io/nexus-mcp/">
+  <meta property="og:site_name" content="Nexus-MCP">
   <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:url" content="https://jaggernaut007.github.io/nexus-mcp/">
+  <meta property="og:title" content="Nexus-MCP: MCP Server for AI Coding Agent Memory &amp; Code Search">
+  <meta property="og:description" content="Persistent project memory, a live codebase map and symbol explanations for any MCP agent. Local, private, under 350 MB RAM.">
+  <meta property="og:image" content="https://jaggernaut007.github.io/nexus-mcp/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Nexus-MCP. Your agent forgets. Your codebase shouldn't.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Nexus-MCP: MCP Server for AI Coding Agent Memory &amp; Code Search">
+  <meta name="twitter:description" content="Persistent project memory, a live codebase map and symbol explanations for any MCP agent. Local and private.">
+  <meta name="twitter:image" content="https://jaggernaut007.github.io/nexus-mcp/og.png">
   <meta name="theme-color" content="#f5f1ea" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="alternate" type="text/plain" href="llms.txt" title="llms.txt">
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://jaggernaut007.github.io/nexus-mcp/#website",
+      "url": "https://jaggernaut007.github.io/nexus-mcp/",
+      "name": "Nexus-MCP",
+      "inLanguage": "en",
+      "publisher": {
+        "@id": "https://jaggernaut007.github.io/nexus-mcp/#author"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://jaggernaut007.github.io/nexus-mcp/#author",
+      "name": "Shreyas Jagannath",
+      "url": "https://github.com/jaggernaut007",
+      "sameAs": [
+        "https://github.com/jaggernaut007"
+      ]
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://jaggernaut007.github.io/nexus-mcp/#software",
+      "name": "Nexus-MCP",
+      "alternateName": [
+        "nexus-mcp-ci",
+        "Nexus MCP"
+      ],
+      "applicationCategory": "DeveloperApplication",
+      "applicationSubCategory": "Model Context Protocol server",
+      "operatingSystem": "macOS, Linux, Windows",
+      "programmingLanguage": "Python",
+      "description": "A local MCP server that gives AI coding agents persistent project memory, a live codebase map, hybrid code search and symbol explanations. No API keys. Under 350 MB RAM.",
+      "url": "https://jaggernaut007.github.io/nexus-mcp/",
+      "downloadUrl": "https://pypi.org/project/nexus-mcp-ci/",
+      "installUrl": "https://pypi.org/project/nexus-mcp-ci/",
+      "codeRepository": "https://github.com/jaggernaut007/Nexus-MCP",
+      "license": "https://polyformproject.org/licenses/noncommercial/1.0.0",
+      "isAccessibleForFree": true,
+      "author": {
+        "@id": "https://jaggernaut007.github.io/nexus-mcp/#author"
+      },
+      "keywords": "MCP server, Model Context Protocol, AI coding agent, Claude Code, code search, semantic memory, code intelligence, local-first",
+      "sameAs": [
+        "https://github.com/jaggernaut007/Nexus-MCP",
+        "https://pypi.org/project/nexus-mcp-ci/",
+        "https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP"
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://jaggernaut007.github.io/nexus-mcp/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Nexus-MCP?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Nexus-MCP is a local Model Context Protocol (MCP) server for AI coding agents. It gives an agent persistent project memory, a live map of the codebase, hybrid semantic and keyword code search, and symbol explanations. It runs on your machine and needs no API keys."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I give Claude Code persistent memory across sessions?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Install Nexus-MCP with pip install nexus-mcp-ci, then register it with claude mcp add nexus-mcp-ci -- nexus-mcp-ci. The agent can then store decisions, notes and preferences with the memory tool and recall them by meaning in later sessions. The memory store is local and any MCP client can read it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Nexus-MCP free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, for personal, research, education and other noncommercial use. The source is public on GitHub under the PolyForm Noncommercial 1.0.0 license. Commercial use needs a separate license from the maintainer."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does my code leave my machine?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Parsing, embeddings, the vector store and the memory store all run locally. Nexus-MCP sends no code to any service and needs no API keys. The embedding model downloads once, at first use."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which AI coding agents and MCP clients does it work with?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Any MCP client that supports the stdio transport. That includes Claude Code, Claude Desktop, Cursor, Windsurf, Cline, Continue and Goose."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which programming languages does Nexus-MCP support?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Symbol extraction and search cover more than 25 languages through tree-sitter. Structural data for the map and graph tools is available for Python, JavaScript, TypeScript, Go, Java and Rust."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Will the code index go stale?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A debounced file watcher re-indexes changed files a few seconds after you save. The status and search tools also run a throttled staleness check and flag old results. Branch switches are detected by file modification time."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is not finished yet?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Call edges are not extracted yet, so the graph tool returns empty caller and callee lists today. Memory, map, analyze, search and explain work now. The README lists all known limits."
+          }
+        }
+      ]
+    }
+  ]
+}
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -94,6 +233,27 @@
   complexity 6 · no smells</span><span class="cursor" aria-hidden="true"></span></code></pre>
           <figcaption>Illustrative output. Real results depend on your code.</figcaption>
         </figure>
+      </div>
+    </section>
+
+    <!-- WHAT IS IT (plain definition for search and answer engines) -->
+    <section class="section what" id="what-is-nexus-mcp">
+      <div class="wrap what-grid">
+        <div>
+          <p class="kicker">In one paragraph</p>
+          <h2>What is Nexus-MCP?</h2>
+        </div>
+        <div class="what-copy">
+          <p><strong>Nexus-MCP is a local Model Context Protocol (MCP) server for AI coding agents.</strong> It adds three things an agent lacks by default: persistent project memory across sessions, a live map of your codebase, and plain explanations of any function or class. It works with Claude Code, Claude Desktop, Cursor, Windsurf, Cline, Continue and Goose.</p>
+          <dl class="facts">
+            <div><dt>Install</dt><dd><code>pip install nexus-mcp-ci</code></dd></div>
+            <div><dt>Runs</dt><dd>Locally. No API keys. Under 350 MB RAM.</dd></div>
+            <div><dt>Transport</dt><dd>MCP over stdio</dd></div>
+            <div><dt>Languages</dt><dd>25+ (tree-sitter)</dd></div>
+            <div><dt>License</dt><dd>PolyForm Noncommercial 1.0.0</dd></div>
+            <div><dt>Listed on</dt><dd><a href="https://pypi.org/project/nexus-mcp-ci/" rel="noopener">PyPI</a>, <a href="https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP" rel="noopener">Glama</a>, <a href="https://github.com/jaggernaut007/Nexus-MCP" rel="noopener">GitHub</a></dd></div>
+          </dl>
+        </div>
       </div>
     </section>
 
@@ -317,28 +477,36 @@
         </div>
         <div class="faq-list">
           <details>
-            <summary>Is it free?</summary>
-            <p>Yes, for personal, research, education and other noncommercial use. The source is public on GitHub under the <a href="https://github.com/jaggernaut007/Nexus-MCP/blob/main/LICENSE">PolyForm Noncommercial 1.0.0</a> license. Commercial use needs a separate license. Contact the maintainer on GitHub.</p>
+            <summary>What is Nexus-MCP?</summary>
+            <p>Nexus-MCP is a local Model Context Protocol (MCP) server for AI coding agents. It gives an agent persistent project memory, a live map of the codebase, hybrid semantic and keyword code search, and symbol explanations. It runs on your machine and needs no API keys.</p>
+          </details>
+          <details>
+            <summary>How do I give Claude Code persistent memory across sessions?</summary>
+            <p>Install Nexus-MCP with <code>pip install nexus-mcp-ci</code>, then register it with <code>claude mcp add nexus-mcp-ci -- nexus-mcp-ci</code>. The agent can then store decisions, notes and preferences with the memory tool and recall them by meaning in later sessions. The memory store is local and any MCP client can read it.</p>
+          </details>
+          <details>
+            <summary>Is Nexus-MCP free?</summary>
+            <p>Yes, for personal, research, education and other noncommercial use. The source is public on GitHub under the <a href="https://github.com/jaggernaut007/Nexus-MCP/blob/main/LICENSE" rel="noopener">PolyForm Noncommercial 1.0.0</a> license. Commercial use needs a separate license from the maintainer.</p>
           </details>
           <details>
             <summary>Does my code leave my machine?</summary>
-            <p>No. Parsing, embeddings, the vector store and the memory store all run locally. Nexus-MCP makes no network calls with your code and needs no API keys. The embedding model downloads once, at first use.</p>
+            <p>No. Parsing, embeddings, the vector store and the memory store all run locally. Nexus-MCP sends no code to any service and needs no API keys. The embedding model downloads once, at first use.</p>
           </details>
           <details>
-            <summary>Which agents does it work with?</summary>
-            <p>Any MCP client that supports stdio. That includes Claude Code, Claude Desktop, Cursor, Windsurf, Cline, Continue and Goose.</p>
+            <summary>Which AI coding agents and MCP clients does it work with?</summary>
+            <p>Any MCP client that supports the stdio transport. That includes Claude Code, Claude Desktop, Cursor, Windsurf, Cline, Continue and Goose.</p>
           </details>
           <details>
-            <summary>Which languages are supported?</summary>
-            <p>Symbol extraction and search cover 25+ languages through tree-sitter. Structural data for <code>map</code> and <code>graph</code> is available for Python, JavaScript, TypeScript, Go, Java and Rust.</p>
+            <summary>Which programming languages does Nexus-MCP support?</summary>
+            <p>Symbol extraction and search cover more than 25 languages through tree-sitter. Structural data for the map and graph tools is available for Python, JavaScript, TypeScript, Go, Java and Rust.</p>
           </details>
           <details>
-            <summary>Will the index go stale?</summary>
-            <p>A debounced file watcher re-indexes changed files a few seconds after you save. <code>status</code> and <code>search</code> also run a throttled staleness check and flag old results. Branch switches are detected by file mtime.</p>
+            <summary>Will the code index go stale?</summary>
+            <p>A debounced file watcher re-indexes changed files a few seconds after you save. The status and search tools also run a throttled staleness check and flag old results. Branch switches are detected by file modification time.</p>
           </details>
           <details>
             <summary>What is not finished yet?</summary>
-            <p>Call edges are not extracted yet, so <code>graph</code> callers and callees return empty lists today. Memory, map, analyze, search and explain work now. The <a href="https://github.com/jaggernaut007/Nexus-MCP">README</a> lists all known limits.</p>
+            <p>Call edges are not extracted yet, so the graph tool returns empty caller and callee lists today. Memory, map, analyze, search and explain work now. <a href="https://github.com/jaggernaut007/Nexus-MCP#readme" rel="noopener">The README</a> lists all known limits.</p>
           </details>
         </div>
       </div>
@@ -361,7 +529,7 @@
   <footer class="footer">
     <div class="wrap footer-inner">
       <p>© <span data-year>2026</span> Shreyas Jagannath · <a href="https://github.com/jaggernaut007/Nexus-MCP/blob/main/LICENSE">PolyForm Noncommercial 1.0.0</a></p>
-      <p><a href="https://github.com/jaggernaut007/Nexus-MCP#readme">Docs</a> · <a href="https://github.com/jaggernaut007/Nexus-MCP/blob/main/CHANGELOG.md">Changelog</a> · <a href="llms.txt">llms.txt</a></p>
+      <p><a href="https://github.com/jaggernaut007/Nexus-MCP#readme">Docs</a> · <a href="https://github.com/jaggernaut007/Nexus-MCP/blob/main/CHANGELOG.md">Changelog</a> · <a href="https://pypi.org/project/nexus-mcp-ci/" rel="noopener">PyPI</a> · <a href="https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP" rel="noopener">Glama</a> · <a href="llms.txt">llms.txt</a></p>
     </div>
   </footer>
 

@@ -30,6 +30,9 @@ Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexe
 
 ## Getting Started
 
+- [Website](https://jaggernaut007.github.io/nexus-mcp/): Overview, install tabs for each MCP client, and FAQ
+- [PyPI](https://pypi.org/project/nexus-mcp-ci/) and [Glama](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP): Package and MCP directory listings
+
 - [README](https://github.com/jaggernaut007/Nexus-MCP/blob/main/README.md): Overview, install, quick start, tool reference, configuration
 - [Installation Guide](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/INSTALLATION.md): Prerequisites, setup script, manual install, MCP client integration
 - [Usage Guide](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Tool reference, configuration, best practices

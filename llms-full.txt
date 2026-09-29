@@ -93,7 +93,8 @@ Source files
     │
     ├─ Step 3: Parse graph ────── ast-grep (sequential for consistency)
     │           extracts: containment edges, import edges (no call/inheritance edges yet)
-    │           output: UniversalGraph(nodes=[], edges=[])
+    │           output: UniversalGraph — nodes: modules, functions, classes;
+    │                                    edges: CONTAINS, IMPORTS
     │
     ├─ Step 4: Transfer graph ── populate rustworkx PyDiGraph
     │           O(1) node lookup by name, Rust-backed traversal
@@ -211,7 +212,7 @@ better under MCP Tool Search than many thin ones.
 | Tool | Use When |
 |------|----------|
 | `find_symbol(symbol_name, exact)` | Look up a specific symbol. `exact=False` for fuzzy matching. |
-| `graph(symbol_name, direction, transitive, max_depth)` | `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True` — MUST run before any refactor** (was `impact()`): full transitive change blast radius across the graph. |
+| `graph(symbol_name, direction, transitive, max_depth)` | `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True`** (was `impact()`) is meant to give the transitive change blast radius before a refactor. **Call edges are not extracted yet, so callers, callees and impact results are empty today** — use `search` to find call sites (see [Known Limitations](#known-limitations)). |
 | `explain(symbol_name, verbosity)` | **Replaces `Read` for understanding code.** Graph relationships + semantic context + quality metrics in one call. |
 | `analyze(path)` | Code quality: cyclomatic complexity, cognitive complexity, code smells, dependency metrics. |
 
@@ -412,13 +413,13 @@ The Python package defaults to `bge-small-en`. The `Dockerfile` and `smithery.ya
 | Semantic (vector) search | ✅ | ❌ keyword only | ✅ LLM-based | ❌ | ❌ |
 | Keyword (BM25) search | ✅ | ✅ | — | ✅ | ❌ |
 | Hybrid fusion (RRF) | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Code graph (call/import) | ✅ rustworkx | ✅ SCIP | ❌ | ❌ | ❌ |
+| Code graph (call/import) | partial: containment + imports (call edges planned) | ✅ SCIP | ❌ | ❌ | ❌ |
 | Re-ranking | ✅ FlashRank | ❌ | — | ❌ | ❌ |
 | Semantic memory (persistent) | ✅ 6 types | ❌ | ❌ | ❌ | ❌ |
-| Change impact analysis | ✅ | partial | ❌ | ❌ | ❌ |
+| Change impact analysis | planned (needs call edges) | partial | ❌ | ❌ | ❌ |
 | Token-budgeted responses | ✅ 3 levels | ❌ | ❌ | ❌ | ❌ |
 | Languages | 25+ | 30+ | many | many | many |
-| Cost | **Paid license** | $$$ | $40/mo | $10–39/mo | Free |
+| Cost | **Free noncommercial; paid commercial license** | $$$ | $40/mo | $10–39/mo | Free |
 | API keys required | **No** | Yes | Yes | Yes | No |
 
 ### vs. AI Code Tools
@@ -429,11 +430,11 @@ The Python package defaults to `bge-small-en`. The `Dockerfile` and `smithery.ya
 | MCP-native | ✅ | partial | ❌ | ❌ | ✅ client | ❌ |
 | Fully local | ✅ | partial | ❌ | partial | ✅ | ✅ |
 | Hybrid search | ✅ | unknown | unknown | keyword | yes | ❌ |
-| Code graph | ✅ | unknown | unknown | ✅ SCIP | basic | ❌ |
+| Code graph | partial (containment + imports) | unknown | unknown | ✅ SCIP | basic | ❌ |
 | Semantic memory | ✅ persistent | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Token-budgeted output | ✅ | — | — | — | — | — |
 | Source available | ✅ PolyForm Noncommercial | ❌ | ❌ | partial | ✅ | ✅ |
-| Cost | **Paid license** | $20–40/mo | $10–39/mo | $0–49/mo | Free | Free |
+| Cost | **Free noncommercial; paid commercial license** | $20–40/mo | $10–39/mo | $0–49/mo | Free | Free |
 
 ---
 

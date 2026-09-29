@@ -22,7 +22,7 @@ Into a **single, memory-efficient MCP server** (<350MB RAM) with 10 tools for co
 - Single process, single MCP connection, 10 tools
 - <350MB RAM via ONNX Runtime + LanceDB mmap + lightweight models
 - Hybrid search combining vector + BM25 + graph signals + live-grep fallback
-- Cross-engine tools like `explain` (graph + vector) and `graph` (call-graph traversal, including transitive change impact)
+- Cross-engine tools like `explain` (graph + vector) and `graph` (call-graph traversal; real indexes currently lack `CALLS` edges, so these results are empty)
 
 ---
 

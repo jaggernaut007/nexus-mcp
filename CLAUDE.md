@@ -45,6 +45,13 @@ repo to read the skill content directly.
   an edit and the next debounce/throttle window, search results can reflect
   slightly stale code — this is a bounded window, not silent indefinite staleness.
 
+## Git Workflow
+Global default applies (see `AGENTS.md` -> Git Workflow):
+1. Call `EnterWorktree` before the first edit (branches off `main`).
+2. Commit on that branch.
+3. Run `~/.claude/scripts/ship.sh` (suggested gate: `SHIP_CHECK="ruff check . && pytest -v"`).
+4. Call `ExitWorktree`; the branch stays for history.
+
 ## Structure (all implemented)
 
 ```

@@ -26,17 +26,17 @@ pip install -e ".[dev]"
 ### Running the Server
 
 ```bash
-nexus-mcp
+nexus-mcp-ci
 ```
 
-The server starts on stdio (the default MCP transport). Configure your MCP client to connect to `nexus-mcp`.
+The server starts on stdio (the default MCP transport). Configure your MCP client to connect to `nexus-mcp-ci`. The `nexus-mcp` command is an alias for the same entry point.
 
 ### MCP Client Configuration
 
 **Claude Code:**
 
 ```bash
-claude mcp add nexus-mcp -- nexus-mcp-ci
+claude mcp add nexus-mcp-ci -- nexus-mcp-ci
 ```
 
 **Claude Desktop** (add to `~/Library/Application Support/Claude/claude_desktop_config.json`):
@@ -67,10 +67,12 @@ See the full [Installation Guide](INSTALLATION.md) for client-specific instructi
 
 ## Tool Reference
 
-### Core Tools
+Nexus-MCP exposes 10 tools. The v2.0.0 release merged the old 15 tools; see the [CHANGELOG](../CHANGELOG.md) for the old-to-new mapping and [ADR-017](adr/ADR-017-tool-consolidation.md) for the reason.
+
+### Discovery & Indexing
 
 #### `index`
-Index a codebase directory. Must be called before any other tool (except `status`).
+Index a codebase directory. Call it before any other tool except `status` and `health`.
 
 ```
 # Single directory
@@ -87,9 +89,38 @@ Parameters:
 - `path` — Absolute path to the codebase directory. Accepts comma-separated paths for multi-folder indexing.
 - `paths` — (Optional) Additional comma-separated paths to index alongside `path`.
 
-When multiple paths are provided, each folder is indexed sequentially (discover → parse → embed → store) and results are merged into shared engines. This keeps peak RAM low since each folder's data is freed before processing the next. Duplicate files across overlapping paths are automatically deduplicated.
+When you give multiple paths, the server indexes each folder in sequence (discover → parse → embed → store) and merges the results into shared engines. This keeps peak RAM low. The server removes duplicate files across overlapping paths.
 
-Returns indexing statistics: file count, symbol count, chunk count, timing. On subsequent calls with a single path, performs incremental reindexing (only changed files).
+Returns indexing statistics: file count, symbol count, chunk count, graph size and timing. Later calls run an incremental reindex (only changed files). The tool reports progress while it runs. When it finishes, a file watcher keeps the index fresh (`NEXUS_AUTO_WATCH`, default on).
+
+#### `status`
+Check whether a codebase is indexed, index size, engine availability and memory usage.
+
+```
+status()
+```
+
+Returns version, indexing state, chunk counts, graph stats, peak RSS memory and a `hint` field. If files changed since the last index, the result includes `stale` and `staleness_warning`, and the server starts a background reindex. The staleness check runs at most once every `NEXUS_STALENESS_CHECK_INTERVAL` seconds (default 15).
+
+#### `health`
+Liveness and readiness probe: uptime and which engines are up. Use `status` to check index freshness.
+
+```
+health()
+```
+
+#### `map`
+Project orientation. Use it instead of `ls` or manual browsing.
+
+```
+map(detail="summary")        # files, languages, symbol counts, quality, top modules
+map(detail="architecture")   # layers, dependencies, classes, entry points, hub symbols
+map(detail="full")           # both
+```
+
+`map` replaces the old `overview()` and `architecture()` tools.
+
+### Search
 
 #### `search`
 Preferred over Grep/Glob for finding code. Semantic + keyword + graph search with code snippets.
@@ -105,61 +136,41 @@ Parameters:
 - `symbol_type` — Filter by type (e.g., "function", "class")
 - `mode` — "hybrid" (default), "vector", or "bm25"
 - `rerank` — Enable FlashRank reranking (default True)
+- `live_grep` — Force the live-grep fallback (`rg`, then `grep`) (default False)
 
-Returns results with `filepath` (relative), `absolute_path`, `code_snippet` (truncated to 2000 chars), `score`, `symbol_name`, `line_start`/`line_end`, and a `hint` field. Raw embedding vectors are stripped from results.
+Returns results with `filepath` (relative), `absolute_path`, `code_snippet` (truncated to 2000 chars), `score`, `symbol_name`, `line_start`/`line_end`, and a `hint` field. Raw embedding vectors are stripped from results. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a non-null `warning`. A background reindex starts, and the results still return at once.
 
-#### `status`
-Check server health, indexing stats, and memory usage.
-
-```
-status()
-```
-
-Returns version, indexing state, chunk counts, graph stats, peak RSS memory, and a `hint` field suggesting which tools to use next.
-
-### Graph Analysis Tools
+### Graph Analysis
 
 #### `find_symbol`
-Preferred over Grep for finding symbol definitions. Returns file path, line numbers, docstring, type annotations, and all relationships (callers, callees).
+Preferred over Grep for finding symbol definitions. Returns file path, line numbers, docstring, type annotations and the graph relationships of the symbol.
 
 ```
 find_symbol(symbol_name="UserService", exact=True)
 ```
 
-Use `exact=False` for case-insensitive fuzzy matching.
+Use `exact=False` for fuzzy substring matching.
 
-#### `find_callers`
-Find all functions that call a given symbol. More accurate than Grep — uses the call graph, so no false positives from comments or strings.
-
-```
-find_callers(symbol_name="authenticate")
-```
-
-#### `find_callees`
-Trace execution flow — find all functions called by a given function. More reliable than reading source and manually tracing imports.
+#### `graph`
+Trace the call graph of a symbol. This tool replaces `find_callers`, `find_callees` and `impact`.
 
 ```
-find_callees(symbol_name="process_request")
+graph(symbol_name="authenticate", direction="callers")        # who calls this
+graph(symbol_name="process_request", direction="callees")     # what this calls
+graph(symbol_name="DatabaseConnection", direction="callers",
+      transitive=True, max_depth=5)                            # change blast radius
 ```
 
-#### `analyze`
-Run code analysis on the indexed codebase: complexity metrics, dependency analysis, code smells, and quality scores.
+Parameters:
+- `symbol_name` — Name of the function or symbol
+- `direction` — "callers" (default) or "callees"
+- `transitive` — `True` returns the full transitive change impact. It works only with `direction="callers"`. Run it before you refactor a shared symbol.
+- `max_depth` — Maximum traversal depth for `transitive=True` (default 10)
 
-```
-analyze(path="src/auth/")
-```
-
-The optional `path` parameter filters analysis to a subdirectory.
-
-#### `impact`
-Use before refactoring. Transitive change impact analysis — shows all functions affected if a given symbol changes.
-
-```
-impact(symbol_name="DatabaseConnection", max_depth=5)
-```
+> **Known gap:** the graph holds `CONTAINS` and `IMPORTS` edges only. No parser extracts `CALLS` edges yet, so `graph` returns empty results today. Use `search` to find call sites until call-edge extraction lands. See [Known Limitations](../README.md#known-limitations).
 
 #### `explain`
-Preferred over Read for understanding code symbols. Combines graph analysis, vector search, and code metrics into a structured explanation.
+Preferred over Read for understanding a symbol. Combines graph relationships, semantic search results and code metrics.
 
 ```
 explain(symbol_name="Router", verbosity="detailed")
@@ -167,58 +178,47 @@ explain(symbol_name="Router", verbosity="detailed")
 
 Verbosity levels: "summary" (concise), "detailed" (default), "full" (everything).
 
-### Project Documentation Tools
-
-#### `overview`
-Get a high-level overview of the indexed project: file counts, language breakdown, symbol counts by type, directory structure, quality metrics, and top modules.
+#### `analyze`
+Run code analysis on the indexed codebase: complexity metrics, dependency analysis, code smells and quality scores.
 
 ```
-overview()
+analyze(path="src/auth/")
 ```
 
-No parameters required. Returns a structured summary of the entire indexed project.
+The optional `path` parameter filters analysis to a subdirectory or file.
 
-#### `architecture`
-Document the architecture of the indexed project: layers, module dependencies, class hierarchies, entry points, hub symbols (highest connectivity), and complexity hotspots.
+### Memory
 
-```
-architecture()
-```
-
-No parameters required. Returns architectural analysis with layers, dependencies, classes, entry points, and structural insights.
-
-### Memory Tools
-
-#### `remember`
-Store a semantic memory for later recall.
+#### `memory`
+Persist and retrieve project context across sessions. This tool replaces `remember`, `recall` and `forget`.
 
 ```
-remember(
-    content="The auth service uses JWT tokens with 24h expiry",
-    memory_type="decision",
-    tags="auth,jwt",
-    ttl="permanent"
-)
+# Store
+memory(action="store",
+       content="The auth service uses JWT tokens with 24h expiry",
+       memory_type="decision", tags="auth,jwt", ttl="permanent")
+
+# Search
+memory(action="search", query="how does authentication work?", limit=5, tags="auth")
+
+# Delete
+memory(action="delete", tags="temporary")
+memory(action="delete", memory_type="session")
+memory(action="delete", memory_id="abc-123")
 ```
 
-Memory types: note, decision, conversation, status, preference, doc.
-TTL options: permanent, month, week, day, session.
+Parameters:
+- `action` — "store", "search" or "delete"
+- `content` — Text to store (`action="store"`)
+- `query` — Natural language query (`action="search"`)
+- `memory_id`, `memory_type`, `tags` — Filters for search and delete. `memory_type` and `tags` also set the type and tags when you store.
+- `ttl` — "permanent" (default), "month", "week", "day" or "session"
+- `project` — Project name for scoping (`action="store"`, default "default")
+- `limit` — Maximum results (`action="search"`, default 5)
 
-#### `recall`
-Search memories by semantic similarity.
+Memory types: note (default), decision, conversation, status, preference, doc.
 
-```
-recall(query="how does authentication work?", limit=5, tags="auth")
-```
-
-#### `forget`
-Delete memories by ID, tags, or type.
-
-```
-forget(tags="temporary")
-forget(memory_type="session")
-forget(memory_id="abc-123")
-```
+With `NEXUS_PERMISSION_LEVEL=read`, `memory` allows `action="search"` only. `store` and `delete` need the `full` level.
 
 ## Configuration
 
@@ -226,8 +226,8 @@ Set via environment variables before starting the server:
 
 ```bash
 # Embedding model selection
-export NEXUS_EMBEDDING_MODEL=jina-code          # Default: jina-code (768d, code-specific)
-                                                 # Options: bge-small-en (384d)
+export NEXUS_EMBEDDING_MODEL=bge-small-en       # Default: bge-small-en (384d, lightweight)
+                                                 # Options: jina-code (768d, code-specific)
 export NEXUS_EMBEDDING_DEVICE=auto               # auto (CUDA > MPS > CPU), cuda, mps, cpu
 
 # Search tuning
@@ -246,7 +246,18 @@ export NEXUS_LOG_FORMAT=json             # text or json (json for production)
 
 # Storage
 export NEXUS_STORAGE_DIR=.nexus          # Where indexes are stored
+
+# Freshness
+export NEXUS_AUTO_WATCH=true             # Debounced file watcher starts after index()
+export NEXUS_STALENESS_CHECK_INTERVAL=15 # Seconds between status()/search() staleness checks
+
+# Security and observability
+export NEXUS_PERMISSION_LEVEL=full       # full or read (read allows query-only tools)
+export NEXUS_AUDIT_ENABLED=true          # Audit log with correlation IDs
+export NEXUS_RATE_LIMIT_ENABLED=false    # Per-tool token-bucket rate limiting
 ```
+
+See the [README configuration table](../README.md#configuration) for every variable.
 
 ### Embedding Models
 
@@ -254,8 +265,8 @@ Nexus-MCP supports two embedding models. Only registered model names are accepte
 
 | Model | HuggingFace ID | Dims | Code-specific? | Notes |
 |-------|---------------|------|:-:|---|
-| `jina-code` (default) | `jinaai/jina-embeddings-v2-base-code` | 768 | Yes | Best code search quality, ONNX |
-| `bge-small-en` | `BAAI/bge-small-en-v1.5` | 384 | No | Smallest download (~50MB), general text |
+| `bge-small-en` (default) | `BAAI/bge-small-en-v1.5` | 384 | No | Smallest download (~50MB), general text, PyTorch backend |
+| `jina-code` | `jinaai/jina-embeddings-v2-base-code` | 768 | Yes | Best code search quality, ONNX, needs `trust_remote_code` |
 
 GPU/MPS auto-detection (`NEXUS_EMBEDDING_DEVICE=auto`) tries CUDA first, then Apple MPS, then falls back to CPU. For explicit GPU support, install with `pip install -e ".[gpu]"`.
 

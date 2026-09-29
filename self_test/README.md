@@ -1,11 +1,11 @@
 # Nexus-MCP Self-Test Demo
 
-Verifies the Nexus-MCP installation by exercising **all 15 MCP tools** end-to-end, bypassing the MCP protocol layer to call tool functions directly.
+Verifies the Nexus-MCP installation by exercising **all 10 MCP tools** end-to-end, bypassing the MCP protocol layer to call tool functions directly.
 
 ## Quick Start
 
 ```bash
-# From the project root (with nexus-mcp installed)
+# From the project root (with nexus-mcp-ci installed)
 python self_test/demo_mcp.py
 
 # Or point it at an existing project
@@ -16,21 +16,21 @@ python self_test/demo_mcp.py /path/to/your/codebase
 
 | # | Tool | Description |
 |---|------|-------------|
-| 1 | `health` | Readiness / liveness probe |
-| 2 | `status` | Server status & memory metrics |
-| 3 | `index` | Full codebase indexing (vector + graph + BM25) |
+| 1 | `health`, `status` | Liveness probe and server status before indexing |
+| 2 | `index` | Full codebase indexing (vector + graph + BM25) |
+| 3 | `status` | Index stats after indexing |
 | 4 | `search` | Hybrid search (vector + BM25 + graph fusion) |
 | 5 | `search` | Vector-only and BM25-only modes |
-| 6 | `find_symbol` | Symbol lookup (exact + fuzzy) |
-| 7 | `find_callers` | Direct caller analysis |
-| 8 | `find_callees` | Direct callee analysis |
-| 9 | `analyze` | Complexity, dependencies, smells, quality |
-| 10 | `impact` | Transitive change-impact analysis |
-| 11 | `explain` | Combined symbol explanation (summary + detailed) |
-| 12 | `remember` | Store semantic memories |
-| 13 | `recall` | Search memories by similarity |
-| 14 | `forget` | Delete memories by tag / type |
-| 15 | `index` | Incremental re-index after file change |
+| 6 | `find_symbol`, `graph` | Symbol lookup (exact + fuzzy); `graph` callers and callees |
+| 7 | `analyze` | Complexity, dependencies, smells, quality |
+| 8 | `map` | Architecture view (`detail="architecture"`) |
+| 9 | `graph` | Transitive change-impact analysis (`transitive=True`) |
+| 10 | `explain` | Combined symbol explanation (summary + detailed) |
+| 11 | `memory` | `store`, `search` and `delete` actions |
+| 12 | `index` | Incremental re-index after a file change |
+| 13 | `health` | Final health check |
+
+The demo checks that each call returns without an error. It does not check that the graph holds call edges. Call edges are not extracted yet, so the `graph` calls return empty lists and still pass.
 
 ## Sample Project
 
@@ -53,7 +53,7 @@ The demo prints a pass/fail summary at the end:
   ✓ search("calculate sum of two numbers")
   ...
   ══════════════════════════════════════════
-  Results: 26/26 checks passed
+  Results: 27/27 checks passed
 ```
 
 Install `rich` for colorized, table-formatted output:

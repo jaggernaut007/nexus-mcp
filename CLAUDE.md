@@ -25,19 +25,26 @@ repo to read the skill content directly.
 
 ### Known limitations
 
-- **The call graph only sees static edges.** `graph()` (both `direction="callers"`/
-  `"callees"` and `transitive=True`) is built from tree-sitter + ast-grep parsing, not
-  runtime tracing. It will **miss**: dynamic dispatch (Python monkey-patching, Ruby
+- **Call edges are not populated yet.** Real indexes hold `CONTAINS` and `IMPORTS`
+  edges only: `astgrep_parser.py` emits nothing else, and the tree-sitter parser records
+  call names on symbols but never creates `CALLS` edges. `graph()` (callers, callees and
+  `transitive=True`) and the `callers`/`callees` fields of `explain()` therefore return
+  empty lists today, and `analyze` shows zero complexity and no docstrings for
+  ast-grep nodes. Tests pass because they build `CALLS` edges by hand
+  (`tests/test_graph_tools.py`, `tests/test_impact_tool.py`). An empty `graph()` result
+  does not mean a symbol is unused — use `search` to find call sites.
+- **The call graph will only see static edges once populated.** `graph()` is built from
+  parsing, not runtime tracing. It will **miss**: dynamic dispatch (Python monkey-patching, Ruby
   metaprogramming), calls made through callbacks/closures/lambdas (e.g.
   `.map(lambda x: foo(x))` shows no edge to `foo`), and reflection-based calls. Treat
   `graph(transitive=True)` results as a lower bound on blast radius, not an exhaustive
   one — especially in highly dynamic languages (Python, Ruby) or callback-heavy code
   (JS/TS).
-- **Graph fidelity varies by language.** Python, JavaScript/TypeScript, C/C++, Go,
-  and Java get full call-graph edges (both tree-sitter symbols and ast-grep
-  structure). Rust, Ruby, PHP, Swift, C#, Scala, Lua, and Dart get ast-grep
-  structural parsing but weaker symbol-level precision. Bash gets tree-sitter
-  symbols only — no call graph.
+- **Graph coverage varies by language.** ast-grep structure (functions, classes,
+  imports) exists for Python, JavaScript, TypeScript, Go, Java, and Rust only
+  (`_extract_functions`, `_extract_classes`, `_extract_imports` in
+  `astgrep_parser.py`). Every other language gets tree-sitter symbols and embeddings
+  but no graph nodes.
 - **Auto-reindex has a detection lag, not a guarantee of freshness.** With
   `NEXUS_AUTO_WATCH` enabled (default), edits are picked up after a debounce window
   (a few seconds); `status()`/`search()` additionally run a throttled staleness
@@ -56,8 +63,9 @@ Global default applies (see `AGENTS.md` -> Git Workflow):
 
 ```
 src/nexus_mcp/
-├── server.py              # FastMCP server, 10 tools + health + input validation + graceful shutdown
-├── config.py              # Settings with NEXUS_ env prefix (security, audit, rate limit)
+├── server.py              # FastMCP server: 10 thin tool wrappers (guard, audit) + graceful shutdown
+├── core_api.py            # Transport-agnostic tool logic, input validation, _pipeline + lock
+├── config.py              # Settings with NEXUS_ env prefix (security, audit, rate limit, auto-watch)
 ├── state.py               # Session state singleton + shutdown()
 ├── core/
 │   ├── models.py          # Symbol, ParsedFile, CodebaseIndex, Memory
@@ -71,6 +79,7 @@ src/nexus_mcp/
 │   └── file_watcher.py        # Debounced watchdog
 ├── engines/
 │   ├── graph_engine.py    # rustworkx PyDiGraph
+│   ├── live_grep.py       # rg/grep fallback
 │   ├── vector_engine.py   # LanceDB vector search (IEngine) + validate()
 │   ├── bm25_engine.py     # LanceDB native FTS
 │   ├── fusion.py          # Reciprocal Rank Fusion
@@ -94,9 +103,11 @@ src/nexus_mcp/
 │   └── audit.py           # Audit logging with correlation IDs + field redaction
 └── persistence/
     └── store.py               # SQLite graph persistence
+benchmarks/                # Token-efficiency benchmark harness (ADR-018)
 self_test/
 ├── demo_mcp.py            # End-to-end demo exercising all 10 tools
 └── README.md              # Usage, sample project, troubleshooting
+llms.txt, llms-full.txt    # AI-readable docs; rebuild llms-full.txt with scripts/build_llms_full.py
 .claude-plugin/
 └── marketplace.json       # /plugin marketplace add jaggernaut007/Nexus-MCP
 plugin/
@@ -111,7 +122,7 @@ plugin/
 pip install nexus-mcp-ci   # Install from PyPI
 pip install -e ".[dev]"    # Install from source with dev deps
 ./setup.sh                 # Setup script (venv + install + verify)
-pytest -v                  # Run tests (460 tests)
+pytest -v                  # Run tests (602 tests)
 pytest -m "not slow"       # Skip performance benchmarks
 ruff check .               # Lint
 nexus-mcp-ci               # Run server
@@ -136,6 +147,7 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 - Token bucket rate limiting: per-tool, off by default — [ADR-014](docs/adr/ADR-014-rate-limiting.md)
 - Auto-watch + throttled staleness detection: warn-and-background-reindex, mtime-diff covers branch switches — [ADR-015](docs/adr/ADR-015-auto-watch-and-staleness-detection.md)
 - Tool consolidation 15→10 (`graph`/`map`/`memory`), action-aware permission categories — [ADR-017](docs/adr/ADR-017-tool-consolidation.md)
+- Token-efficiency benchmark harness (`benchmarks/`) — [ADR-018](docs/adr/ADR-018-token-efficiency-benchmark.md)
 
 ## Gotchas
 
@@ -145,15 +157,15 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 4. Graph engine is thread-safe with RLock
 5. All tools require `index` first except `status` and `health`
 6. Filter values in vector_engine are SQL-escaped to prevent injection
-7. Pipeline `_pipeline` in server.py is protected by a threading lock, held for the full duration of `index()` (not just creation) so background reindexes can safely detect "busy" via a non-blocking acquire
-8. Input validation runs at tool entry (null bytes, length limits, path traversal)
+7. Pipeline `_pipeline` in core_api.py is protected by `_pipeline_lock`, a threading lock, held for the full duration of `index()` (not just creation) so background reindexes can safely detect "busy" via a non-blocking acquire
+8. Input validation runs at tool entry in `core_api.py` (null bytes, length limits, path traversal)
 9. Graceful shutdown persists graph state on SIGTERM/SIGINT
 10. Corrupt indexes are auto-detected and rebuilt on incremental_index
 11. Permission default is `full` (backward compat); set `NEXUS_PERMISSION_LEVEL=read` for restricted
 12. Audit logging is on by default; set `NEXUS_AUDIT_ENABLED=false` to disable
 13. Rate limiting is off by default (stdio); enable via `NEXUS_RATE_LIMIT_ENABLED=true`
 14. `trust_remote_code` defaults to `true` (required only for the jina-code model; the default bge-small-en does not need it); set `NEXUS_TRUST_REMOTE_CODE=false` to disable
-15. `schemas/` was removed (dead code, never wired into any tool); FastMCP tool signatures + inline `_validate_*` helpers in server.py are the only validation
+15. `schemas/` was removed (dead code, never wired into any tool); FastMCP tool signatures + the `validate_*` helpers in core_api.py are the only validation
 16. New exceptions (AuthenticationError, AuthorizationError, RateLimitError) in exceptions.py
 17. Only registered embedding models are supported; custom model names raise ConfigurationError
 18. GPU/MPS auto-detected; set `NEXUS_EMBEDDING_DEVICE=cpu` to force CPU

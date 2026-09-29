@@ -110,7 +110,7 @@ Source files
 ```
 search("how does auth work")
          │
-         ├─► vector_engine.search(query, n=30)  ← cosine similarity on 768-dim embeddings
+         ├─► vector_engine.search(query, n=30)  ← cosine similarity on 384-dim (bge-small-en) or 768-dim (jina-code) embeddings
          │                                         "auth" finds "verify_credentials", "token_check"
          │
          ├─► bm25_engine.search(query, n=30)    ← Tantivy FTS on same LanceDB table
@@ -139,7 +139,7 @@ search("how does auth work")
 | **Embeddings** | bge-small-en (default) or ONNX Runtime + jina-code | bge-small-en is lightweight (384-dim, no trust_remote_code). jina-code is code-specific (161M params, 8192 seq len) on ONNX (~50 MB vs PyTorch ~500 MB). Lazy-load/unload keeps RAM flat after indexing. ([ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md)) |
 | **Graph engine** | rustworkx PyDiGraph | Rust-backed, O(1) node lookup, PageRank + centrality algorithms. Thread-safe with RLock. ([ADR-006](docs/adr/ADR-006-rustworkx-graph-engine.md)) |
 | **Symbol parser** | tree-sitter 0.21.3 | 25+ languages, incremental parsing, AST-level symbol extraction with metadata. Parallel via ThreadPool. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
-| **Graph parser** | ast-grep | Structural pattern matching for call/import/inheritance edges. Sequential run for graph consistency. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
+| **Graph parser** | ast-grep | Structural matching for containment and import edges (call and inheritance edges are not extracted yet). Sequential run for graph consistency. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
 | **Chunking** | Symbol-based | One chunk per function/class. Deterministic SHA256 IDs prevent duplicate inserts. ([ADR-008](docs/adr/ADR-008-code-chunk-strategy.md)) |
 | **Re-ranker** | FlashRank (optional) | 4 MB ONNX cross-encoder, <10 ms on CPU for top-20. Graceful passthrough if not installed. |
 | **Persistence** | SQLite + LanceDB | Graph in SQLite (warm-start recovery), vectors+FTS in LanceDB, mtimes in JSON. Zero-config. |
@@ -163,7 +163,7 @@ Measured against equivalent agentic file-browsing workflows on a ~10,000-line Py
 
 ### Three Verbosity Levels
 
-Every tool respects a `verbosity` parameter — agents request exactly the detail they need:
+`explain` takes a `verbosity` parameter — agents request exactly the detail they need. The other tools return token-budgeted responses (`formatting/token_budget.py`):
 
 | Level | Token Budget | What's Included |
 |-------|:-----------:|-----------------|
@@ -194,15 +194,15 @@ better under MCP Tool Search than many thin ones.
 
 | Tool | Use When |
 |------|----------|
-| `search(query, mode, language, type, n)` | Primary code discovery. `mode`: `hybrid` (default), `vector`, or `bm25`. Falls back to live grep if results are sparse. Returns a non-null `warning` if the index looked stale (a background reindex is triggered automatically; results still return immediately). |
+| `search(query, limit, language, symbol_type, mode, rerank, live_grep)` | Primary code discovery. `mode`: `hybrid` (default), `vector`, or `bm25`. Falls back to live grep if results are sparse. Returns a non-null `warning` if the index looked stale (a background reindex is triggered automatically; results still return immediately). |
 
 ### Graph Analysis
 
 | Tool | Use When |
 |------|----------|
 | `find_symbol(symbol_name, exact)` | Look up a specific symbol. `exact=False` for fuzzy matching. |
-| `graph(symbol, direction, transitive, max_depth)` | `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True` — MUST run before any refactor** (was `impact()`): full transitive change blast radius across the graph. |
-| `explain(symbol)` | **Replaces `Read` for understanding code.** Graph relationships + semantic context + quality metrics in one call. |
+| `graph(symbol_name, direction, transitive, max_depth)` | `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True` — MUST run before any refactor** (was `impact()`): full transitive change blast radius across the graph. |
+| `explain(symbol_name, verbosity)` | **Replaces `Read` for understanding code.** Graph relationships + semantic context + quality metrics in one call. |
 | `analyze(path)` | Code quality: cyclomatic complexity, cognitive complexity, code smells, dependency metrics. |
 
 ### Memory
@@ -335,7 +335,7 @@ explain("validate_token")
   → quality: complexity=6, smells=[], maintainability=A
 
 # Pre-refactor safety check
-impact("validate_token")
+graph("validate_token", direction="callers", transitive=True)
   → direct callers: 3 symbols
   → transitive impact: 12 symbols across 4 files
   → high-risk: auth/middleware.py (5 dependents)
@@ -378,6 +378,8 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_LOG_LEVEL` | `INFO` | Logging level |
 | `NEXUS_LOG_FORMAT` | `text` | `text` or `json` |
 
+The Python package defaults to `bge-small-en`. The `Dockerfile` and `smithery.yaml` set `jina-code` explicitly, so those deployments use `jina-code` unless you override it.
+
 ### Embedding Models
 
 | Model | Key | Dims | Max Seq | Backend | `trust_remote_code` |
@@ -419,7 +421,7 @@ All settings via `NEXUS_` environment variables:
 | Code graph | ✅ | unknown | unknown | ✅ SCIP | basic | ❌ |
 | Semantic memory | ✅ persistent | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Token-budgeted output | ✅ | — | — | — | — | — |
-| Open source | ❌ all rights reserved | ❌ | ❌ | partial | ✅ | ✅ |
+| Source available | ✅ PolyForm Noncommercial | ❌ | ❌ | partial | ✅ | ✅ |
 | Cost | **Paid license** | $20–40/mo | $10–39/mo | $0–49/mo | Free | Free |
 
 ---
@@ -431,9 +433,9 @@ git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 pip install -e ".[dev]"
 
-pytest -v                    # 441 tests
+pytest -v                    # 602 tests
 pytest -m "not slow"         # skip performance benchmarks
-pytest tests/test_search.py  # single module
+pytest tests/test_hybrid_search.py  # single module
 ruff check .                 # lint
 ```
 
@@ -441,7 +443,8 @@ ruff check .                 # lint
 
 ```
 src/nexus_mcp/
-├── server.py              # FastMCP entrypoint — 10 tools, input validation, graceful shutdown
+├── server.py              # FastMCP entrypoint — 10 thin tool wrappers (permission guard, rate limit, audit), graceful shutdown
+├── core_api.py            # Transport-agnostic tool logic + input validation; importable without MCP
 ├── config.py              # Settings (NEXUS_ env prefix)
 ├── state.py               # Global singleton SessionState
 ├── core/
@@ -458,6 +461,7 @@ src/nexus_mcp/
 │   ├── vector_engine.py   # LanceDB cosine similarity search
 │   ├── bm25_engine.py     # LanceDB native FTS (Tantivy)
 │   ├── graph_engine.py    # rustworkx PyDiGraph with RLock
+│   ├── live_grep.py       # rg/grep fallback for unindexed or sparse results
 │   ├── fusion.py          # Reciprocal Rank Fusion
 │   └── reranker.py        # FlashRank (optional, graceful degradation)
 ├── indexing/
@@ -469,20 +473,29 @@ src/nexus_mcp/
 │   └── memory_store.py    # LanceDB-backed memory, TTL, 6 types
 ├── analysis/
 │   └── code_analyzer.py   # Cyclomatic/cognitive complexity, smells
+├── formatting/
+│   ├── token_budget.py    # Token counting and truncation
+│   └── response_builder.py  # Structured responses
+├── persistence/
+│   └── store.py           # SQLite graph persistence
 ├── security/
 │   ├── permissions.py     # READ/MUTATE/WRITE tool categories
 │   └── rate_limiter.py    # Token-bucket, per-tool, thread-safe
 └── middleware/
     └── audit.py           # Structured audit logs, correlation IDs, field redaction
+benchmarks/                # Token-efficiency benchmark harness (ADR-018)
+self_test/                 # End-to-end demo of all 10 tools
+plugin/                    # Claude Code plugin: registers the server + routing skill
 ```
 
 ### Adding a New Tool
 
-1. Add the handler function to `server.py` decorated with `@mcp.tool()`
-2. Add inline validation (`_validate_*` helpers in `server.py`) for any new input
-3. Add permission category to `security/permissions.py`
-4. Write tests in `tests/`
-5. Update `self_test/demo_mcp.py` to exercise the tool
+1. Add the logic as a plain function in `core_api.py`
+2. Validate input there with the `validate_*` helpers (`validate_path`, `validate_symbol_name`, `validate_query`)
+3. Add a thin wrapper in `server.py` decorated with `@mcp.tool()` and `@_audited`, and call `_guard("<tool>")` first
+4. Add the permission category to `security/permissions.py`
+5. Write tests in `tests/`
+6. Update `self_test/demo_mcp.py` to exercise the tool
 
 ### Adding a New Language
 
@@ -511,8 +524,9 @@ Expected output: all 10 tools exercised with pass/fail per tool and a summary.
 - **bge-small-en uses PyTorch**: The lightweight model uses PyTorch instead of ONNX, so it doesn't benefit from the same ~50 MB footprint as jina-code.
 - **No incremental graph updates**: Graph is rebuilt in full on incremental reindex (only vector/BM25 are incremental at the chunk level).
 - **No SSE transport**: Only stdio transport is currently supported.
-- **Language coverage**: 25+ languages, but structural relationship extraction (callers/callees) is most accurate for Python, TypeScript, JavaScript, Go, and Rust. Other languages may have partial graph edges.
-- **Static call graph only**: `find_callers`/`find_callees`/`impact` are built from static parsing, not runtime tracing — dynamic dispatch, monkey-patching, and calls made through callbacks/closures/reflection won't show up as edges. Treat `impact` as a lower bound on blast radius in highly dynamic code.
+- **Language coverage**: 25+ languages get tree-sitter symbol extraction. ast-grep structure (functions, classes, imports) covers Python, JavaScript, TypeScript, Go, Java, and Rust; other languages have no graph structure.
+- **Call edges are not populated yet**: the graph holds `CONTAINS` and `IMPORTS` edges only. No parser creates `CALLS` edges, so `graph(direction="callers"/"callees")`, `graph(transitive=True)` and the `callers`/`callees` fields of `explain` return empty lists today. Use `search` and `find_symbol` to locate call sites until call-edge extraction lands. Function complexity and docstring fields on graph nodes are also empty, so `analyze` complexity scores are not yet meaningful.
+- **Static call graph only (once populated)**: call edges will come from static parsing, not runtime tracing — dynamic dispatch, monkey-patching, and calls made through callbacks/closures/reflection won't show up. Treat `graph(transitive=True)` as a lower bound on blast radius in highly dynamic code.
 - **Auto-reindex has a detection lag**: with the file watcher enabled (default), edits are picked up after a short debounce, and `status()`/`search()` run a throttled staleness check as a backstop — not an instant, per-call guarantee of freshness.
 
 ---
@@ -540,6 +554,7 @@ Key decisions are documented in [docs/adr/](docs/adr/):
 | [ADR-015](docs/adr/ADR-015-auto-watch-and-staleness-detection.md) | Auto-watch + throttled staleness detection |
 | [ADR-016](docs/adr/ADR-016-remove-unused-pydantic-schemas.md) | Removal of unused Pydantic schemas (supersedes ADR-013) |
 | [ADR-017](docs/adr/ADR-017-tool-consolidation.md) | Tool consolidation 15→10, action-aware permission categories |
+| [ADR-018](docs/adr/ADR-018-token-efficiency-benchmark.md) | Token-efficiency benchmark harness (`benchmarks/`) |
 
 ---
 

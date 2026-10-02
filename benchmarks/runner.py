@@ -28,7 +28,7 @@ from benchmarks import transcript as tx
 BENCH_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = BENCH_DIR / "results"
 REPOS_DIR = BENCH_DIR / "repos"
-DEFAULT_MODEL = "claude-sonnet-5"
+DEFAULT_MODEL = "sonnet"
 DEFAULT_CONDITIONS = ["baseline", "nexus"]
 DEFAULT_REPS = 3
 PROMPT_SUFFIX = "\n\nDo not edit any files. End your response with a concise final answer."

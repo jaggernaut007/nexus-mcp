@@ -165,11 +165,19 @@ Remaining 8b/8c/8d items were evaluated against the v2.0.0 architecture; see
   `group_by`/`main`/`load_task_suite`/`repo_dir_for`/`normalize_path`'s
   precondition). 128 harness tests total, full suite 585 passing, ruff clean.
 - [ ] Live run against real repos + published report — requires `bash
-  benchmarks/setup_repos.sh` (clones ~2 large repos) and a `claude` CLI invocation
-  with `--permission-mode bypassPermissions`/`--dangerously-skip-permissions` for
-  headless execution, plus real API spend (~$2 smoke, ~$20-50 full run). Not run yet
-  — needs explicit user go-ahead before spending or using that flag. See
-  `benchmarks/README.md` for the exact commands.
+  benchmarks/setup_repos.sh` (clones ~2 large repos) and headless `claude` runs
+  (now `--permission-mode dontAsk` plus an allowlist, no bypass flag), plus usage
+  or spend (~$2 smoke, ~$20-50 full run). Not run yet — needs explicit user go-ahead.
+  See `benchmarks/README.md` for the exact commands.
+
+## Routing Evals, Embedding Eval, Call Edges — started 2026-10-02
+Plan: `~/.claude/plans/go-through-the-docs-glistening-sketch.md` (phases A-F).
+- [x] Phase A code: `evals/routing/` (prompts, scoring, runner, report), `shop_repo`
+  fixture, benchmark harness moved from bypass flag to `dontAsk` + allowlist, new
+  `mcp-only` condition, Tool Search on/off switch.
+- [ ] Phase A live run 1 — blocked: the isolated config dir has no login. Needs
+  `claude setup-token` and `CLAUDE_CODE_OAUTH_TOKEN` in the shell.
+- [ ] Phases B-F — see the plan.
 
 ## Discoverability & Setup Audit — 2026-09-23
 - [x] Audited agent-facing surfaces (tool descriptions, README, `llms.txt`,

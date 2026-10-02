@@ -15,8 +15,14 @@ PLUGIN_DIR = REPO_ROOT / "plugin"
 
 BASELINE_TOOLS = "Read,Grep,Glob"
 DISALLOWED_TOOLS = "Edit,Write,NotebookEdit,WebFetch,WebSearch,Task"
+# Headless runs use `dontAsk` plus this allowlist instead of a bypass flag: a
+# tool outside the list is denied (and recorded) rather than silently allowed.
+ALLOWED_TOOLS = "Read,Grep,Glob,mcp__nexus-mcp__*"
 
-KNOWN_CONDITIONS = ("baseline", "nexus", "nexus-plugin")
+# `nexus` appends the routing skill to the system prompt; `mcp-only` exposes the
+# same server with no skill, so tool descriptions and server instructions are
+# the only routing signal.
+KNOWN_CONDITIONS = ("baseline", "mcp-only", "nexus", "nexus-plugin")
 
 
 def strip_frontmatter(skill_text: str) -> str:
@@ -51,7 +57,9 @@ def _common_args(
         "--model",
         model,
         "--permission-mode",
-        "bypassPermissions",
+        "dontAsk",
+        "--allowedTools",
+        ALLOWED_TOOLS,
         "--no-session-persistence",
         "--max-budget-usd",
         str(max_budget_usd),
@@ -69,18 +77,23 @@ def build_argv(
     mcp_config_path: Path = NEXUS_MCP_CONFIG,
     skill_path: Path = SKILL_PATH,
     plugin_dir: Path = PLUGIN_DIR,
+    builtin_tools: str = BASELINE_TOOLS,
 ) -> List[str]:
     """Build the full argv for a `claude` invocation under the given condition.
 
     `condition` is one of KNOWN_CONDITIONS. Raises ValueError otherwise.
+    `builtin_tools` is the `--tools` list; the routing eval adds `ToolSearch`
+    so deferred MCP tools stay discoverable.
     """
     if condition not in KNOWN_CONDITIONS:
         raise ValueError(f"Unknown condition: {condition!r}, expected one of {KNOWN_CONDITIONS}")
 
     argv = _common_args(model, max_budget_usd)
-    argv += ["--tools", BASELINE_TOOLS]
+    argv += ["--tools", builtin_tools]
 
-    if condition == "nexus":
+    if condition == "mcp-only":
+        argv += ["--mcp-config", str(mcp_config_path)]
+    elif condition == "nexus":
         skill_body = load_skill_body(skill_path)
         argv += [
             "--mcp-config",
@@ -98,6 +111,7 @@ def build_argv(
 def build_env(
     config_dir: Path,
     base_env: Optional[Dict[str, str]] = None,
+    tool_search: Optional[bool] = None,
 ) -> Dict[str, str]:
     """Build the isolated environment for a benchmark run.
 
@@ -105,9 +119,17 @@ def build_env(
     base_env (or the real environment); otherwise callers must additionally
     pass `--strict-mcp-config --setting-sources ""` and accept the reduced
     isolation (real ~/.claude settings/hooks may still apply).
+
+    `tool_search=False` sets ENABLE_TOOL_SEARCH=false so every MCP tool loads up
+    front; `True` or `None` removes the variable so Claude Code's default
+    (deferred MCP tools) applies.
     """
     env = dict(base_env if base_env is not None else os.environ)
     env["CLAUDE_CONFIG_DIR"] = str(config_dir)
+    if tool_search is False:
+        env["ENABLE_TOOL_SEARCH"] = "false"
+    else:
+        env.pop("ENABLE_TOOL_SEARCH", None)
     return env
 
 
@@ -150,10 +172,14 @@ def build_run(
     max_budget_usd: float,
     config_dir: Path,
     env: Optional[Dict[str, str]] = None,
+    tool_search: Optional[bool] = None,
+    builtin_tools: str = BASELINE_TOOLS,
 ) -> Dict[str, Any]:
     """Build the full (argv, env, isolation_mode) triple for one run."""
-    argv = build_argv(condition, prompt, model, max_budget_usd)
-    run_env = build_env(config_dir, env)
+    argv = build_argv(
+        condition, prompt, model, max_budget_usd, builtin_tools=builtin_tools
+    )
+    run_env = build_env(config_dir, env, tool_search=tool_search)
 
     if has_api_key(run_env):
         argv = apply_bare_isolation(argv, run_env)

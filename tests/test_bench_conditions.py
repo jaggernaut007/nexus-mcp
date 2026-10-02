@@ -149,3 +149,41 @@ class TestBuildRun:
         built = build_run("baseline", "hi", "claude-sonnet-5", 1.0, tmp_path, env={})
         assert built["isolation_mode"] == "reduced"
         assert "--setting-sources" in built["argv"]
+
+
+class TestHeadlessPermissions:
+    def test_build_argv_uses_allowlist_not_bypass(self):
+        argv = build_argv("baseline", "hello", "sonnet", 1.0)
+        assert "bypassPermissions" not in argv
+        assert "--dangerously-skip-permissions" not in argv
+        assert argv[argv.index("--permission-mode") + 1] == "dontAsk"
+        assert "mcp__nexus-mcp__*" in argv[argv.index("--allowedTools") + 1]
+
+    def test_build_argv_mcp_only_has_server_and_no_skill(self, tmp_path):
+        mcp_config = tmp_path / "nexus.json"
+        mcp_config.write_text("{}")
+        argv = build_argv("mcp-only", "hello", "sonnet", 1.0, mcp_config_path=mcp_config)
+        assert str(mcp_config) in argv
+        assert "--append-system-prompt" not in argv
+
+    def test_build_argv_builtin_tools_override(self):
+        argv = build_argv("baseline", "hi", "sonnet", 1.0, builtin_tools="Read,ToolSearch")
+        assert argv[argv.index("--tools") + 1] == "Read,ToolSearch"
+
+
+class TestToolSearchEnv:
+    def test_build_env_tool_search_false_disables_it(self, tmp_path):
+        env = build_env(tmp_path, base_env={}, tool_search=False)
+        assert env["ENABLE_TOOL_SEARCH"] == "false"
+
+    def test_build_env_tool_search_true_removes_override(self, tmp_path):
+        env = build_env(tmp_path, base_env={"ENABLE_TOOL_SEARCH": "false"}, tool_search=True)
+        assert "ENABLE_TOOL_SEARCH" not in env
+
+    def test_build_env_tool_search_default_removes_override(self, tmp_path):
+        env = build_env(tmp_path, base_env={"ENABLE_TOOL_SEARCH": "auto"})
+        assert "ENABLE_TOOL_SEARCH" not in env
+
+    def test_build_run_passes_tool_search_to_env(self, tmp_path):
+        built = build_run("mcp-only", "hi", "sonnet", 1.0, tmp_path, env={}, tool_search=False)
+        assert built["env"]["ENABLE_TOOL_SEARCH"] == "false"

@@ -111,10 +111,11 @@ are marked in the record rather than silently dropped.
   `results/runs-*.jsonl`, the exact `claude --version`, model ID, repo SHA, and
   isolation mode — all stamped per record. Anyone can re-run `setup_repos.sh` + the
   runner and check.
-- **The harness ships without numbers.** The live run is human-gated (spend +
-  `--permission-mode bypassPermissions`/`--dangerously-skip-permissions` for headless
-  execution), so this ADR documents a *validated harness*, not results. Publishing the
-  table is a follow-up once a run is authorized.
+- **The harness ships without numbers.** The live run is human-gated (usage or spend),
+  so this ADR documents a *validated harness*, not results. Publishing the table is a
+  follow-up once a run is authorized. *Update 2026-10-02:* the harness no longer uses
+  `bypassPermissions`. It runs with `--permission-mode dontAsk` and an explicit
+  `--allowedTools` list, so a tool outside the list is denied and recorded.
 - **Fragile to CLI stream-json changes.** A CLI update could rename event fields;
   mitigated by the defensive parser, fixture-based tests catching breakage, and keeping
   raw stdout for recompute. Not eliminated.

@@ -8,6 +8,8 @@ on:
       - "llms.txt"
       - "llms-full.txt"
       - ".github/workflows/pages.yml"
+  schedule:
+    - cron: "17 5 * * *" # refresh PyPI download counts daily
   workflow_dispatch:
 
 permissions:
@@ -35,6 +37,15 @@ jobs:
           cp llms.txt _site/llms.txt
           cp llms-full.txt _site/llms-full.txt
           touch _site/.nojekyll
+
+      - name: Fetch PyPI download counts
+        # pypistats.org has no CORS headers, so the browser cannot fetch it.
+        # Failure is not fatal: the site hides the stat when the file is missing.
+        run: |
+          curl -fsS --retry 3 --max-time 30 \
+            https://pypistats.org/api/packages/nexus-mcp-ci/recent \
+            | jq '{last_day: .data.last_day, last_week: .data.last_week, last_month: .data.last_month, updated: (now | todate)}' \
+            > _site/downloads.json || rm -f _site/downloads.json
 
       - uses: actions/configure-pages@v5
 

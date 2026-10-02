@@ -164,6 +164,7 @@ h1 em { color: var(--accent); }
 .what-copy strong { color: var(--ink); font-weight: 600; }
 .facts { margin: 0; display: grid; border-top: 1px solid var(--line); }
 .facts div { display: grid; grid-template-columns: 8.5em 1fr; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: .96rem; }
+.facts div[hidden] { display: none; }
 .facts dt { font: 500 .78rem var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); padding-top: .25em; }
 .facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 

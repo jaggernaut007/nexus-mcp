@@ -43,6 +43,23 @@
       .catch(() => {});
   }
 
+  // downloads.json is written by the Pages workflow from pypistats.org. The
+  // browser cannot call pypistats directly (no CORS). A low count reads as
+  // anti-proof, so show it only from MIN_DOWNLOADS.
+  const MIN_DOWNLOADS = 100;
+  const downloads = document.querySelector("[data-downloads]");
+  if (downloads) {
+    fetch("downloads.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d && Number.isFinite(d.last_month) && d.last_month >= MIN_DOWNLOADS) {
+          downloads.querySelector("[data-downloads-count]").textContent = d.last_month.toLocaleString();
+          downloads.hidden = false;
+        }
+      })
+      .catch(() => {});
+  }
+
   const year = document.querySelector("[data-year]");
   if (year) year.textContent = new Date().getFullYear();
 

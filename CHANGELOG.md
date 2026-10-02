@@ -4,7 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **`CALLS` edges.** `graph()` (callers, callees, `transitive=True`) and the
+  `callers`/`callees` fields of `explain()` now return real results for Python,
+  JavaScript, TypeScript, Go, Java and Rust. Edges are static and name-based, so
+  results are a lower bound. See ADR-019.
+- `evals/routing`: a tool-routing eval that measures whether Claude Code calls the
+  nexus tools unprompted, with a synthetic `shop_repo` fixture.
+
 ### Changed
+
+- `analyze` dead-code entries now say "No static caller found" instead of
+  "Never called", and are far fewer now that call edges exist.
+- The benchmark harness no longer uses `--permission-mode bypassPermissions`. It
+  runs with `dontAsk` and an explicit allowlist.
 
 - `find_symbol`'s keyword parameter was renamed from `name` to `symbol_name`, to
   match `graph()` and `explain()`. Callers that pass `find_symbol(name=...)` must

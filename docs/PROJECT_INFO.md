@@ -22,7 +22,7 @@ Into a **single, memory-efficient MCP server** (<350MB RAM) with 10 tools for co
 - Single process, single MCP connection, 10 tools
 - <350MB RAM via ONNX Runtime + LanceDB mmap + lightweight models
 - Hybrid search combining vector + BM25 + graph signals + live-grep fallback
-- Cross-engine tools like `explain` (graph + vector) and `graph` (call-graph traversal; real indexes currently lack `CALLS` edges, so these results are empty)
+- Cross-engine tools like `explain` (graph + vector) and `graph` (static call-graph traversal)
 
 ---
 
@@ -71,7 +71,7 @@ Into a **single, memory-efficient MCP server** (<350MB RAM) with 10 tools for co
 | Inference | ONNX Runtime (jina-code) / PyTorch (bge-small-en) | jina-code runs on ONNX (~50MB vs ~500MB for PyTorch); bge-small-en uses PyTorch |
 | Embedding Model | bge-small-en (default) | 384 dims, lightweight; jina-code (768d, code-specific) is optional |
 | Symbol Parsing | tree-sitter 0.21.3 | Extract code symbols for embeddings |
-| Structural Analysis | ast-grep-py ≥0.28 | Build the containment and import graph (call edges are not extracted yet) |
+| Structural Analysis | ast-grep-py ≥0.28 | Build the containment and import graph (plus callee names, resolved into call edges after indexing) |
 | Graph Engine | rustworkx ≥0.15 | In-memory directed graph, Rust-backed |
 | Re-ranking | FlashRank ≥0.2 | ONNX-based two-stage re-ranking |
 | Live Grep | ripgrep (rg) / grep | 100% coverage fallback for unindexed files |

@@ -13,12 +13,8 @@ v2.0.0 deliberately consolidated 15 tools into 10 outcome-oriented ones (ADR-017
 this should NOT ship as a new standalone `visualize` tool. It fits as a
 `format="mermaid"` output option on `graph()` (call-graph flowchart) and/or `map()`
 (architecture diagram) — no new tool surface, same routing budget.
-Blocking caveat found during exploration: the ast-grep parser
-(`src/nexus_mcp/parsing/astgrep_parser.py`) only ever emits `CONTAINS` and `IMPORTS`
-edges — `CALLS`/`INHERITS` exist in the graph model and `graph()`'s API but nothing
-populates them on a real index. A Mermaid call-graph would render near-empty
-(root node only) until CALLS-edge extraction is built, which is a separate, bigger
-piece of work. Worth doing after real call edges exist, not before.
+Update 2026-10-02: the earlier blocker is gone. `CALLS` edges are now extracted
+(ADR-019), so a Mermaid call graph has data. `INHERITS` edges are still not extracted.
 
 ### 8c: Global semantic memory (cross-repository) — reframed, not scheduled
 Superseded by ROADMAP-2026 P2 item 11: reframe memory as **team-shareable per-repo**

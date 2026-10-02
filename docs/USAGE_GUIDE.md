@@ -167,7 +167,7 @@ Parameters:
 - `transitive` — `True` returns the full transitive change impact. It works only with `direction="callers"`. Run it before you refactor a shared symbol.
 - `max_depth` — Maximum traversal depth for `transitive=True` (default 10)
 
-> **Known gap:** the graph holds `CONTAINS` and `IMPORTS` edges only. No parser extracts `CALLS` edges yet, so `graph` returns empty results today. Use `search` to find call sites until call-edge extraction lands. See [Known Limitations](../README.md#known-limitations).
+> **Limit:** call edges are static and name-based. Dynamic dispatch, callbacks and reflection are invisible, and a name shared by several definitions gets no edge. Treat results as a lower bound and use `search` for other call sites. See [Known Limitations](../README.md#known-limitations).
 
 #### `explain`
 Preferred over Read for understanding a symbol. Combines graph relationships, semantic search results and code metrics.

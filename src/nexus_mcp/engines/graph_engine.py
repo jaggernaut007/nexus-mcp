@@ -254,6 +254,26 @@ class RustworkxCodeGraph:
                     lang_set.discard(nid)
             return len(node_ids)
 
+    def remove_relationships_by_type(self, rel_type: RelationshipType) -> int:
+        """Remove every relationship of one type. Returns the number removed.
+
+        The call resolver uses this to rebuild all CALLS edges after an
+        incremental reindex, so no edge points at a node that changed.
+        """
+        with self._lock:
+            doomed = {
+                rid for rid, rel in self.relationships.items()
+                if rel.relationship_type == rel_type
+            }
+            if not doomed:
+                return 0
+            for edge_idx, (_src, _tgt, rel_id) in list(self.graph.edge_index_map().items()):
+                if rel_id in doomed:
+                    self.graph.remove_edge_from_index(edge_idx)
+            for rid in doomed:
+                del self.relationships[rid]
+            return len(doomed)
+
     def get_node_degree(self, node_id: str) -> tuple:
         """Return (in_degree, out_degree) for a node, or (0, 0) if not found."""
         with self._lock:

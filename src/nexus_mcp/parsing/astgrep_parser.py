@@ -5,9 +5,10 @@ structural analysis across 25+ languages.
 """
 
 import logging
+import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict, List, Optional
 
 try:
     from ast_grep_py import SgRoot  # type: ignore[import-untyped]
@@ -28,6 +29,56 @@ from nexus_mcp.parsing.language_registry import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Call expressions per language: (node kind, field that holds the callee).
+# A field of None means "use the whole node" (handled for Java below).
+CALL_KINDS: Dict[str, tuple] = {
+    "python": (("call", "function"),),
+    "javascript": (("call_expression", "function"), ("new_expression", "constructor")),
+    "typescript": (("call_expression", "function"), ("new_expression", "constructor")),
+    "go": (("call_expression", "function"),),
+    "java": (("method_invocation", None), ("object_creation_expression", "type")),
+    "rust": (("call_expression", "function"),),
+}
+
+# Enclosing type kinds per language: (node kind, field that holds the name).
+CLASS_ANCESTOR_KINDS: Dict[str, tuple] = {
+    "python": (("class_definition", "name"),),
+    "javascript": (("class_declaration", "name"),),
+    "typescript": (("class_declaration", "name"),),
+    "java": (
+        ("class_declaration", "name"),
+        ("interface_declaration", "name"),
+        ("enum_declaration", "name"),
+    ),
+    "rust": (("impl_item", "type"),),
+}
+
+MAX_CALLS_PER_FUNCTION = 200
+MAX_CALL_TEXT = 120
+_PAREN_GROUP = re.compile(r"\([^()]*\)")
+_GENERIC_GROUP = re.compile(r"<[^<>]*>")
+_DOTTED_NAME = re.compile(r"[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*")
+
+
+def normalize_call_text(text: str) -> str:
+    """Reduce a callee expression to dotted names.
+
+    `PaymentGateway().charge` -> `PaymentGateway.charge`; `self.db.execute`
+    stays as is; `a?.b` and `a::b` become `a.b`. Returns "" when nothing usable
+    remains (for example a call on a subscript or a lambda).
+    """
+    text = " ".join(text.split())
+    for _ in range(4):  # nested argument lists, for example a(b(c)).d
+        reduced = _PAREN_GROUP.sub("", text)
+        if reduced == text:
+            break
+        text = reduced
+    text = _GENERIC_GROUP.sub("", text).replace("?.", ".").replace("::", ".")
+    text = text.replace("->", ".")
+    if len(text) > MAX_CALL_TEXT or not _DOTTED_NAME.fullmatch(text):
+        return ""
+    return text
 
 
 @dataclass(frozen=True)
@@ -225,6 +276,7 @@ class AstGrepParser:
                     ),
                     language=language,
                     line_count=rng.end.line - rng.start.line + 1,
+                    metadata=self._function_metadata(match, language),
                 )
                 graph.add_node(func_node)
 
@@ -241,6 +293,73 @@ class AstGrepParser:
                 continue
 
         return count
+
+    def _function_metadata(self, match, language: str) -> Dict[str, Any]:
+        """Raw call names and enclosing class for one function node.
+
+        The call resolver (indexing/call_resolver.py) turns these into CALLS
+        edges once every file is in the graph, because a callee can live in a
+        file that is parsed later.
+        """
+        meta: Dict[str, Any] = {}
+        calls = self._extract_calls(match, language)
+        if calls:
+            meta["calls"] = calls
+        parent = self._enclosing_class(match, language)
+        if parent:
+            meta["parent_class"] = parent
+        return meta
+
+    def _extract_calls(self, match, language: str) -> List[str]:
+        """Distinct normalised callee names inside a function, in source order."""
+        seen: Dict[str, None] = {}
+        for kind, field_name in CALL_KINDS.get(language, ()):
+            try:
+                found = match.find_all(kind=kind)
+            except Exception as e:
+                logger.debug("ast-grep call search failed for kind %s: %s", kind, e)
+                continue
+            for call in found:
+                try:
+                    text = self._callee_text(call, field_name)
+                except Exception as e:
+                    logger.debug("Failed to read callee: %s", e)
+                    continue
+                name = normalize_call_text(text)
+                if name:
+                    seen.setdefault(name, None)
+                if len(seen) >= MAX_CALLS_PER_FUNCTION:
+                    return list(seen)
+        return list(seen)
+
+    @staticmethod
+    def _callee_text(call, field_name: Optional[str]) -> str:
+        if field_name is not None:
+            callee = call.field(field_name)
+            return callee.text() if callee else ""
+        # Java method_invocation: object (optional) + name
+        name = call.field("name")
+        if not name:
+            return ""
+        obj = call.field("object")
+        return f"{obj.text()}.{name.text()}" if obj else name.text()
+
+    @staticmethod
+    def _enclosing_class(match, language: str) -> Optional[str]:
+        """Name of the nearest class-like ancestor, or None for a free function."""
+        kinds = dict(CLASS_ANCESTOR_KINDS.get(language, ()))
+        if not kinds:
+            return None
+        try:
+            for ancestor in match.ancestors():
+                field_name = kinds.get(ancestor.kind())
+                if field_name:
+                    name = ancestor.field(field_name)
+                    if name:
+                        return " ".join(name.text().split())[:80]
+        except Exception as e:
+            logger.debug("Failed to read enclosing class: %s", e)
+        return None
 
     def _extract_classes(
         self, sg_node, filepath: str, language: str, module_id: str,
@@ -321,6 +440,8 @@ class AstGrepParser:
             "rust": ["use $NAME"],
         }
 
+        imported = self._collect_import_names(sg_node, language)
+
         lang_patterns = patterns.get(language, [])
         for pattern in lang_patterns:
             try:
@@ -329,6 +450,7 @@ class AstGrepParser:
                     name_text = match.get_match("NAME")
                     if name_text:
                         import_name = name_text.text()
+                        imported.setdefault(import_name.strip("'\""), None)
                         target_id = f"module:{import_name}"
                         graph.add_relationship(UniversalRelationship(
                             id=self._make_rel_id(),
@@ -339,3 +461,33 @@ class AstGrepParser:
             except Exception as e:
                 logger.debug("Import match failed in %s: %s", filepath, e)
                 continue
+
+        module = graph.nodes.get(module_id)
+        if module is not None and imported:
+            module.metadata["imports"] = list(imported)
+
+    @staticmethod
+    def _collect_import_names(sg_node, language: str) -> Dict[str, None]:
+        """Imported module names by node kind, for the call resolver.
+
+        Kind-based because the string patterns above miss double-quoted
+        TypeScript imports and relative Python imports. Order is kept.
+        """
+        names: Dict[str, None] = {}
+        try:
+            if language == "python":
+                for node in sg_node.find_all(kind="import_statement"):
+                    for dotted in node.find_all(kind="dotted_name"):
+                        names.setdefault(dotted.text(), None)
+                for node in sg_node.find_all(kind="import_from_statement"):
+                    module = node.field("module_name")
+                    if module:
+                        names.setdefault(module.text(), None)
+            elif language in ("javascript", "typescript"):
+                for node in sg_node.find_all(kind="import_statement"):
+                    source = node.field("source")
+                    if source:
+                        names.setdefault(source.text().strip("'\"`"), None)
+        except Exception as e:
+            logger.debug("Import name collection failed: %s", e)
+        return names

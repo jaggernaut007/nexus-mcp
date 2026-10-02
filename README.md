@@ -30,7 +30,7 @@ AI coding agents are token-inefficient by default. An agent trying to understand
 
 With Nexus-MCP:
 
-1. `explain("verify_credentials")` → symbol definition + related code + quality metrics (callers and callees once call edges are extracted) → **~1,500 tokens, 1 tool call**
+1. `explain("verify_credentials")` → symbol definition + related code + quality metrics (plus callers and callees) → **~1,500 tokens, 1 tool call**
 
 Or for discovery:
 
@@ -62,7 +62,7 @@ Use nexus-mcp-ci tools before built-in file tools:
 - Start sessions with `mcp__nexus-mcp__status`; run `index` if needed
 - `search` before `Read/Grep`
 - `explain` instead of reading a file to understand a symbol
-- `graph(..., transitive=True)` before any refactor (the graph has no `CALLS` edges yet, so also use `search` to find call sites)
+- `graph(..., transitive=True)` before any refactor (the call graph is static, so also use `search` for dynamic call sites)
 ```
 
 That's it. Claude will index your project on first use and use Nexus-MCP tools automatically.
@@ -313,7 +313,7 @@ Every code task in this project MUST follow this workflow:
 1. **Session start**: `mcp__nexus-mcp__status` → if not indexed, `mcp__nexus-mcp__index`
 2. **Before any file read**: `mcp__nexus-mcp__search` to locate relevant code
 3. **To understand a symbol**: `mcp__nexus-mcp__explain` (not Read)
-4. **Before refactoring**: `mcp__nexus-mcp__graph` with `transitive=True` to assess blast radius. The current graph has no `CALLS` edges, so use `mcp__nexus-mcp__search` to find call sites.
+4. **Before refactoring**: `mcp__nexus-mcp__graph` with `transitive=True` to assess blast radius. The call graph is static (no dynamic dispatch), so also use `mcp__nexus-mcp__search` to find call sites.
 5. **For project orientation**: `mcp__nexus-mcp__map` with `detail="summary"` or `detail="architecture"`
 ```
 
@@ -332,11 +332,11 @@ search("JWT token validation", mode="hybrid", limit=10)
 # Deep symbol understanding
 explain("validate_token")
   → definition, location, related code
-  → callers: [], callees: []   # empty until call edges are extracted (see Known Limitations)
+  → callers: [post_order, ...], callees: [...]
 
 # Pre-refactor safety check
 graph("validate_token", direction="callers", transitive=True)
-  → total_impacted: 0          # no CALLS edges on a real index yet, so this is NOT proof of no callers
+  → total_impacted: N          # a lower bound: dynamic calls are not visible
 
 # Locate call sites with search instead
 search("validate_token(", mode="bm25")
@@ -404,10 +404,10 @@ The Python package defaults to `bge-small-en`. The `Dockerfile` and `smithery.ya
 | Semantic (vector) search | ✅ | ❌ keyword only | ✅ LLM-based | ❌ | ❌ |
 | Keyword (BM25) search | ✅ | ✅ | — | ✅ | ❌ |
 | Hybrid fusion (RRF) | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Code graph (call/import) | partial: containment + imports (call edges planned) | ✅ SCIP | ❌ | ❌ | ❌ |
+| Code graph (call/import) | static: containment, imports, calls | ✅ SCIP | ❌ | ❌ | ❌ |
 | Re-ranking | ✅ FlashRank | ❌ | — | ❌ | ❌ |
 | Semantic memory (persistent) | ✅ 6 types | ❌ | ❌ | ❌ | ❌ |
-| Change impact analysis | planned (needs call edges) | partial | ❌ | ❌ | ❌ |
+| Change impact analysis | static callers only | partial | ❌ | ❌ | ❌ |
 | Token-budgeted responses | ✅ 3 levels | ❌ | ❌ | ❌ | ❌ |
 | Languages | 25+ | 30+ | many | many | many |
 | Cost | **Free noncommercial; paid commercial license** | $$$ | $40/mo | $10–39/mo | Free |
@@ -528,8 +528,8 @@ Expected output: all 10 tools exercised with pass/fail per tool and a summary.
 - **No incremental graph updates**: Graph is rebuilt in full on incremental reindex (only vector/BM25 are incremental at the chunk level).
 - **No SSE transport**: Only stdio transport is currently supported.
 - **Language coverage**: 25+ languages get tree-sitter symbol extraction. ast-grep structure (functions, classes, imports) covers Python, JavaScript, TypeScript, Go, Java, and Rust; other languages have no graph structure.
-- **Call edges are not populated yet**: the graph holds `CONTAINS` and `IMPORTS` edges only. No parser creates `CALLS` edges, so `graph(direction="callers"/"callees")`, `graph(transitive=True)` and the `callers`/`callees` fields of `explain` return empty lists today. Use `search` to locate call sites until call-edge extraction lands. `find_symbol` returns definitions, not callers. Function complexity and docstring fields on graph nodes are also empty, so `analyze` complexity scores are not yet meaningful.
-- **Static call graph only (once populated)**: call edges will come from static parsing, not runtime tracing — dynamic dispatch, monkey-patching, and calls made through callbacks/closures/reflection won't show up. Treat `graph(transitive=True)` as a lower bound on blast radius in highly dynamic code.
+- **Call edges are static and name-based.** `graph()` and the `callers`/`callees` fields of `explain()` come from parsing, not runtime tracing. Edges exist for Python, JavaScript, TypeScript, Go, Java and Rust. A call resolves only when the callee is in the same file, in an imported file, or has a unique name in the index. A name shared by several definitions gets no edge, so results are a lower bound. Dynamic dispatch, monkey-patching, callbacks and reflection do not show up, so treat `graph(transitive=True)` as a lower bound on blast radius.
+- **Graph node detail is thin**: function complexity and docstring fields on graph nodes are still empty, so `analyze` complexity scores are not yet meaningful.
 - **Auto-reindex has a detection lag**: with the file watcher enabled (default), edits are picked up after a short debounce, and `status()`/`search()` run a throttled staleness check as a backstop — not an instant, per-call guarantee of freshness.
 
 ---

@@ -143,7 +143,7 @@
           "name": "What is not finished yet?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Call edges are not extracted yet, so the graph tool returns empty caller and callee lists today. Memory, map, analyze, search and explain work now. The README lists all known limits."
+            "text": "The graph tool uses static call edges, so it cannot see dynamic dispatch or callbacks and its results are a lower bound. The README lists all known limits."
           }
         }
       ]
@@ -398,7 +398,7 @@
           <div class="tool"><code>search</code><p>Hybrid semantic + keyword search, with live-grep fallback.</p></div>
           <div class="tool"><code>explain</code><p>One symbol, explained at the verbosity you ask for.</p></div>
           <div class="tool"><code>find_symbol</code><p>Exact or fuzzy lookup of a function, class or method.</p></div>
-          <div class="tool"><code>graph</code><p>Containment and import structure. Call edges are in progress.</p><span class="badge">preview</span></div>
+          <div class="tool"><code>graph</code><p>Callers, callees and change impact from static call edges.</p></div>
           <div class="tool"><code>index</code><p>Incremental, multi-folder indexing with an auto-watch.</p></div>
           <div class="tool"><code>status</code><p>Index health, counts, memory use and a staleness flag.</p></div>
           <div class="tool"><code>health</code><p>Liveness probe: uptime and which engines are ready.</p></div>
@@ -507,7 +507,7 @@
           </details>
           <details>
             <summary>What is not finished yet?</summary>
-            <p>Call edges are not extracted yet, so the graph tool returns empty caller and callee lists today. Memory, map, analyze, search and explain work now. <a href="https://github.com/jaggernaut007/Nexus-MCP#readme" rel="noopener">The README</a> lists all known limits.</p>
+            <p>The graph tool uses static call edges, so it cannot see dynamic dispatch or callbacks and its results are a lower bound. <a href="https://github.com/jaggernaut007/Nexus-MCP#readme" rel="noopener">The README</a> lists all known limits.</p>
           </details>
         </div>
       </div>

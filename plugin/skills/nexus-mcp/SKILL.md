@@ -38,14 +38,10 @@ description: Route code search, symbol lookup, call-graph analysis, and codebase
 
 ## Known limitations
 
-- **Call edges are not populated yet.** The graph holds `CONTAINS` and `IMPORTS`
-  edges only, so `graph()` (callers, callees and `transitive=True`) and the
-  `callers`/`callees` fields of `explain()` return empty lists today. An empty result
-  does NOT mean a symbol is unused. Use `search` to find call sites before you
-  refactor.
 - The call graph (`graph()`) only sees static edges — dynamic dispatch, closures,
-  callbacks, and reflection are invisible to it. Treat `transitive=True` results as a
-  lower bound on blast radius, not exhaustive, in highly dynamic code.
+  callbacks, and reflection are invisible to it. A name shared by several definitions
+  gets no edge. Treat `transitive=True` results as a lower bound on blast radius, and
+  use `search` for call sites the graph cannot see.
 - `NEXUS_AUTO_WATCH` (default on) has a debounce window of a few seconds; treat very
   recent edits as possibly not yet reflected until the next `status`/`search` call
   triggers or confirms a refresh.

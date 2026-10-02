@@ -17,6 +17,7 @@ from nexus_mcp.core.graph_models import UniversalGraph
 from nexus_mcp.engines.bm25_engine import LanceDBBM25Engine
 from nexus_mcp.engines.graph_engine import RustworkxCodeGraph
 from nexus_mcp.engines.vector_engine import LanceDBVectorEngine
+from nexus_mcp.indexing.call_resolver import resolve_calls
 from nexus_mcp.indexing.chunker import create_chunks
 from nexus_mcp.indexing.embedding_service import get_embedding_service
 from nexus_mcp.indexing.parallel_indexer import parallel_parse_files
@@ -279,6 +280,7 @@ class IndexingPipeline:
                     batch_start, batch_start + len(batch_files), len(batch_files),
                 )
 
+            resolve_calls(self._graph_engine)
             graph_stats = self._graph_engine.get_statistics()
 
             if total_chunks > 0:
@@ -418,6 +420,7 @@ class IndexingPipeline:
         finally:
             self._embedding_service.unload()
 
+        resolve_calls(self._graph_engine)
         graph_stats = self._graph_engine.get_statistics()
         elapsed = time.time() - start
 
@@ -519,6 +522,7 @@ class IndexingPipeline:
         finally:
             self._embedding_service.unload()
 
+        resolve_calls(self._graph_engine)
         graph_stats = self._graph_engine.get_statistics()
         elapsed = time.time() - start
 
@@ -655,6 +659,7 @@ class IndexingPipeline:
             # Always unload model to free RAM
             self._embedding_service.unload()
 
+        resolve_calls(self._graph_engine)
         graph_stats = self._graph_engine.get_statistics()
         elapsed = time.time() - start
         logger.info(

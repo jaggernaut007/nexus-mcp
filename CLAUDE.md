@@ -25,15 +25,8 @@ repo to read the skill content directly.
 
 ### Known limitations
 
-- **Call edges are not populated yet.** Real indexes hold `CONTAINS` and `IMPORTS`
-  edges only: `astgrep_parser.py` emits nothing else, and the tree-sitter parser records
-  call names on symbols but never creates `CALLS` edges. `graph()` (callers, callees and
-  `transitive=True`) and the `callers`/`callees` fields of `explain()` therefore return
-  empty lists today, and `analyze` shows zero complexity and no docstrings for
-  ast-grep nodes. Tests pass because they build `CALLS` edges by hand
-  (`tests/test_graph_tools.py`, `tests/test_impact_tool.py`). An empty `graph()` result
-  does not mean a symbol is unused — use `search` to find call sites.
-- **The call graph will only see static edges once populated.** `graph()` is built from
+- **Call edges are static and name-based.** `graph()` and the `callers`/`callees` fields of `explain()` come from parsing, not runtime tracing. Edges exist for Python, JavaScript, TypeScript, Go, Java and Rust. A call resolves only when the callee is in the same file, in an imported file, or has a unique name in the index. A name shared by several definitions gets no edge, so results are a lower bound. `analyze` still shows zero complexity and no docstrings for ast-grep nodes.
+- **The call graph only sees static edges.** `graph()` is built from
   parsing, not runtime tracing. It will **miss**: dynamic dispatch (Python monkey-patching, Ruby
   metaprogramming), calls made through callbacks/closures/lambdas (e.g.
   `.map(lambda x: foo(x))` shows no edge to `foo`), and reflection-based calls. Treat

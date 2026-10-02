@@ -177,7 +177,10 @@ Plan: `~/.claude/plans/go-through-the-docs-glistening-sketch.md` (phases A-F).
   `mcp-only` condition, Tool Search on/off switch.
 - [ ] Phase A live run 1 — blocked: the isolated config dir has no login. Needs
   `claude setup-token` and `CLAUDE_CODE_OAUTH_TOKEN` in the shell.
-- [ ] Phases B-F — see the plan.
+- [x] Phase D (done before B so the eval can run first on the unchanged descriptions):
+  `CALLS` edges from `indexing/call_resolver.py`, ADR-019, docs and site updated,
+  `self_test/demo_mcp.py` now fails on an empty call graph.
+- [ ] Phases B, C, E, F — see the plan.
 
 ## Discoverability & Setup Audit — 2026-09-23
 - [x] Audited agent-facing surfaces (tool descriptions, README, `llms.txt`,
@@ -208,11 +211,8 @@ Plan: `~/.claude/plans/go-through-the-docs-glistening-sketch.md` (phases A-F).
   source docs instead of hand-copied. `embedding_service.py` docstring named the wrong default.
 - [x] Historical docs left as written: `docs/adr/`, `IMPLEMENTATION_PLAN.md`,
   `RESEARCH.md`, `ROADMAP-2026.md`, `FUTURE_CONTRIBUTIONS.md`, `docs/plans/`, `CHANGELOG.md`.
-- [ ] **Code gap found, docs now say so:** nothing creates `CALLS` edges. Real indexes
-  hold `CONTAINS`/`IMPORTS` only, so `graph()` and the `callers`/`callees` fields of
-  `explain()` return empty lists, and ast-grep nodes have zero complexity and no
-  docstrings. Tests hide it because they build `CALLS` edges by hand, and
-  `self_test/demo_mcp.py` passes on empty results. Same finding as `todo.md` item 8b.
+- [x] **Code gap found:** nothing created `CALLS` edges. Fixed 2026-10-02 (ADR-019).
+  Still open: ast-grep nodes have zero complexity and no docstrings.
 - [ ] Not changed (behavior, not docs): `Dockerfile`, `smithery.yaml`, `glama.json`
   default to `jina-code` while the package defaults to `bge-small-en` (issue #7).
 
@@ -237,3 +237,4 @@ Plan: `~/.claude/plans/go-through-the-docs-glistening-sketch.md` (phases A-F).
 | 2026-07-02 | Remove unused Pydantic schemas | Dead code never wired into any tool at runtime | [ADR-016](docs/adr/ADR-016-remove-unused-pydantic-schemas.md) |
 | 2026-07-02 | Tool consolidation 15→10 | Fewer richer tools route better under Tool Search | [ADR-017](docs/adr/ADR-017-tool-consolidation.md) |
 | 2026-07-03 | Token-efficiency benchmark | Drive real `claude` CLI; wasted-read ratio + tokens-to-answer; honest, reproducible | [ADR-018](docs/adr/ADR-018-token-efficiency-benchmark.md) |
+| 2026-10-02 | Static call-edge resolution | Empty `graph()` hid the main value claim; resolve names after the last batch, skip ambiguous names | [ADR-019](docs/adr/ADR-019-call-edge-resolution.md) |

@@ -39,13 +39,29 @@ jobs:
           touch _site/.nojekyll
 
       - name: Fetch PyPI download counts
-        # pypistats.org has no CORS headers, so the browser cannot fetch it.
-        # Failure is not fatal: the site hides the stat when the file is missing.
+        # pypistats.org has no CORS headers, so the browser cannot fetch it, and
+        # it keeps only 180 days. The lifetime total is a fixed BigQuery count
+        # (pypi.file_downloads, all downloads up to BASELINE_END) plus the
+        # pypistats with_mirrors counts after that date. Failure is not fatal:
+        # the site hides the stat when the file is missing.
+        env:
+          BASELINE_TOTAL: "3538"
+          BASELINE_END: "2026-09-30"
         run: |
           curl -fsS --retry 3 --max-time 30 \
-            https://pypistats.org/api/packages/nexus-mcp-ci/recent \
-            | jq '{last_day: .data.last_day, last_week: .data.last_week, last_month: .data.last_month, updated: (now | todate)}' \
+            https://pypistats.org/api/packages/nexus-mcp-ci/overall -o overall.json
+          curl -fsS --retry 3 --max-time 30 \
+            https://pypistats.org/api/packages/nexus-mcp-ci/recent -o recent.json
+          jq -n --slurpfile o overall.json --slurpfile r recent.json \
+            --argjson base "$BASELINE_TOTAL" --arg end "$BASELINE_END" '
+            ($o[0].data | map(select(.category == "with_mirrors" and .date > $end) | .downloads) | add // 0) as $new
+            | {total: ($base + $new), last_month: $r[0].data.last_month, last_week: $r[0].data.last_week, updated: (now | todate)}' \
             > _site/downloads.json || rm -f _site/downloads.json
+          # Shields.io endpoint for the README badge.
+          if [ -f _site/downloads.json ]; then
+            jq '{schemaVersion: 1, label: "downloads", message: ((.total | tostring) + " total"), color: "blue"}' \
+              _site/downloads.json > _site/downloads-badge.json
+          fi
 
       - uses: actions/configure-pages@v5
 

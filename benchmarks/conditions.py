@@ -17,7 +17,7 @@ BASELINE_TOOLS = "Read,Grep,Glob"
 DISALLOWED_TOOLS = "Edit,Write,NotebookEdit,WebFetch,WebSearch,Task"
 # Headless runs use `dontAsk` plus this allowlist instead of a bypass flag: a
 # tool outside the list is denied (and recorded) rather than silently allowed.
-ALLOWED_TOOLS = "Read,Grep,Glob,mcp__nexus-mcp__*"
+ALLOWED_TOOLS = "Read,Grep,Glob,ToolSearch,mcp__nexus-mcp__*,mcp__plugin_nexus-mcp_nexus-mcp__*"
 
 # `nexus` appends the routing skill to the system prompt; `mcp-only` exposes the
 # same server with no skill, so tool descriptions and server instructions are

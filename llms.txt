@@ -11,7 +11,7 @@ Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexe
 - [health](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Liveness/readiness probe.
 - [search](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Hybrid code search — vector semantic + BM25 keyword + graph structural, fused via RRF, re-ranked with FlashRank. Language/type filters, live-grep fallback.
 - [find_symbol](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Look up a symbol by name — definition, location, relationships. Exact or fuzzy matching.
-- [graph](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Callers or callees of a symbol; `transitive=True` for change-impact analysis. Replaces find_callers, find_callees and impact. Call edges are not extracted yet, so results are empty today.
+- [graph](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Callers or callees of a symbol; `transitive=True` for change-impact analysis. Replaces find_callers, find_callees and impact. Call edges are static and name-based, so results are a lower bound.
 - [explain](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Combined graph + semantic + metrics explanation of a symbol, with `verbosity` summary/detailed/full.
 - [analyze](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Code complexity, dependencies, smells, and quality metrics.
 - [map](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Project overview (`detail="summary"`), architecture (`"architecture"`), or both (`"full"`). Replaces overview and architecture.

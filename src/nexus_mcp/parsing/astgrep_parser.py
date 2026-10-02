@@ -6,6 +6,7 @@ structural analysis across 25+ languages.
 
 import logging
 import re
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -125,6 +126,10 @@ class AstGrepParser:
             )
         self._node_counter = 0
         self._rel_counter = 0
+        # Node ids must be unique across processes: a graph restored from disk holds
+        # ids from an earlier parser, and a new parser that restarted its counter would
+        # reuse them, so add_node() would silently drop the new nodes.
+        self._id_token = uuid.uuid4().hex[:8]
 
     def can_parse(self, filepath: str) -> bool:
         lang = get_language_for_file(filepath)
@@ -217,11 +222,11 @@ class AstGrepParser:
 
     def _make_id(self, prefix: str) -> str:
         self._node_counter += 1
-        return f"{prefix}:{self._node_counter}"
+        return f"{prefix}:{self._id_token}-{self._node_counter}"
 
     def _make_rel_id(self) -> str:
         self._rel_counter += 1
-        return f"rel:{self._rel_counter}"
+        return f"rel:{self._id_token}-{self._rel_counter}"
 
     def _extract_functions(
         self, sg_node, filepath: str, language: str, module_id: str,
@@ -237,8 +242,8 @@ class AstGrepParser:
         count = 0
         kinds = {
             "python": ("function_definition",),
-            "javascript": ("function_declaration",),
-            "typescript": ("function_declaration",),
+            "javascript": ("function_declaration", "method_definition"),
+            "typescript": ("function_declaration", "method_definition"),
             "go": ("function_declaration", "method_declaration"),
             "java": ("method_declaration",),
             "rust": ("function_item",),
@@ -306,6 +311,8 @@ class AstGrepParser:
         if calls:
             meta["calls"] = calls
         parent = self._enclosing_class(match, language)
+        if language == "go" and match.kind() == "method_declaration":
+            parent = self._go_receiver_type(match)
         if parent:
             meta["parent_class"] = parent
         return meta
@@ -345,6 +352,15 @@ class AstGrepParser:
         return f"{obj.text()}.{name.text()}" if obj else name.text()
 
     @staticmethod
+    def _go_receiver_type(match) -> Optional[str]:
+        """`func (s *Server) Run()` -> `Server`."""
+        receiver = match.field("receiver")
+        if not receiver:
+            return None
+        found = re.findall(r"([A-Za-z_]\w*)\s*\)\s*$", receiver.text().strip())
+        return found[0] if found else None
+
+    @staticmethod
     def _enclosing_class(match, language: str) -> Optional[str]:
         """Name of the nearest class-like ancestor, or None for a free function."""
         kinds = dict(CLASS_ANCESTOR_KINDS.get(language, ()))
@@ -356,7 +372,7 @@ class AstGrepParser:
                 if field_name:
                     name = ancestor.field(field_name)
                     if name:
-                        return " ".join(name.text().split())[:80]
+                        return _GENERIC_GROUP.sub("", " ".join(name.text().split()))[:80]
         except Exception as e:
             logger.debug("Failed to read enclosing class: %s", e)
         return None

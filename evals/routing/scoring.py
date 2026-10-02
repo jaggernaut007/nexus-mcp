@@ -35,12 +35,28 @@ def effective_calls(calls: List[ToolCall]) -> List[ToolCall]:
     return [c for c in calls if c.name not in NEUTRAL_TOOLS]
 
 
-def args_match(call_input: Dict[str, Any], expected: Optional[Dict[str, Any]]) -> bool:
-    """Every expected key must equal the call's argument, ignoring case and type."""
+# Server-side defaults of the nexus tools. A model that omits `direction` gets
+# "callers", so an omitted argument counts as that default.
+TOOL_DEFAULTS: Dict[str, Dict[str, Any]] = {
+    "graph": {"direction": "callers", "transitive": False},
+    "map": {"detail": "summary"},
+}
+
+
+def args_match(
+    call_input: Dict[str, Any],
+    expected: Optional[Dict[str, Any]],
+    defaults: Optional[Dict[str, Any]] = None,
+) -> bool:
+    """Every expected key must equal the call's argument, ignoring case and type.
+
+    A key that the call omits is read from `defaults` (the tool's server default).
+    """
     if not expected:
         return True
+    defaults = defaults or {}
     for key, want in expected.items():
-        got = call_input.get(key)
+        got = call_input.get(key, defaults.get(key))
         if got is None or str(got).strip().lower() != str(want).strip().lower():
             return False
     return True
@@ -83,7 +99,10 @@ def score_prompt(spec: Dict[str, Any], calls: List[ToolCall]) -> Dict[str, Any]:
         if is_nexus_tool(c.name) and normalize_tool(c.name) in expected_tools
     ]
     result["right_tool"] = bool(hits)
-    result["args_ok"] = any(args_match(c.input, spec.get("expected_args")) for c in hits)
+    result["args_ok"] = any(
+        args_match(c.input, spec.get("expected_args"), TOOL_DEFAULTS.get(normalize_tool(c.name)))
+        for c in hits
+    )
     result["passed"] = result["right_tool"] and result["args_ok"]
     return result
 

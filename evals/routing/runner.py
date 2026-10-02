@@ -79,12 +79,27 @@ def done_keys(out_path: Path) -> Set[Tuple[str, str, bool, int]]:
                 rec = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if rec.get("run_error") or rec.get("usage_limit"):
-                continue
+            if rec.get("run_error") or rec.get("usage_limit") or rec.get("isolation_problems"):
+                continue  # a failed or non-isolated run is retried on the next start
             keys.add(
                 run_key(rec["prompt_id"], rec["condition"], rec["tool_search"], rec["rep"])
             )
     return keys
+
+
+def existing_model(out_path: Path) -> Optional[str]:
+    """Model name of the first record in a JSONL file, or None if there is none."""
+    if not out_path.exists():
+        return None
+    with open(out_path) as f:
+        for line in f:
+            try:
+                model = json.loads(line).get("model")
+            except json.JSONDecodeError:
+                continue
+            if model:
+                return model
+    return None
 
 
 def write_mcp_config(path: Path, python: str, src_dir: Path) -> Path:
@@ -132,23 +147,29 @@ def looks_like_usage_limit(trace: tx.RunTrace) -> bool:
 
 
 def isolation_problems(trace: tx.RunTrace, condition: str) -> List[str]:
-    """Reasons a run is not isolated from the user's own Claude Code setup."""
+    """Reasons a run is not isolated from the user's own Claude Code setup.
+
+    The `baseline` condition expects no MCP server. The others expect exactly the
+    nexus server, connected. The `nexus-plugin` condition names it by plugin.
+    """
     problems: List[str] = []
     init = trace.init_event
     if not init:
         return ["no system/init event"]
-    if init.get("plugins"):
+    if init.get("plugins") and condition != "nexus-plugin":
         problems.append(f"plugins loaded: {init['plugins']}")
-    names = [s.get("name") for s in trace.mcp_servers if isinstance(s, dict)]
-    extra = [n for n in names if n != "nexus-mcp"]
+    servers = [s for s in trace.mcp_servers if isinstance(s, dict)]
+    nexus = [s for s in servers if "nexus" in str(s.get("name", ""))]
+    extra = [s.get("name") for s in servers if s not in nexus]
     if extra:
         problems.append(f"unexpected MCP servers: {extra}")
-    if "nexus-mcp" not in names:
-        problems.append("nexus-mcp server missing")
-    else:
-        status = next(s.get("status") for s in trace.mcp_servers if s.get("name") == "nexus-mcp")
-        if status != "connected":
-            problems.append(f"nexus-mcp status is {status}")
+    if condition == "baseline":
+        if nexus:
+            problems.append("nexus server present in the baseline condition")
+    elif not nexus:
+        problems.append("nexus server missing")
+    elif nexus[0].get("status") != "connected":
+        problems.append(f"nexus server status is {nexus[0].get('status')}")
     return problems
 
 
@@ -192,16 +213,19 @@ def stream_run(
         except (ProcessLookupError, PermissionError):
             pass
 
+    lines: List[str] = []
+    effective = 0
+    stopped_early = False
+
     def on_timeout() -> None:
         nonlocal timed_out
+        if stopped_early:  # the loop already ended the run; this is not a timeout
+            return
         timed_out = True
         kill()
 
     timer = threading.Timer(timeout_s, on_timeout)
     timer.start()
-    lines: List[str] = []
-    effective = 0
-    stopped_early = False
     try:
         for line in proc.stdout:
             lines.append(line)
@@ -372,11 +396,18 @@ def main(argv: Optional[List[str]] = None) -> int:
         specs = [s for s in specs if s["id"] in wanted]
         conditions, modes = ["mcp-only"], [True]
 
+    out_path = RESULTS_DIR / f"routing-{args.label}.jsonl"
+    prior_model = existing_model(out_path)
+    if prior_model and prior_model != args.model:
+        raise SystemExit(
+            f"{out_path} already holds runs for model {prior_model!r}. "
+            f"Use a new --label to run model {args.model!r}."
+        )
+
     src_dir = REPO_ROOT / "src"
     repo_dir = prepare_repo(args.python, src_dir)
     mcp_config = write_mcp_config(WORK_DIR / "mcp.json", args.python, src_dir)
     version = claude_version()
-    out_path = RESULTS_DIR / f"routing-{args.label}.jsonl"
 
     def run_one(spec: Dict[str, Any], condition: str, tool_search: bool) -> Dict[str, Any]:
         return run_once(spec, condition, tool_search, repo_dir, mcp_config, args.model, version)

@@ -21,9 +21,20 @@ def _label(tool_search: Any) -> str:
     return "on" if tool_search else "off"
 
 
+def latest_records(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Keep the last record for each run, so a retry replaces its failed attempt."""
+    latest: Dict[Any, Dict[str, Any]] = {}
+    for rec in records:
+        key = (rec.get("prompt_id"), rec.get("condition"), rec.get("tool_search"),
+               rec.get("rep"))
+        latest[key] = rec
+    return list(latest.values())
+
+
 def render_markdown(records: List[Dict[str, Any]]) -> str:
     """Two tables: rates by (condition, tool search), then pass rate by category."""
-    good = [r for r in records if not r.get("run_error")]
+    records = latest_records(records)
+    good = [r for r in records if not r.get("run_error") and not r.get("isolation_problems")]
     errors = len(records) - len(good)
     lines = [
         "| Condition | Tool Search | Runs | Pass | Nexus first | Right tool | Args ok "
@@ -45,10 +56,14 @@ def render_markdown(records: List[Dict[str, Any]]) -> str:
         agg = scoring.aggregate(recs)
         lines.append(f"| {category} | {agg['n']} | {_pct(agg['pass_rate'])} |")
 
-    flagged = [r for r in good if r.get("isolation_problems")]
+    flagged = [r for r in records if r.get("isolation_problems")]
     denied = [r for r in good if r.get("permission_denials")]
-    lines += ["", f"Runs with errors: {errors}. Runs with isolation problems: {len(flagged)}. "
-              f"Runs with permission denials: {len(denied)}."]
+    lines += [
+        "",
+        f"Runs left out (errors or isolation problems): {errors}. "
+        f"Runs with isolation problems: {len(flagged)}. "
+        f"Runs with permission denials: {len(denied)}.",
+    ]
     return "\n".join(lines)
 
 

@@ -53,6 +53,29 @@ class TestArgsMatch:
         assert scoring.args_match({"direction": "callers"}, {"direction": "callees"}) is False
 
 
+class TestToolDefaults:
+    def test_args_match_uses_the_tool_default_for_an_omitted_argument(self):
+        assert scoring.args_match({}, {"direction": "callers"}, {"direction": "callers"}) is True
+
+    def test_args_match_explicit_argument_beats_the_default(self):
+        got = scoring.args_match(
+            {"direction": "callees"}, {"direction": "callers"}, {"direction": "callers"}
+        )
+        assert got is False
+
+    def test_score_prompt_graph_without_direction_passes_for_callers(self):
+        spec = {"id": "g", "category": "graph", "expected_any_of": ["graph"],
+                "expected_args": {"direction": "callers"}}
+        calls = [_call("mcp__nexus-mcp__graph", symbol_name="reserve_stock")]
+        assert scoring.score_prompt(spec, calls)["passed"] is True
+
+    def test_score_prompt_graph_without_transitive_fails_a_blast_radius_prompt(self):
+        spec = {"id": "g", "category": "graph", "expected_any_of": ["graph"],
+                "expected_args": {"transitive": "true"}}
+        calls = [_call("mcp__nexus-mcp__graph", symbol_name="check_stock")]
+        assert scoring.score_prompt(spec, calls)["passed"] is False
+
+
 class TestScorePrompt:
     SPEC = {"id": "x", "category": "graph", "expected_any_of": ["graph"],
             "expected_args": {"direction": "callers"}}
@@ -208,6 +231,42 @@ class TestRunnerHelpers:
                             mcp_servers=[{"name": "nexus-mcp", "status": "connected"}])
         assert runner.isolation_problems(trace, "nexus") == []
 
+    def test_isolation_problems_ignores_non_dict_server_entries(self):
+        trace = tx.RunTrace(init_event={"type": "system"},
+                            mcp_servers=["nexus-mcp", {"name": "nexus-mcp", "status": "connected"}])
+        assert runner.isolation_problems(trace, "nexus") == []
+
+    def test_isolation_problems_baseline_expects_no_server(self):
+        clean = tx.RunTrace(init_event={"type": "system"}, mcp_servers=[])
+        assert runner.isolation_problems(clean, "baseline") == []
+        leaked = tx.RunTrace(init_event={"type": "system"},
+                             mcp_servers=[{"name": "nexus-mcp", "status": "connected"}])
+        assert runner.isolation_problems(leaked, "baseline")
+
+    def test_isolation_problems_plugin_condition_accepts_the_plugin_server_name(self):
+        trace = tx.RunTrace(
+            init_event={"plugins": ["nexus-mcp"]},
+            mcp_servers=[{"name": "plugin:nexus-mcp:nexus-mcp", "status": "connected"}],
+        )
+        assert runner.isolation_problems(trace, "nexus-plugin") == []
+
+    def test_isolation_problems_disconnected_server(self):
+        trace = tx.RunTrace(init_event={"type": "system"},
+                            mcp_servers=[{"name": "nexus-mcp", "status": "failed"}])
+        assert any("status" in p for p in runner.isolation_problems(trace, "nexus"))
+
+    def test_done_keys_skips_runs_with_isolation_problems(self, tmp_path):
+        out = tmp_path / "r.jsonl"
+        runner.write_record({"prompt_id": "a", "condition": "nexus", "tool_search": True,
+                             "rep": 0, "isolation_problems": ["server failed"]}, out)
+        assert runner.done_keys(out) == set()
+
+    def test_existing_model_reads_the_first_record(self, tmp_path):
+        out = tmp_path / "r.jsonl"
+        assert runner.existing_model(out) is None
+        runner.write_record({"prompt_id": "a", "model": "sonnet"}, out)
+        assert runner.existing_model(out) == "sonnet"
+
     def test_isolation_problems_without_init_event(self):
         assert runner.isolation_problems(tx.RunTrace(), "nexus") == ["no system/init event"]
 
@@ -325,11 +384,30 @@ class TestRunOnce:
 
 
 class TestReport:
+    def test_latest_records_replaces_a_failed_attempt_with_its_retry(self):
+        records = [
+            {"prompt_id": "a", "condition": "nexus", "tool_search": True, "rep": 0,
+             "run_error": "boom"},
+            {"prompt_id": "a", "condition": "nexus", "tool_search": True, "rep": 0,
+             "category": "map", "passed": True},
+        ]
+        assert report.latest_records(records) == [records[1]]
+
+    def test_render_markdown_leaves_out_runs_with_isolation_problems(self):
+        records = [
+            {"prompt_id": "a", "condition": "nexus", "tool_search": True, "rep": 0,
+             "category": "map", "passed": False, "isolation_problems": ["server failed"]},
+        ]
+        text = report.render_markdown(records)
+        assert "Runs left out (errors or isolation problems): 1" in text
+
     def test_render_markdown_has_condition_and_category_tables(self):
         records = [
-            {"condition": "nexus", "tool_search": True, "category": "map", "passed": True,
+            {"prompt_id": "a", "rep": 0, "condition": "nexus", "tool_search": True,
+             "category": "map", "passed": True,
              "first_is_nexus": True, "right_tool": True, "args_ok": True},
-            {"condition": "nexus", "tool_search": True, "category": "negative", "passed": True},
+            {"prompt_id": "b", "rep": 0, "condition": "nexus", "tool_search": True,
+             "category": "negative", "passed": True},
         ]
         text = report.render_markdown(records)
         assert "| nexus | on | 2 | 100%" in text

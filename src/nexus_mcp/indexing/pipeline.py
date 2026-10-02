@@ -23,6 +23,7 @@ from nexus_mcp.indexing.embedding_service import get_embedding_service
 from nexus_mcp.indexing.parallel_indexer import parallel_parse_files
 from nexus_mcp.parsing.astgrep_parser import AstGrepParser
 from nexus_mcp.parsing.language_registry import get_supported_extensions
+from nexus_mcp.persistence.store import GraphPersistence
 
 logger = logging.getLogger(__name__)
 
@@ -288,8 +289,9 @@ class IndexingPipeline:
                 self._bm25_engine.clear()
                 self._bm25_engine.ensure_fts_index()
 
-            # Save metadata
+            # Save metadata, then the graph: the graph file must be the newer of the two.
             self._save_metadata(codebase_path, files)
+            self._persist_graph()
         finally:
             # Always unload model to free RAM
             self._embedding_service.unload()
@@ -309,6 +311,47 @@ class IndexingPipeline:
             graph_relationships=graph_stats["total_relationships"],
             time_seconds=elapsed,
         )
+
+    def _persist_graph(self) -> None:
+        """Save the graph after a full build, so a restart can load it.
+
+        Incremental reindexes do not save: the state shutdown handler does. If
+        the process dies first, the saved file is older than the index metadata
+        and _restore_graph() rejects it.
+        """
+        try:
+            GraphPersistence(str(self._settings.graph_path)).save(self._graph_engine)
+        except Exception as e:  # noqa: BLE001 - persistence must not fail an index
+            logger.warning("Could not save graph: %s", e)
+
+    def _restore_graph(self) -> bool:
+        """Make sure the graph engine holds the graph that matches the stored index.
+
+        Returns True when the engine already has nodes, or when the graph saved at
+        shutdown was loaded into it. Returns False when no saved graph exists or
+        when it is older than the index metadata (a crash left a stale file), so
+        the caller falls back to a full rebuild.
+        """
+        if self._graph_engine.nodes:
+            return True
+        graph_path = self._settings.graph_path
+        try:
+            if not graph_path.exists() or not self._metadata_path.exists():
+                return False
+            if graph_path.stat().st_mtime < self._metadata_path.stat().st_mtime:
+                return False
+            loaded = GraphPersistence(str(graph_path)).load()
+        except Exception as e:  # noqa: BLE001 - a bad graph file must not block indexing
+            logger.warning("Could not load saved graph: %s", e)
+            return False
+        if loaded is None or not loaded.nodes:
+            return False
+        for node in loaded.nodes.values():
+            self._graph_engine.add_node(node)
+        for rel in loaded.relationships.values():
+            self._graph_engine.add_relationship(rel)
+        logger.info("Restored saved graph: %d nodes", len(loaded.nodes))
+        return True
 
     def _validate_index(self) -> bool:
         """Validate that stored index artifacts are intact.
@@ -354,6 +397,12 @@ class IndexingPipeline:
         # Load stored metadata
         stored_mtimes = self._load_metadata()
         if not stored_mtimes:
+            return self.index(codebase_path, progress_callback)
+
+        # A new process starts with an empty graph. Load the one saved at shutdown,
+        # or rebuild when none is usable, so graph() is not empty after a restart.
+        if not self._restore_graph():
+            logger.info("No usable saved graph; performing full rebuild.")
             return self.index(codebase_path, progress_callback)
 
         # Discover current files
@@ -577,7 +626,11 @@ class IndexingPipeline:
             raw_meta = self._load_metadata_raw() or {}
             stored_mtimes = raw_meta.get("mtimes")
             stored_roots = set(raw_meta.get("codebase_paths", []))
-            if stored_mtimes and stored_roots == {str(p) for p in resolved_paths}:
+            if (
+                stored_mtimes
+                and stored_roots == {str(p) for p in resolved_paths}
+                and self._restore_graph()
+            ):
                 return self._incremental_multi_index(
                     resolved_paths, stored_mtimes, start, progress_callback
                 )
@@ -660,6 +713,7 @@ class IndexingPipeline:
             self._embedding_service.unload()
 
         resolve_calls(self._graph_engine)
+        self._persist_graph()
         graph_stats = self._graph_engine.get_statistics()
         elapsed = time.time() - start
         logger.info(

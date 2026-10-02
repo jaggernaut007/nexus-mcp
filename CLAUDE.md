@@ -25,7 +25,7 @@ repo to read the skill content directly.
 
 ### Known limitations
 
-- **Call edges are static and name-based.** `graph()` and the `callers`/`callees` fields of `explain()` come from parsing, not runtime tracing. Edges exist for Python, JavaScript, TypeScript, Go, Java and Rust. A call resolves only when the callee is in the same file, in an imported file, or has a unique name in the index. A name shared by several definitions gets no edge, so results are a lower bound. `analyze` still shows zero complexity and no docstrings for ast-grep nodes.
+- **Call edges are static and name-based.** `graph()` and the `callers`/`callees` fields of `explain()` come from parsing, not runtime tracing. Edges exist for Python, JavaScript, TypeScript, Go, Java and Rust. A call gets an edge only when exactly one callee fits: in the same file, in an imported file, or with a unique name in the index. A name shared by several definitions gets no edge, so results are a lower bound. Python is covered best; see ADR-019 for the other languages. `analyze` still shows zero complexity and no docstrings for ast-grep nodes.
 - **The call graph only sees static edges.** `graph()` is built from
   parsing, not runtime tracing. It will **miss**: dynamic dispatch (Python monkey-patching, Ruby
   metaprogramming), calls made through callbacks/closures/lambdas (e.g.

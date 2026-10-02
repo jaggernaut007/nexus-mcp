@@ -141,7 +141,7 @@ search("how does auth work")
 | **Embeddings** | bge-small-en (default) or ONNX Runtime + jina-code | bge-small-en is lightweight (384-dim, no trust_remote_code). jina-code is code-specific (161M params, 8192 seq len) on ONNX (~50 MB vs PyTorch ~500 MB). Lazy-load/unload keeps RAM flat after indexing. ([ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md)) |
 | **Graph engine** | rustworkx PyDiGraph | Rust-backed, O(1) node lookup, PageRank + centrality algorithms. Thread-safe with RLock. ([ADR-006](docs/adr/ADR-006-rustworkx-graph-engine.md)) |
 | **Symbol parser** | tree-sitter 0.21.3 | 25+ languages, incremental parsing, AST-level symbol extraction with metadata. Parallel via ThreadPool. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
-| **Graph parser** | ast-grep | Structural matching for containment and import edges (call and inheritance edges are not extracted yet). Sequential run for graph consistency. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
+| **Graph parser** | ast-grep | Structural matching for containment and import edges (call edges are resolved after indexing; inheritance edges are not extracted yet). Sequential run for graph consistency. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
 | **Chunking** | Symbol-based | One chunk per function/class. Deterministic SHA256 IDs prevent duplicate inserts. ([ADR-008](docs/adr/ADR-008-code-chunk-strategy.md)) |
 | **Re-ranker** | FlashRank (optional) | 4 MB ONNX cross-encoder, <10 ms on CPU for top-20. Graceful passthrough if not installed. |
 | **Persistence** | SQLite + LanceDB | Graph in SQLite (warm-start recovery), vectors+FTS in LanceDB, mtimes in JSON. Zero-config. |
@@ -203,7 +203,7 @@ better under MCP Tool Search than many thin ones.
 | Tool | Use When |
 |------|----------|
 | `find_symbol(symbol_name, exact)` | Look up a specific symbol. `exact=False` for fuzzy matching. |
-| `graph(symbol_name, direction, transitive, max_depth)` | `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True`** (was `impact()`) is meant to give the transitive change blast radius before a refactor. It requires `direction="callers"`; `direction="callees"` with `transitive=True` returns an error. **Call edges are not extracted yet, so callers, callees and impact results are empty today** — use `search` to find call sites (see [Known Limitations](#known-limitations)). |
+| `graph(symbol_name, direction, transitive, max_depth)` | `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True`** (was `impact()`) gives the transitive change blast radius before a refactor (a lower bound: static edges only). It requires `direction="callers"`; `direction="callees"` with `transitive=True` returns an error. Call edges are static and name-based, so use `search` for call sites the graph cannot see (see [Known Limitations](#known-limitations)). |
 | `explain(symbol_name, verbosity)` | **Replaces `Read` for understanding code.** Graph relationships + semantic context + quality metrics in one call. |
 | `analyze(path)` | Code quality: cyclomatic complexity, cognitive complexity, code smells, dependency metrics. |
 

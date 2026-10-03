@@ -110,7 +110,7 @@ health()
 ```
 
 #### `map`
-Project orientation. Use it instead of `ls` or manual browsing.
+Project overview: files, languages, modules and structure. Use it before you list directories or open files one by one.
 
 ```
 map(detail="summary")        # files, languages, symbol counts, quality, top modules
@@ -123,7 +123,7 @@ map(detail="full")           # both
 ### Search
 
 #### `search`
-Preferred over Grep/Glob for finding code. Semantic + keyword + graph search with code snippets.
+Finds code by meaning or keyword: semantic + keyword + graph search, with code snippets.
 
 ```
 search(query="authentication middleware", limit=10, language="python", mode="hybrid")
@@ -143,7 +143,7 @@ Returns results with `filepath` (relative), `absolute_path`, `code_snippet` (tru
 ### Graph Analysis
 
 #### `find_symbol`
-Preferred over Grep for finding symbol definitions. Returns file path, line numbers, docstring, type annotations and the graph relationships of the symbol.
+Finds a symbol definition by name. Returns file path, line numbers, docstring, type and the graph relationships of the symbol.
 
 ```
 find_symbol(symbol_name="UserService", exact=True)

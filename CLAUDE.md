@@ -4,7 +4,7 @@ Unified MCP server: hybrid search + code graph + semantic memory. Target: <350MB
 
 ## Use Nexus-MCP Tools Before Built-in Tools
 
-Nexus-MCP is registered as an MCP server (`nexus-mcp-ci`) with 10 tools: `index`,
+Nexus-MCP is registered as an MCP server (`nexus-mcp`) with 10 tools: `index`,
 `status`, `health`, `search`, `find_symbol`, `graph`, `explain`, `analyze`, `map`,
 `memory`. Prefer these over Read/Grep/Glob for exploring an indexed codebase — start
 with `status`, index if needed, then `search`/`find_symbol`/`graph` before falling

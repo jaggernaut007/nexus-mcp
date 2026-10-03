@@ -49,7 +49,9 @@ BUILTIN_TOOLS = "Read,Grep,Glob,ToolSearch"
 MAX_BUDGET_USD = 0.50
 TIMEOUT_S = 240
 PROMPT_SUFFIX = "\n\nDo not edit any files."
-USAGE_LIMIT_MARKERS = ("usage limit", "limit reached", "rate limit", "out of extra usage")
+# Phrases of the CLI's own usage-limit message. A plain API "rate limit" (HTTP 429)
+# or a context-length error is a failed run, not a reason to stop the whole batch.
+USAGE_LIMIT_MARKERS = ("usage limit", "out of extra usage", "5-hour limit", "weekly limit")
 
 
 class UsageLimitReached(RuntimeError):

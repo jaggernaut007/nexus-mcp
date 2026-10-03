@@ -259,8 +259,8 @@ def create_server():
         ctx: Context = None,
     ) -> dict[str, Any]:
         """Build or refresh the code index for a project. Call it once per project
-        when `status` says `indexed` is false; search, graph, map, analyze, explain and
-        memory search all need it. Pass an absolute path, or several comma-separated
+        when `status` says `indexed` is false; search, find_symbol, graph, map, analyze
+        and explain all need it. Pass an absolute path, or several comma-separated
         paths for a monorepo. It is incremental when an index exists, and a file
         watcher then keeps the index fresh, so you rarely need to call it again.
         Large repositories take a while; progress is reported."""
@@ -340,11 +340,11 @@ def create_server():
         symbol_name: Annotated[str, "Symbol name (e.g. 'create_server', 'TokenBudget')"],
         exact: Annotated[bool, "True for exact match, False for fuzzy substring"] = True,
     ) -> dict[str, Any]:
-        """Look up a function, class or method by name and get its definition: file,
-        line range, signature and docstring. Use it when you know the name ("show me
-        create_order", "where is TokenBudget defined"). Set exact=false to match part
-        of a name when you are unsure of the spelling. For who calls it, use `graph`;
-        for a full briefing, use `explain`."""
+        """Look up a function, class or method by name and get where it is defined: file,
+        line range, language, complexity, docstring and its direct relationships. Use it
+        when you know the name ("show me create_order", "where is TokenBudget defined").
+        Set exact=false to match part of a name when you are unsure of the spelling.
+        For who calls it, use `graph`; for a full briefing, use `explain`."""
         guard_err = _guard("find_symbol")
         if guard_err:
             return guard_err
@@ -427,8 +427,9 @@ def create_server():
     ) -> dict[str, Any]:
         """Get an overview of the project: "give me an overview", "how is this
         structured", "where do I start", "what are the main modules". 'summary' lists
-        files, languages, top modules and quality. 'architecture' adds layers, module
-        dependencies, entry points and the most connected symbols. Use it at the start
+        files, languages, top modules and quality. 'architecture' gives layers, module
+        dependencies, entry points and the most connected symbols. 'full' gives both.
+        Use it at the start
         of work in an unfamiliar repository, before you list directories or open
         files one by one."""
         guard_err = _guard("map")
@@ -468,7 +469,8 @@ def create_server():
         conventions, status. Use action='store' when the user says "remember that..."
         or a decision is made, action='search' for "what did we decide about...", and
         action='delete' to remove outdated notes by ID, tags or type. Notes are stored
-        in the project index folder and found by meaning, not by exact words."""
+        with the index of this project (the .nexus folder) and found by meaning, not
+        by exact words."""
         from nexus_mcp.security.permissions import ToolCategory
 
         category_override = {

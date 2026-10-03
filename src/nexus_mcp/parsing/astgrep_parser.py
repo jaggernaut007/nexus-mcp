@@ -364,7 +364,10 @@ class AstGrepParser:
         except Exception as e:
             logger.debug("Docstring read failed: %s", e)
             return None
-        text = text.lstrip("rRbBuUfF")
+        # f-strings and bytes literals are not docstrings: Python sets __doc__ to None.
+        if text[:1] in "fFbB" or text[:2].lower() in ("rf", "fr", "rb", "br"):
+            return None
+        text = text.lstrip("rRuU")
         for quote in ('"""', "'''", '"', "'"):
             if text.startswith(quote) and text.endswith(quote) and len(text) >= 2 * len(quote):
                 text = text[len(quote):-len(quote)]

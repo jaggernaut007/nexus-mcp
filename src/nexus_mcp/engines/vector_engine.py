@@ -187,6 +187,17 @@ class LanceDBVectorEngine(IEngine):
                 )
                 return False
 
+            # Same column names can hide a different vector width (an index built with
+            # another embedding model). Adding to such a table fails, and a query fails
+            # quietly, so treat it as invalid and let the caller rebuild.
+            actual_width = getattr(table.schema.field("vector").type, "list_size", None)
+            if actual_width is not None and actual_width != self._vector_dims:
+                logger.warning(
+                    "Vector width mismatch: table has %s, model needs %s; rebuild required.",
+                    actual_width, self._vector_dims,
+                )
+                return False
+
             return True
         except Exception as e:
             logger.warning("Index validation failed: %s", e)

@@ -37,7 +37,23 @@ def load_records(paths: Sequence[str]) -> List[Dict[str, Any]]:
                             f"Skipping malformed line {path}:{lineno}: {exc}",
                             file=sys.stderr,
                         )
-    return records
+    return _last_record_per_run(records)
+
+
+def _last_record_per_run(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Keep the last record of each (task, condition, rep, model).
+
+    A resumed batch retries a failed run and appends the new record after the old
+    error record. Without this, both would count in the medians.
+    """
+    latest: Dict[Any, Dict[str, Any]] = {}
+    passthrough = []
+    for rec in records:
+        if "task_id" not in rec or "rep" not in rec:
+            passthrough.append(rec)
+            continue
+        latest[(rec["task_id"], rec.get("condition"), rec["rep"], rec.get("model"))] = rec
+    return passthrough + list(latest.values())
 
 
 def median(values: Sequence[float]) -> Optional[float]:

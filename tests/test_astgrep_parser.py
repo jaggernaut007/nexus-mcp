@@ -145,6 +145,18 @@ def test_python_docstring_is_extracted_without_quotes(tmp_path):
     assert funcs["not_a_docstring"].docstring is None
 
 
+def test_fstring_and_bytes_literals_are_not_docstrings(tmp_path):
+    funcs = _functions_by_name(
+        tmp_path, "f.py",
+        'def a():\n    f"not a docstring {1}"\n    return 1\n\n\n'
+        'def b():\n    b"bytes"\n    return 2\n\n\n'
+        'def c():\n    r"""raw docstring"""\n    return 3\n',
+    )
+    assert funcs["a"].docstring is None
+    assert funcs["b"].docstring is None
+    assert funcs["c"].docstring == "raw docstring"
+
+
 def test_docstring_is_capped(tmp_path):
     long_text = "x" * 2000
     funcs = _functions_by_name(tmp_path, "e.py", f'def f():\n    """{long_text}"""\n')

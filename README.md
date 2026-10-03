@@ -402,7 +402,7 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_LOG_LEVEL` | `INFO` | Logging level |
 | `NEXUS_LOG_FORMAT` | `text` | `text` or `json` |
 
-The Python package defaults to `bge-small-en`. The `Dockerfile` and `smithery.yaml` set `jina-code` explicitly, so those deployments use `jina-code` unless you override it.
+The Python package defaults to `bge-small-en`. The `Dockerfile`, `smithery.yaml` and `glama.json` use the same default. Set `NEXUS_EMBEDDING_MODEL=jina-code` to opt in to the code-specific model.
 
 ### Embedding Models
 

@@ -231,7 +231,7 @@ def test_run_suite_skips_runs_that_already_have_a_record(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, "repo_dir_for", lambda suite: tmp_path)
     monkeypatch.setattr(runner, "claude_version", lambda: "test")
     out = tmp_path / "runs.jsonl"
-    runner.write_record({"task_id": "t1", "condition": "baseline", "rep": 0}, out)
+    runner.write_record({"task_id": "t1", "condition": "baseline", "rep": 0, "model": "m"}, out)
     seen = []
 
     def fake_run_once(task, condition, repo, repo_dir, model, config_dir, **kwargs):
@@ -241,6 +241,32 @@ def test_run_suite_skips_runs_that_already_have_a_record(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, "run_once", fake_run_once)
     runner.run_suite(_suite(), ["baseline"], 1, "m", tmp_path, out)
     assert seen == ["t2"]
+
+
+def test_run_suite_does_not_skip_runs_recorded_for_another_model(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "repo_dir_for", lambda suite: tmp_path)
+    monkeypatch.setattr(runner, "claude_version", lambda: "test")
+    out = tmp_path / "runs.jsonl"
+    runner.write_record(
+        {"task_id": "t1", "condition": "baseline", "rep": 0, "model": "sonnet"}, out
+    )
+    seen = []
+
+    def fake_run_once(task, condition, repo, repo_dir, model, config_dir, **kwargs):
+        seen.append(task["id"])
+        return {"task_id": task["id"], "condition": condition, "model": model}
+
+    monkeypatch.setattr(runner, "run_once", fake_run_once)
+    runner.run_suite(_suite(), ["baseline"], 1, "opus", tmp_path, out)
+    assert seen == ["t1", "t2"]
+
+
+def test_a_plain_api_rate_limit_error_is_a_failed_run_not_a_usage_limit(tmp_path, monkeypatch):
+    line = json.dumps({"type": "result", "subtype": "error", "is_error": True,
+                       "result": "API error 429: rate limit exceeded, retry later"})
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: _FakePopen(line + "\n"))
+    record = runner.run_once(_task(), "baseline", _repo(), tmp_path, "sonnet", tmp_path)
+    assert record["is_error"] is True
 
 
 def test_run_suite_retries_a_run_whose_record_was_an_error(tmp_path, monkeypatch):

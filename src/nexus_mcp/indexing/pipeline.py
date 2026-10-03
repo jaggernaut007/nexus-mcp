@@ -476,12 +476,13 @@ class IndexingPipeline:
             self._bm25_engine.clear()
             self._bm25_engine.ensure_fts_index()
 
-            # Save updated metadata
+            # Resolve call edges before the metadata is saved, so a graph saved at
+            # shutdown is never newer than the metadata yet missing the new edges.
+            resolve_calls(self._graph_engine)
             self._save_metadata(codebase_path, files)
         finally:
             self._embedding_service.unload()
 
-        resolve_calls(self._graph_engine)
         graph_stats = self._graph_engine.get_statistics()
         elapsed = time.time() - start
 
@@ -579,11 +580,11 @@ class IndexingPipeline:
             self._bm25_engine.ensure_fts_index()
 
             all_files = [Path(f) for f in current_mtimes.keys()]
+            resolve_calls(self._graph_engine)
             self._save_multi_metadata(resolved_paths, all_files)
         finally:
             self._embedding_service.unload()
 
-        resolve_calls(self._graph_engine)
         graph_stats = self._graph_engine.get_statistics()
         elapsed = time.time() - start
 

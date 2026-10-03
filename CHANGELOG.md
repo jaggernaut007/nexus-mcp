@@ -17,7 +17,10 @@ All notable changes to this project will be documented in this file.
 - Server `instructions` sent on connect (issue #5): which tool answers which question.
 - Tool annotations (`readOnlyHint` and others) and a title on every tool, and enum
   schemas for `mode`, `direction`, `verbosity`, `detail`, `action` and `ttl`.
-- The index records its embedding model and rebuilds when the model changes.
+- The index records its embedding model and rebuilds when the model changes. An older
+  index with a different vector width is also detected and rebuilt. Stored memories are
+  re-embedded with the new model; a JSON backup is written first
+  (`memories-before-model-change.json`).
 - The saved graph is loaded on restart, so `graph()` works after a restart without a
   full reindex.
 - Cyclomatic complexity and Python docstrings on graph nodes, so `analyze` is no longer

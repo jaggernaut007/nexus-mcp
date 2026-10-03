@@ -9,6 +9,7 @@ import json
 import logging
 import threading
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import lancedb
@@ -75,12 +76,42 @@ class MemoryStore:
             table_names = tables.tables if hasattr(tables, "tables") else list(tables)
 
             if self._table_name in table_names:
-                self._table = self._db.open_table(self._table_name)
+                self._table = self._open_or_migrate(self._db.open_table(self._table_name))
             else:
                 schema = _make_memory_schema(self._vector_dims)
                 self._table = self._db.create_table(self._table_name, schema=schema)
 
             return self._table
+
+    def _open_or_migrate(self, table):
+        """Return `table`, re-embedding its rows first if its vector width is wrong.
+
+        A memory is user data and cannot be rebuilt from source, unlike a code chunk.
+        When the embedding model changes, the old vectors no longer fit the table that
+        the new model needs, so every row is embedded again with the current model.
+        The rows are written to a JSON backup before the old table is dropped.
+        """
+        old_width = getattr(table.schema.field("vector").type, "list_size", None)
+        if old_width is None or old_width == self._vector_dims:
+            return table
+
+        rows = table.to_arrow().to_pylist()
+        backup = Path(self._db_path).parent / f"{self._table_name}-before-model-change.json"
+        backup.write_text(json.dumps(
+            [{k: v for k, v in row.items() if k != "vector"} for row in rows], indent=2
+        ))
+        logger.warning(
+            "Re-embedding %d memories: vector width %s -> %s (backup: %s)",
+            len(rows), old_width, self._vector_dims, backup,
+        )
+        vectors = self._embedding_service.embed_batch([r["content"] for r in rows]) if rows else []
+        self._db.drop_table(self._table_name)
+        new_table = self._db.create_table(
+            self._table_name, schema=_make_memory_schema(self._vector_dims)
+        )
+        if rows:
+            new_table.add([{**row, "vector": vec} for row, vec in zip(rows, vectors)])
+        return new_table
 
     def _memory_to_row(self, memory: Memory, vector: List[float]) -> Dict[str, Any]:
         """Convert a Memory object to a LanceDB row dict."""

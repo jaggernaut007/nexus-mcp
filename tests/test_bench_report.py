@@ -272,3 +272,17 @@ class TestMain:
         rc = main([str(tmp_path / "nonexistent-*.jsonl")])
         assert rc == 0
         assert "No records found" in capsys.readouterr().out
+
+
+def test_load_records_keeps_only_the_last_record_of_a_repeated_run(tmp_path):
+    path = tmp_path / "runs.jsonl"
+    path.write_text(
+        '{"task_id": "t1", "condition": "nexus", "rep": 0, "model": "m", "is_error": true}\n'
+        '{"task_id": "t1", "condition": "nexus", "rep": 0, "model": "m", "is_error": false}\n'
+        '{"task_id": "t1", "condition": "nexus", "rep": 1, "model": "m", "is_error": false}\n'
+    )
+    from benchmarks.report import load_records
+
+    records = load_records([str(path)])
+    assert len(records) == 2
+    assert all(r["is_error"] is False for r in records)

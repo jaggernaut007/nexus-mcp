@@ -5,6 +5,7 @@ the arguments the service passes, not the model weights. Model-change detection 
 the real pipeline and a real index on disk.
 """
 
+import json
 import sys
 import types
 from unittest.mock import MagicMock, patch
@@ -154,3 +155,65 @@ def test_index_without_model_keys_is_accepted(codebase, tmp_path):
     pipeline._metadata_path.write_text(json.dumps(data))
 
     assert _pipeline(tmp_path, "bge-small-en")._validate_index() is True
+
+
+def test_legacy_index_with_the_wrong_vector_width_is_rebuilt(codebase, tmp_path):
+    """A 2.0.3 index has no model key. Opening it with a model of another width must
+    rebuild, not fail on the first add (the Docker default moved from 768 to 384)."""
+    old = _pipeline(tmp_path, "jina-code")  # 768-wide vectors
+    old.index(codebase)
+    data = json.loads(old._metadata_path.read_text())
+    data.pop("embedding_model")
+    data.pop("embedding_dimensions")
+    old._metadata_path.write_text(json.dumps(data))
+
+    new = _pipeline(tmp_path, "bge-small-en")  # 384-wide
+    result = new.incremental_index(codebase)
+
+    assert result.total_files == 2  # full rebuild, not an incremental no-op
+    assert new.vector_engine.validate() is True
+
+
+def test_vector_engine_validate_rejects_a_table_of_another_width(codebase, tmp_path):
+    _pipeline(tmp_path, "jina-code").index(codebase)
+    narrow = _pipeline(tmp_path, "bge-small-en")
+    assert narrow.vector_engine.validate() is False
+
+
+def _note(memory_id, content):
+    from nexus_mcp.core.models import Memory, MemoryType
+
+    return Memory(id=memory_id, content=content, memory_type=MemoryType.NOTE, project="p")
+
+
+def _memory_store(tmp_path, dims):
+    from nexus_mcp.memory.memory_store import MemoryStore
+
+    svc = MagicMock()
+    svc.embed.side_effect = lambda text, **kw: [0.1] * dims
+    svc.embed_batch.side_effect = lambda texts, **kw: [[0.1] * dims for _ in texts]
+    return MemoryStore(db_path=str(tmp_path / "lance"), embedding_service=svc, vector_dims=dims)
+
+
+def test_memories_are_re_embedded_when_the_model_width_changes(tmp_path):
+    first = _memory_store(tmp_path, 384)
+    first.remember(_note("m1", "use HMAC-SHA256 for webhooks"))
+    first.remember(_note("m2", "refunds go through the gateway"))
+
+    second = _memory_store(tmp_path, 768)  # same storage, wider model
+    second.remember(_note("m3", "a note stored after the switch"))
+
+    contents = {m.content for m in second.recall("webhooks", limit=10)}
+    assert contents == {
+        "use HMAC-SHA256 for webhooks",
+        "refunds go through the gateway",
+        "a note stored after the switch",
+    }
+    backup = tmp_path / "memories-before-model-change.json"
+    assert {row["id"] for row in json.loads(backup.read_text())} == {"m1", "m2"}
+
+
+def test_memories_stay_untouched_when_the_width_is_unchanged(tmp_path):
+    _memory_store(tmp_path, 384).remember(_note("m1", "keep me"))
+    _memory_store(tmp_path, 384).remember(_note("m2", "and me"))
+    assert not (tmp_path / "memories-before-model-change.json").exists()

@@ -32,7 +32,9 @@ DEFAULT_MODEL = "sonnet"
 DEFAULT_CONDITIONS = ["baseline", "nexus"]
 DEFAULT_REPS = 3
 PROMPT_SUFFIX = "\n\nDo not edit any files. End your response with a concise final answer."
-USAGE_LIMIT_MARKERS = ("usage limit", "limit reached", "rate limit", "out of extra usage")
+# Phrases of the CLI's own usage-limit message. A plain API "rate limit" (HTTP 429)
+# or a context-length error is a failed run, not a reason to stop the whole batch.
+USAGE_LIMIT_MARKERS = ("usage limit", "out of extra usage", "5-hour limit", "weekly limit")
 
 
 class UsageLimitReached(RuntimeError):
@@ -48,8 +50,8 @@ def claude_version() -> str:
         return "unknown"
 
 
-def done_keys(out_path: Path) -> set:
-    """(task_id, condition, rep) of runs that already finished without an error."""
+def done_keys(out_path: Path, model: str) -> set:
+    """(task_id, condition, rep) of runs of `model` that already finished without an error."""
     keys = set()
     if not out_path.exists():
         return keys
@@ -59,7 +61,7 @@ def done_keys(out_path: Path) -> set:
                 rec = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if rec.get("run_error") or rec.get("is_error"):
+            if rec.get("run_error") or rec.get("is_error") or rec.get("model") != model:
                 continue
             keys.add((rec.get("task_id"), rec.get("condition"), rec.get("rep")))
     return keys
@@ -207,7 +209,7 @@ def run_suite(
     records = []
     total = len(tasks) * len(condition_names) * reps
     done = 0
-    finished = done_keys(out_path)
+    finished = done_keys(out_path, model)
     version = claude_version()
     for task in tasks:
         merged_task = {**defaults, **task}

@@ -130,14 +130,14 @@
 
 ## Phase 8: Advanced Intelligence & Visualization — SUPERSEDED
 - [x] 8a: Ripgrep fallback for search reliability (100% coverage)
-- [ ] ~~8b: Visual graph export (Mermaid.js)~~ — was falsely marked complete; never implemented. See [todo.md](todo.md) for viability verdict.
-- [ ] ~~8c: Global semantic memory (cross-repository)~~ — reframed, see [todo.md](todo.md)
-- [ ] ~~8d: Dynamic awareness (Log ingestion/linking)~~ — deferred, see [todo.md](todo.md)
+- [ ] ~~8b: Visual graph export (Mermaid.js)~~ — was falsely marked complete; never implemented. See [docs/BACKLOG.md](docs/BACKLOG.md) for viability verdict.
+- [ ] ~~8c: Global semantic memory (cross-repository)~~ — reframed, see [docs/BACKLOG.md](docs/BACKLOG.md)
+- [ ] ~~8d: Dynamic awareness (Log ingestion/linking)~~ — deferred, see [docs/BACKLOG.md](docs/BACKLOG.md)
 
 Superseded 2026-07-02 by [docs/ROADMAP-2026.md](docs/ROADMAP-2026.md), which sets the
 current P0/P1/P2 priorities (P0/P1 complete — see ADR-015, ADR-016, ADR-017 below).
 Remaining 8b/8c/8d items were evaluated against the v2.0.0 architecture; see
-[todo.md](todo.md) for per-item verdicts.
+[docs/BACKLOG.md](docs/BACKLOG.md) for per-item verdicts.
 
 ## Phase 9: Token-Efficiency Benchmark (ROADMAP-2026 P2 item 9) — HARNESS BUILT
 - [x] `benchmarks/` harness: nexus-mcp vs. baseline Claude Code on 1,000+ file repos
@@ -184,10 +184,12 @@ Plan: `~/.claude/plans/go-through-the-docs-glistening-sketch.md` (phases A-F).
   model name stored in index metadata with automatic rebuild on a change, `onnx_file`
   registry key, `max_seq_length` applied, one `model_dimensions()` helper, packaging
   defaults set to `bge-small-en` (issue #7), `_has_optimum` guard fixed (issue #9).
-- [ ] Phase C live comparison of candidate models — needs `optimum[onnxruntime]` and about
-  335 MB of model downloads (approval pending). Baseline for the shipped model is in
-  `evals/results/retrieval-baseline.json`.
-- [ ] Phases B, E, F — see the plan.
+- [x] Phase C live comparison (2026-10-03): 3 ONNX int8 candidates against the shipped model.
+  Result: keep `bge-small-en`; no candidate cleared the 5-point bar and all used more
+  memory. Findings on fusion and memory are in
+  [docs/research/embedding-models-2026-10.md](docs/research/embedding-models-2026-10.md).
+- [x] Phase F: [docs/BACKLOG.md](docs/BACKLOG.md) replaces `todo.md`.
+- [ ] Phase A live run 1, then Phase B (descriptions), then Phase E (benchmark).
 
 ## Discoverability & Setup Audit — 2026-09-23
 - [x] Audited agent-facing surfaces (tool descriptions, README, `llms.txt`,

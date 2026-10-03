@@ -180,7 +180,14 @@ Plan: `~/.claude/plans/go-through-the-docs-glistening-sketch.md` (phases A-F).
 - [x] Phase D (done before B so the eval can run first on the unchanged descriptions):
   `CALLS` edges from `indexing/call_resolver.py`, ADR-019, docs and site updated,
   `self_test/demo_mcp.py` now fails on an empty call graph.
-- [ ] Phases B, C, E, F — see the plan.
+- [x] Phase C code (2026-10-03): `evals/retrieval/` (metrics, queries, candidates, runner),
+  model name stored in index metadata with automatic rebuild on a change, `onnx_file`
+  registry key, `max_seq_length` applied, one `model_dimensions()` helper, packaging
+  defaults set to `bge-small-en` (issue #7), `_has_optimum` guard fixed (issue #9).
+- [ ] Phase C live comparison of candidate models — needs `optimum[onnxruntime]` and about
+  335 MB of model downloads (approval pending). Baseline for the shipped model is in
+  `evals/results/retrieval-baseline.json`.
+- [ ] Phases B, E, F — see the plan.
 
 ## Discoverability & Setup Audit — 2026-09-23
 - [x] Audited agent-facing surfaces (tool descriptions, README, `llms.txt`,

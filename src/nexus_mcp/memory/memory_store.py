@@ -15,7 +15,7 @@ import lancedb
 import pyarrow as pa
 
 from nexus_mcp.core.models import Memory, MemoryType
-from nexus_mcp.indexing.embedding_service import EmbeddingService
+from nexus_mcp.indexing.embedding_service import EmbeddingService, model_dimensions
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +56,7 @@ class MemoryStore:
         self._embedding_service = embedding_service
         self._table_name = table_name
         if vector_dims is None:
-            from nexus_mcp.indexing.embedding_service import EMBEDDING_MODELS
-            config = EMBEDDING_MODELS.get(embedding_service.model_name, {})
-            vector_dims = config.get("dimensions", 768)
+            vector_dims = model_dimensions(embedding_service.model_name)
         self._vector_dims = vector_dims
         self._lock = threading.RLock()
         self._db = lancedb.connect(self._db_path)

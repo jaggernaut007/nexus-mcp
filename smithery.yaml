@@ -14,11 +14,11 @@ startCommand:
         default: ".nexus"
       embedding_model:
         type: "string"
-        description: "Embedding model: jina-code (default, 768d) or bge-small-en (384d)"
-        default: "jina-code"
+        description: "Embedding model: bge-small-en (default, 384d) or jina-code (768d, code-specific)"
+        default: "bge-small-en"
         enum:
-          - "jina-code"
           - "bge-small-en"
+          - "jina-code"
       max_memory_mb:
         type: "integer"
         description: "Memory budget in MB"
@@ -46,7 +46,7 @@ startCommand:
       args: [],
       env: {
         NEXUS_STORAGE_DIR: config.storage_dir || '.nexus',
-        NEXUS_EMBEDDING_MODEL: config.embedding_model || 'jina-code',
+        NEXUS_EMBEDDING_MODEL: config.embedding_model || 'bge-small-en',
         NEXUS_MAX_MEMORY_MB: String(config.max_memory_mb || 350),
         NEXUS_SEARCH_MODE: config.search_mode || 'hybrid',
         NEXUS_LOG_LEVEL: config.log_level || 'INFO',

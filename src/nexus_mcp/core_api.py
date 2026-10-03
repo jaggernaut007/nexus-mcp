@@ -1029,14 +1029,13 @@ def _get_memory_store():
     if state.memory_store is None:
         settings = get_settings()
         embedding_svc = get_embedding_service(settings.embedding_model)
-        from nexus_mcp.indexing.embedding_service import EMBEDDING_MODELS
+        from nexus_mcp.indexing.embedding_service import model_dimensions
         from nexus_mcp.memory.memory_store import MemoryStore
 
-        model_config = EMBEDDING_MODELS.get(settings.embedding_model, {})
         state.memory_store = MemoryStore(
             db_path=str(settings.lancedb_path),
             embedding_service=embedding_svc,
-            vector_dims=model_config.get("dimensions", 768),
+            vector_dims=model_dimensions(settings.embedding_model),
         )
     return state.memory_store
 

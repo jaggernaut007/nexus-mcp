@@ -13,7 +13,9 @@ from hypothesis import settings as hyp_settings
 from hypothesis import strategies as st
 
 try:
-    import optimum  # noqa: F401
+    # `import optimum` succeeds as a bare namespace package even when the ONNX
+    # extra is missing, so check the module that the ONNX backend really imports.
+    import optimum.onnxruntime  # noqa: F401
     _has_optimum = True
 except ImportError:
     _has_optimum = False

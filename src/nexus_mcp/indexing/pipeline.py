@@ -19,7 +19,7 @@ from nexus_mcp.engines.graph_engine import RustworkxCodeGraph
 from nexus_mcp.engines.vector_engine import LanceDBVectorEngine
 from nexus_mcp.indexing.call_resolver import resolve_calls
 from nexus_mcp.indexing.chunker import create_chunks
-from nexus_mcp.indexing.embedding_service import get_embedding_service
+from nexus_mcp.indexing.embedding_service import get_embedding_service, model_dimensions
 from nexus_mcp.indexing.parallel_indexer import parallel_parse_files
 from nexus_mcp.parsing.astgrep_parser import AstGrepParser
 from nexus_mcp.parsing.language_registry import get_supported_extensions
@@ -177,12 +177,10 @@ class IndexingPipeline:
             batch_size=self._settings.embedding_batch_size,
             device=self._settings.embedding_device,
         )
-        from nexus_mcp.indexing.embedding_service import EMBEDDING_MODELS
-        model_config = EMBEDDING_MODELS.get(self._settings.embedding_model, {})
         self._vector_engine = LanceDBVectorEngine(
             db_path=str(self._settings.lancedb_path),
             embedding_service=self._embedding_service,
-            vector_dims=model_config.get("dimensions", 768),
+            vector_dims=model_dimensions(self._settings.embedding_model),
         )
         self._bm25_engine = LanceDBBM25Engine(
             db_path=str(self._settings.lancedb_path),
@@ -312,6 +310,11 @@ class IndexingPipeline:
             time_seconds=elapsed,
         )
 
+    def _embedding_metadata(self) -> Dict[str, Any]:
+        """Model name and vector width, stored with the index to detect a model change."""
+        model = self._settings.embedding_model
+        return {"embedding_model": model, "embedding_dimensions": model_dimensions(model)}
+
     def _persist_graph(self) -> None:
         """Save the graph after a full build, so a restart can load it.
 
@@ -364,6 +367,15 @@ class IndexingPipeline:
         try:
             data = json.loads(self._metadata_path.read_text())
             if "mtimes" not in data:
+                return False
+            # Vectors from different models are not comparable, even at equal width.
+            # An index without these keys predates the check and is accepted.
+            stored = data.get("embedding_model")
+            if stored and stored != self._settings.embedding_model:
+                logger.warning(
+                    "Index was built with embedding model %r but %r is configured; "
+                    "rebuilding the index.", stored, self._settings.embedding_model,
+                )
                 return False
         except (json.JSONDecodeError, OSError):
             logger.warning("Corrupt index metadata file.")
@@ -744,6 +756,7 @@ class IndexingPipeline:
             "codebase_paths": [str(p) for p in codebase_paths],
             "codebase_path": str(codebase_paths[0]),
             "mtimes": mtimes,
+            **self._embedding_metadata(),
         }
         self._metadata_path.parent.mkdir(parents=True, exist_ok=True)
         self._metadata_path.write_text(json.dumps(metadata))
@@ -760,6 +773,7 @@ class IndexingPipeline:
         metadata = {
             "codebase_path": str(codebase_path),
             "mtimes": mtimes,
+            **self._embedding_metadata(),
         }
         self._metadata_path.parent.mkdir(parents=True, exist_ok=True)
         self._metadata_path.write_text(json.dumps(metadata))

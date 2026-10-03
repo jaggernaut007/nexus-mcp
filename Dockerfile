@@ -21,7 +21,7 @@ RUN which nexus-mcp-ci
 
 # Default environment
 ENV NEXUS_STORAGE_DIR=/data/.nexus \
-    NEXUS_EMBEDDING_MODEL=jina-code \
+    NEXUS_EMBEDDING_MODEL=bge-small-en \
     NEXUS_LOG_LEVEL=INFO
 
 VOLUME /data

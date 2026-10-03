@@ -38,6 +38,12 @@ EMBEDDING_MODELS = {
 DEFAULT_MODEL = "bge-small-en"
 
 
+def model_dimensions(model_name: str) -> int:
+    """Vector width of a registered model. Unknown names get the default model's width."""
+    config = EMBEDDING_MODELS.get(model_name) or EMBEDDING_MODELS[DEFAULT_MODEL]
+    return config["dimensions"]
+
+
 def _detect_device() -> str:
     """Detect best available device: cuda > mps > cpu."""
     try:
@@ -141,6 +147,12 @@ class EmbeddingService:
                 else:
                     # Force CPU-only to prevent ONNX auto-selecting CoreML/CUDA
                     kwargs["model_kwargs"] = {"provider": "CPUExecutionProvider"}
+                # A model repo can hold several ONNX files (fp32, fp16, int8). Without
+                # `file_name`, sentence-transformers loads the fp32 `onnx/model.onnx`,
+                # which for a base model is hundreds of MiB.
+                onnx_file = self.config.get("onnx_file")
+                if onnx_file:
+                    kwargs["model_kwargs"]["file_name"] = onnx_file
                 # ONNX manages its own device; remove SentenceTransformer device param
                 kwargs.pop("device", None)
                 logger.info(
@@ -157,6 +169,13 @@ class EmbeddingService:
                 self._model = SentenceTransformer(self.config["hf_name"], **kwargs)
             finally:
                 sys.stdout, sys.stderr = old_stdout, old_stderr
+
+            # Cap the sequence length at the registry value. Chunks longer than this
+            # are truncated by the tokenizer, which also bounds memory per batch.
+            limit = self.config.get("max_seq_length")
+            current = getattr(self._model, "max_seq_length", None)
+            if limit and current and limit < current:
+                self._model.max_seq_length = limit
 
             if self.config["dimensions"] is None:
                 self.config["dimensions"] = self._model.get_sentence_embedding_dimension()

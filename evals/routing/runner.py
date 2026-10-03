@@ -33,7 +33,7 @@ import yaml
 
 from benchmarks import conditions as cond
 from benchmarks import transcript as tx
-from benchmarks.runner import claude_version
+from benchmarks.runner import claude_version, require_login
 from evals.routing import scoring
 
 EVAL_DIR = Path(__file__).resolve().parent.parent
@@ -160,8 +160,13 @@ def isolation_problems(trace: tx.RunTrace, condition: str) -> List[str]:
     init = trace.init_event
     if not init:
         return ["no system/init event"]
-    if init.get("plugins") and condition != "nexus-plugin":
-        problems.append(f"plugins loaded: {init['plugins']}")
+    # Claude Code always loads its own `telemetry` plugin; that is not the user's setup.
+    plugins = [
+        p for p in init.get("plugins") or []
+        if not (isinstance(p, dict) and p.get("path") == "builtin")
+    ]
+    if plugins and condition != "nexus-plugin":
+        problems.append(f"plugins loaded: {plugins}")
     servers = [s for s in trace.mcp_servers if isinstance(s, dict)]
     nexus = [s for s in servers if "nexus" in str(s.get("name", ""))]
     extra = [s.get("name") for s in servers if s not in nexus]
@@ -313,6 +318,9 @@ def run_once(
         ],
         "permission_denials": trace.permission_denials,
         "parse_errors": trace.parse_errors,
+        "result_subtype": trace.result_subtype,
+        "is_error": trace.is_error,
+        "final_answer": (trace.final_answer or "")[:300],
         "stderr_tail": stderr_tail if not trace.init_event else "",
         **score,
     }
@@ -410,6 +418,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             f"Use a new --label to run model {args.model!r}."
         )
 
+    require_login(CONFIG_DIR)
     src_dir = REPO_ROOT / "src"
     repo_dir = prepare_repo(args.python, src_dir)
     mcp_config = write_mcp_config(WORK_DIR / "mcp.json", args.python, src_dir)

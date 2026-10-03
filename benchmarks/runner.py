@@ -41,6 +41,32 @@ class UsageLimitReached(RuntimeError):
     """Raised when the CLI reports that the subscription or API limit is used up."""
 
 
+LOGIN_HELP = (
+    "The eval runs claude in an isolated config directory, which has no login.\n"
+    "Run `claude setup-token`, then `export CLAUDE_CODE_OAUTH_TOKEN=<token>` in the same\n"
+    "shell that starts this command (or export ANTHROPIC_API_KEY)."
+)
+
+
+def require_login(config_dir: Path, base_env: Optional[Dict[str, str]] = None) -> None:
+    """Exit with a clear message if `claude` is not logged in under `config_dir`.
+
+    `claude auth status` costs nothing. Without this check a missing login only
+    shows up as a batch of runs that end in a second with no tool calls.
+    """
+    env = dict(base_env if base_env is not None else os.environ)
+    env["CLAUDE_CONFIG_DIR"] = str(config_dir)
+    try:
+        out = subprocess.run(
+            ["claude", "auth", "status"], capture_output=True, text=True, timeout=30, env=env
+        )
+        status = json.loads(out.stdout)
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+        return  # cannot tell; let the first run report it
+    if not status.get("loggedIn"):
+        raise SystemExit(LOGIN_HELP)
+
+
 def claude_version() -> str:
     """Output of `claude --version`, or 'unknown'. Stamped on every record."""
     try:
@@ -300,6 +326,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         reps = 1
 
     config_dir = BENCH_DIR / ".claude-bench"
+    require_login(config_dir)
     default_out = RESULTS_DIR / f"runs-{suite['repo']['name']}.jsonl"
     out_path = Path(args.out) if args.out else default_out
     raw_dir = RESULTS_DIR / "raw" / out_path.stem if args.save_raw else None

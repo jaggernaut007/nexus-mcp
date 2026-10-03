@@ -226,6 +226,21 @@ class TestRunnerHelpers:
         assert any("plugins" in p for p in problems)
         assert any("unexpected MCP servers" in p for p in problems)
 
+    def test_isolation_problems_ignores_the_builtin_telemetry_plugin(self):
+        trace = tx.RunTrace(
+            init_event={"plugins": [{"name": "telemetry", "path": "builtin",
+                                     "source": "telemetry@builtin"}]},
+            mcp_servers=[{"name": "nexus-mcp", "status": "connected"}],
+        )
+        assert runner.isolation_problems(trace, "mcp-only") == []
+
+    def test_isolation_problems_flags_a_user_plugin(self):
+        trace = tx.RunTrace(
+            init_event={"plugins": [{"name": "mine", "path": "/home/u/plugin"}]},
+            mcp_servers=[{"name": "nexus-mcp", "status": "connected"}],
+        )
+        assert any("plugins" in p for p in runner.isolation_problems(trace, "mcp-only"))
+
     def test_isolation_problems_clean_run(self):
         trace = tx.RunTrace(init_event={"type": "system"},
                             mcp_servers=[{"name": "nexus-mcp", "status": "connected"}])

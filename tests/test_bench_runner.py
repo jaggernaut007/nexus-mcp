@@ -27,6 +27,13 @@ def _suite():
     }
 
 
+@pytest.fixture(autouse=True)
+def _no_real_login_check(request, monkeypatch):
+    """main() checks the login with `claude auth status`; tests must not start the CLI."""
+    if "login" not in request.node.name:
+        monkeypatch.setattr(runner, "require_login", lambda *a, **k: None)
+
+
 class _FakePopen:
     """Stand-in for subprocess.Popen that never spawns a real process.
 
@@ -389,3 +396,30 @@ class TestMain:
         monkeypatch.setattr(runner, "run_suite", fake_run_suite)
         rc = runner.main(["--tasks", str(suite_path), "--out", str(out_path)])
         assert rc == 0
+
+
+class TestRequireLogin:
+    def _run(self, monkeypatch, stdout):
+        calls = []
+
+        def fake_run(argv, **kwargs):
+            calls.append((argv, kwargs["env"]["CLAUDE_CONFIG_DIR"]))
+            return subprocess.CompletedProcess(argv, 0, stdout=stdout, stderr="")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        return calls
+
+    def test_login_check_passes_when_logged_in(self, monkeypatch, tmp_path):
+        calls = self._run(monkeypatch, '{"loggedIn": true}')
+        runner.require_login(tmp_path)
+        assert calls == [(["claude", "auth", "status"], str(tmp_path))]
+
+    def test_login_check_exits_with_instructions_when_logged_out(self, monkeypatch, tmp_path):
+        self._run(monkeypatch, '{"loggedIn": false}')
+        with pytest.raises(SystemExit) as exc:
+            runner.require_login(tmp_path)
+        assert "CLAUDE_CODE_OAUTH_TOKEN" in str(exc.value)
+
+    def test_login_check_does_not_block_when_the_status_is_unreadable(self, monkeypatch, tmp_path):
+        self._run(monkeypatch, "not json")
+        runner.require_login(tmp_path)  # no exception: the first run will report it

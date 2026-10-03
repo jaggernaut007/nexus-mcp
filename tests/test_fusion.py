@@ -94,6 +94,36 @@ class TestGraphRelevance:
         assert len(results[0]["id"]) == 16  # SHA256[:16]
 
 
+class TestGraphRelevanceWholeWords:
+    def _graph(self, *names):
+        g = RustworkxCodeGraph()
+        for i, name in enumerate(names):
+            g.add_node(_make_node(name, line=i * 10 + 1))
+        return g
+
+    def test_short_query_words_do_not_match_inside_other_names(self):
+        g = self._graph("token_budget", "store_memory", "into_parts")
+        assert graph_relevance_search(g, "how to go into it") == []
+
+    def test_stop_words_are_ignored(self):
+        g = self._graph("get_value", "use_cache")
+        assert graph_relevance_search(g, "what does the get use") == []
+
+    def test_matches_a_word_of_a_snake_case_name(self):
+        g = self._graph("create_order", "cancel_order", "send_email")
+        names = {r["symbol_name"] for r in graph_relevance_search(g, "where is the order created")}
+        assert names == {"create_order", "cancel_order"}
+
+    def test_matches_a_word_of_a_camel_case_name(self):
+        g = self._graph("TokenBudget", "RateLimiter")
+        names = {r["symbol_name"] for r in graph_relevance_search(g, "token usage")}
+        assert names == {"TokenBudget"}
+
+    def test_plural_query_word_matches_singular_name_word(self):
+        g = self._graph("send_email")
+        assert len(graph_relevance_search(g, "emails")) == 1
+
+
 class TestRRFAlgorithm:
     def test_basic_fusion(self):
         rrf = ReciprocalRankFusion(k=60)

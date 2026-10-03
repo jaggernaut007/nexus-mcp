@@ -15,7 +15,7 @@ Done on 2026-10-03 and removed from this list: tool descriptions and server `ins
 | Item | Source | Depends on | Notes |
 |---|---|---|---|
 | **Run the routing eval**: before (tag `eval-baseline-descriptions`) and after (HEAD) | docs/EVALS.md | `CLAUDE_CODE_OAUTH_TOKEN` | Decides whether the new descriptions help; keep `alwaysLoad` only if Tool-Search-on rows improve |
-| Fix `graph_relevance_search`: stop words, whole-word match | embedding eval finding 2 | — | Graph list lowers hybrid hit@1 from 0.72 to 0.60 on `nexus_mcp`; call edges raise hub centrality, so it gets worse |
+| Graph list still lowers hybrid hit@1 slightly after the whole-word fix (0.68 without it, 0.64 with it on `nexus_mcp`) | embedding eval finding 2 | Query set growth | Whole-word matching and stop words cut the loss from 12 points to 4. Re-test with a larger query set before dropping or reweighting the graph list |
 | Re-tune RRF weights on identifier-style queries | ROADMAP-2026 item 12 | Query set growth | Current 0.5/0.3/0.2 are untuned |
 | Measure idle and indexing memory of the default model; cut the 902 MB indexing peak | embedding eval finding 4 | — | Target is 350 MB; test smaller batches and unloading between batches |
 | `trust_remote_code` default to `false`, enable only for `jina-code` | PROGRESS Phase 6a vs `config.py:52` | — | Code and docs disagree today |

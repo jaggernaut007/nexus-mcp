@@ -62,7 +62,7 @@ model reaches the right file; the difference is only in how high it ranks.
    0.60 to 0.72 for the shipped model. `graph_relevance_search` matches every query word
    of two or more letters as a substring of node names ("to", "in", "an") and scores by
    centrality. Call edges (ADR-019) raise the centrality of hub functions, so this noise
-   grows. Fix: drop stop words, match whole words, and tune the weights (roadmap item 12).
+   grows. Fix applied 2026-10-03: whole-word matching on identifier words plus stop words. On a re-run the loss falls from 12 points to 4 (hybrid 0.64 against 0.68 without the graph list; the corpus had grown, so vector hit@1 moved from 0.76 to 0.72). The graph list still does not help; tune or drop it with a larger query set (roadmap item 12).
 3. **BM25 hurts on paraphrased queries.** On `shop_repo`, hybrid hit@1 is 0.38 and vector
    is 0.75 for the shipped model. This is partly the query design (no shared words).
    Re-measure with identifier-style queries before changing the weights.

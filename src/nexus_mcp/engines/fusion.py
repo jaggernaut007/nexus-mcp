@@ -13,6 +13,22 @@ from nexus_mcp.indexing.chunker import _generate_chunk_id
 logger = logging.getLogger(__name__)
 
 
+MIN_TOKEN_LENGTH = 3
+STOP_WORDS = frozenset({
+    "the", "and", "for", "with", "that", "this", "from", "when", "where", "what", "which",
+    "who", "how", "does", "are", "was", "were", "not", "any", "all", "into", "over", "than",
+    "then", "them", "they", "its", "our", "out", "has", "have", "had", "can", "will", "you",
+    "your", "use", "uses", "used", "one", "each", "per", "via", "get", "gets",
+})
+_CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+
+
+def _name_words(name: str) -> List[str]:
+    """Lowercase words of an identifier: `create_order` and `CreateOrder` -> create, order."""
+    spaced = _CAMEL_BOUNDARY.sub("_", name)
+    return [w.lower() for w in re.split(r"[^A-Za-z0-9]+", spaced) if w]
+
+
 def graph_relevance_search(
     graph_engine,
     query: str,
@@ -31,20 +47,25 @@ def graph_relevance_search(
     Returns:
         List of result dicts with id, symbol_name, filepath, score, etc.
     """
-    # Tokenize query into words (alphanumeric, 2+ chars)
-    tokens = [t.lower() for t in re.split(r'\W+', query) if len(t) >= 2]
+    # Whole words only. Substring matching let "to", "in" or "an" hit every node whose
+    # name contained those letters, and centrality then ranked the noise by hub score.
+    tokens = [
+        t.lower() for t in re.split(r"\W+", query)
+        if len(t) >= MIN_TOKEN_LENGTH and t.lower() not in STOP_WORDS
+    ]
     if not tokens:
         return []
+    wanted = set(tokens) | {t[:-1] for t in tokens if t.endswith("s") and len(t) > 3}
 
-    # Find matching nodes across all tokens
     seen_ids: set = set()
     candidates: list = []
-    for token in tokens:
-        matches = graph_engine.find_nodes_by_name(token, exact=False)
-        for node in matches:
-            if node.id not in seen_ids:
-                seen_ids.add(node.id)
-                candidates.append(node)
+    for node in graph_engine.nodes.values():
+        if node.id in seen_ids:
+            continue
+        name = node.name.lower()
+        if name in wanted or wanted & set(_name_words(node.name)):
+            seen_ids.add(node.id)
+            candidates.append(node)
 
     if not candidates:
         return []

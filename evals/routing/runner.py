@@ -23,6 +23,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -193,18 +194,21 @@ def stream_run(
     cwd: Path,
     timeout_s: float,
     max_calls: int,
-) -> Tuple[List[str], bool, bool]:
+) -> Tuple[List[str], bool, bool, str]:
     """Run the CLI, read its event stream, stop after `max_calls` effective tool calls.
 
-    Returns (stdout_lines, timed_out, stopped_early). A watchdog timer kills the
-    whole process group on timeout, because `claude` starts its own children.
+    Returns (stdout_lines, timed_out, stopped_early, stderr_tail). A watchdog timer
+    kills the whole process group on timeout, because `claude` starts its own children.
+    stderr goes to a temp file, not a pipe, so a chatty child cannot block on a full
+    pipe; the last 500 characters are returned to explain a run that died early.
     """
+    err_file = tempfile.TemporaryFile(mode="w+")
     proc = subprocess.Popen(
         argv,
         cwd=str(cwd),
         env=env,
         stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
+        stderr=err_file,
         text=True,
         start_new_session=True,
     )
@@ -247,7 +251,14 @@ def stream_run(
         timer.cancel()
         kill()
         proc.wait()
-    return lines, timed_out, stopped_early
+    try:
+        err_file.seek(0)
+        stderr_tail = err_file.read()[-500:]
+    except (OSError, ValueError):
+        stderr_tail = ""
+    finally:
+        err_file.close()
+    return lines, timed_out, stopped_early, stderr_tail
 
 
 def run_once(
@@ -276,7 +287,7 @@ def run_once(
         argv[argv.index("--mcp-config") + 1] = str(mcp_config)
 
     started = time.time()
-    lines, timed_out, stopped_early = stream_run(
+    lines, timed_out, stopped_early, stderr_tail = stream_run(
         argv, built["env"], repo_dir, TIMEOUT_S, scoring.WINDOW
     )
     trace = tx.parse_lines(lines)
@@ -302,6 +313,7 @@ def run_once(
         ],
         "permission_denials": trace.permission_denials,
         "parse_errors": trace.parse_errors,
+        "stderr_tail": stderr_tail if not trace.init_event else "",
         **score,
     }
 

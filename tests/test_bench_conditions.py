@@ -198,3 +198,22 @@ class TestStrictMcpConfig:
         argv = build_argv("nexus-plugin", "hi", "sonnet", 1.0)
         assert "--strict-mcp-config" not in argv
         assert "--plugin-dir" in argv
+
+
+class TestPromptPlacement:
+    @pytest.mark.parametrize("condition", ["baseline", "mcp-only", "nexus", "nexus-plugin"])
+    def test_build_run_puts_the_prompt_last_after_a_separator(self, tmp_path, condition):
+        built = build_run(condition, "Who calls f?", "sonnet", 1.0, tmp_path, env={})
+        assert built["argv"][-2:] == ["--", "Who calls f?"]
+        assert built["argv"].count("Who calls f?") == 1
+
+    def test_no_variadic_option_is_left_directly_before_the_prompt(self, tmp_path):
+        # --mcp-config takes a list of files; the prompt must not follow it directly.
+        built = build_run("mcp-only", "q", "sonnet", 1.0, tmp_path, env={})
+        argv = built["argv"]
+        assert argv.index("--") > argv.index("--mcp-config") + 1
+
+    def test_prompt_survives_bare_isolation(self, tmp_path):
+        built = build_run("nexus", "q", "sonnet", 1.0, tmp_path, env={"ANTHROPIC_API_KEY": "k"})
+        assert built["argv"][2] == "--bare"
+        assert built["argv"][-2:] == ["--", "q"]

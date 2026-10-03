@@ -292,7 +292,7 @@ class TestStreamRun:
         monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: _FakeProc(lines))
         monkeypatch.setattr(runner.os, "killpg", lambda *a, **k: None)
         monkeypatch.setattr(runner.os, "getpgid", lambda pid: pid)
-        got, timed_out, early = runner.stream_run(["claude"], {}, Path("."), 30, 3)
+        got, timed_out, early, _err = runner.stream_run(["claude"], {}, Path("."), 30, 3)
         assert early is True
         assert timed_out is False
         assert len(got) == 4  # ToolSearch does not count; stops at the third effective call
@@ -302,9 +302,33 @@ class TestStreamRun:
         monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: _FakeProc(lines))
         monkeypatch.setattr(runner.os, "killpg", lambda *a, **k: None)
         monkeypatch.setattr(runner.os, "getpgid", lambda pid: pid)
-        got, _timed_out, early = runner.stream_run(["claude"], {}, Path("."), 30, 3)
+        got, _timed_out, early, _err = runner.stream_run(["claude"], {}, Path("."), 30, 3)
         assert early is False
         assert len(got) == 1
+
+
+class TestStderrTail:
+    def test_stream_run_returns_the_stderr_of_a_child_that_dies(self, tmp_path):
+        import sys as _sys
+
+        code = "import sys; sys.stderr.write('Error: bad flag'); sys.exit(1)"
+        lines, timed_out, early, tail = runner.stream_run(
+            [_sys.executable, "-c", code], {}, tmp_path, 30, 3
+        )
+        assert lines == [] and not timed_out and not early
+        assert "bad flag" in tail
+
+    def test_a_run_that_died_before_init_keeps_its_stderr_in_the_record(
+        self, monkeypatch, tmp_path
+    ):
+        monkeypatch.setattr(
+            runner, "stream_run", lambda *a, **k: ([], False, False, "Error: Not logged in")
+        )
+        spec = {"id": "x", "category": "map", "prompt": "q", "expected_any_of": ["map"]}
+        record = runner.run_once(spec, "mcp-only", True, tmp_path, tmp_path / "m.json",
+                                 "sonnet", "2.1.280")
+        assert record["stderr_tail"] == "Error: Not logged in"
+        assert record["isolation_problems"] == ["no system/init event"]
 
 
 class TestRunSuite:
@@ -372,7 +396,7 @@ class TestRunOnce:
                         "mcp_servers": [{"name": "nexus-mcp", "status": "connected"}]}) + "\n",
             _tool_event("mcp__nexus-mcp__map"),
         ]
-        monkeypatch.setattr(runner, "stream_run", lambda *a, **k: (stream, False, True))
+        monkeypatch.setattr(runner, "stream_run", lambda *a, **k: (stream, False, True, ""))
         spec = {"id": "map-overview", "category": "map", "prompt": "overview?",
                 "expected_any_of": ["map"]}
         record = runner.run_once(spec, "mcp-only", True, tmp_path, tmp_path / "m.json",

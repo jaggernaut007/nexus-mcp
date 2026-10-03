@@ -183,6 +183,10 @@ def build_run(
     argv = build_argv(
         condition, prompt, model, max_budget_usd, builtin_tools=builtin_tools
     )
+    # --mcp-config, --tools and similar options take a list of values and swallow a
+    # prompt that follows them. Take the prompt off, add the isolation flags, then put
+    # it back after `--` so it is always read as the prompt.
+    prompt_arg = argv.pop()
     run_env = build_env(config_dir, env, tool_search=tool_search)
 
     if has_api_key(run_env):
@@ -192,4 +196,5 @@ def build_run(
         argv = apply_reduced_isolation(argv)
         isolation_mode = "reduced"
 
+    argv += ["--", prompt_arg]
     return {"argv": argv, "env": run_env, "isolation_mode": isolation_mode}

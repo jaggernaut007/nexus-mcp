@@ -13,7 +13,7 @@ Nexus-MCP is a code intelligence server for the [Model Context Protocol](https:/
 
 ```
 pip install nexus-mcp-ci
-claude mcp add nexus-mcp-ci -- nexus-mcp-ci
+claude mcp add nexus-mcp -- nexus-mcp-ci
 ```
 
 ---
@@ -47,25 +47,47 @@ Or for discovery:
 pip install nexus-mcp-ci
 
 # 2. Register with Claude Code
-claude mcp add nexus-mcp-ci -- nexus-mcp-ci
+claude mcp add nexus-mcp -- nexus-mcp-ci
 
-# 3. Verify (in any Claude Code session)
-# Claude will automatically use nexus-mcp-ci tools when CLAUDE.md instructs it
+# 3. Verify: start Claude Code in your project and run /mcp
+#    nexus-mcp should be listed as connected
 ```
 
-Then drop a `CLAUDE.md` in your project root:
+The server sends its own usage instructions when it connects, so Claude knows which tool
+answers which question without any extra setup. Ask something like "where do we retry
+failed payments?" and it will call `status`, `index` (once) and `search`.
+
+### Claude Code plugin (recommended)
+
+The plugin registers the server and adds a short routing skill that teaches Claude when to
+reach for each tool. Install the Python package first, then:
+
+```
+/plugin marketplace add jaggernaut007/Nexus-MCP
+/plugin install nexus-mcp@nexus-mcp
+```
+
+Do not register the server twice. If you use the plugin, skip the `claude mcp add` line.
+Tool names differ by route: `mcp__nexus-mcp__search` after `claude mcp add nexus-mcp`,
+`mcp__plugin_nexus-mcp_nexus-mcp__search` through the plugin. The rest of this README
+writes bare names (`search`) and you do not need the prefix in prompts.
+
+### Optional: project instructions
+
+If you want the rules in your own project file, a short block is enough:
 
 ```markdown
 ## Code Navigation
 
-Use nexus-mcp-ci tools before built-in file tools:
-- Start sessions with `mcp__nexus-mcp__status`; run `index` if needed
-- `search` before `Read/Grep`
-- `explain` instead of reading a file to understand a symbol
-- `graph(..., transitive=True)` before any refactor (the call graph is static, so also use `search` for dynamic call sites)
+The nexus-mcp server is connected. For questions about how this codebase works:
+- Call `status` first; run `index` if the project is not indexed.
+- Use `search` to find code, `find_symbol` or `explain` for one symbol, `map` for structure.
+- Use `graph` with `transitive=true` before you change a shared function. The call graph
+  is static, so also use `search` for dynamic call sites.
+- Use plain grep or read when you already know the file or the exact string.
 ```
 
-That's it. Claude will index your project on first use and use Nexus-MCP tools automatically.
+The full routing guide is in [docs/AGENT_ROUTING.md](docs/AGENT_ROUTING.md).
 
 ---
 
@@ -258,16 +280,16 @@ pip install -e ".[dev]"
 
 ```bash
 # Minimal
-claude mcp add nexus-mcp-ci -- nexus-mcp-ci
+claude mcp add nexus-mcp -- nexus-mcp-ci
 
 # With the code-specific embedding model (requires trust_remote_code)
-claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_MODEL=jina-code -- nexus-mcp-ci
+claude mcp add nexus-mcp -e NEXUS_EMBEDDING_MODEL=jina-code -- nexus-mcp-ci
 
 # GPU embeddings
-claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_DEVICE=cuda -- nexus-mcp-ci
+claude mcp add nexus-mcp -e NEXUS_EMBEDDING_DEVICE=cuda -- nexus-mcp-ci
 
 # Virtualenv install — pass the full binary path
-claude mcp add nexus-mcp-ci -- /path/to/.venv/bin/nexus-mcp-ci
+claude mcp add nexus-mcp -- /path/to/.venv/bin/nexus-mcp-ci
 ```
 
 ### Claude Desktop
@@ -277,7 +299,7 @@ claude mcp add nexus-mcp-ci -- /path/to/.venv/bin/nexus-mcp-ci
 ```json
 {
   "mcpServers": {
-    "nexus-mcp-ci": {
+    "nexus-mcp": {
       "command": "nexus-mcp-ci",
       "args": [],
       "env": {
@@ -292,7 +314,7 @@ claude mcp add nexus-mcp-ci -- /path/to/.venv/bin/nexus-mcp-ci
 
 ```json
 {
-  "nexus-mcp-ci": {
+  "nexus-mcp": {
     "command": "nexus-mcp-ci",
     "transport": "stdio"
   }
@@ -306,15 +328,14 @@ claude mcp add nexus-mcp-ci -- /path/to/.venv/bin/nexus-mcp-ci
 ### CLAUDE.md boilerplate (drop into project root)
 
 ```markdown
-## Code Intelligence — nexus-mcp-ci
+## Code Intelligence — nexus-mcp
 
-Every code task in this project MUST follow this workflow:
-
-1. **Session start**: `mcp__nexus-mcp__status` → if not indexed, `mcp__nexus-mcp__index`
-2. **Before any file read**: `mcp__nexus-mcp__search` to locate relevant code
-3. **To understand a symbol**: `mcp__nexus-mcp__explain` (not Read)
-4. **Before refactoring**: `mcp__nexus-mcp__graph` with `transitive=True` to assess blast radius. The call graph is static (no dynamic dispatch), so also use `mcp__nexus-mcp__search` to find call sites.
-5. **For project orientation**: `mcp__nexus-mcp__map` with `detail="summary"` or `detail="architecture"`
+1. **Session start**: `status` → if not indexed, `index`
+2. **To find code you cannot name**: `search`, before reading files one by one
+3. **To understand one symbol**: `explain`
+4. **Before refactoring**: `graph` with `transitive=true` to assess blast radius. The call graph is static (no dynamic dispatch), so also use `search` to find call sites.
+5. **For project orientation**: `map` with `detail="summary"` or `detail="architecture"`
+6. **When you know the exact file or string**: plain grep or read is fine
 ```
 
 ### Typical agent tool-call sequence

@@ -134,6 +134,43 @@ python self_test/demo_mcp.py
 
 ### Claude Code (CLI)
 
+### Tool names by client
+
+Use one server name everywhere: `nexus-mcp`. The prefix that a client adds to each tool
+name comes from that name, so it differs by route:
+
+| Route | Tool name the agent sees |
+|---|---|
+| `claude mcp add nexus-mcp -- nexus-mcp-ci` | `mcp__nexus-mcp__search` |
+| Claude Code plugin (`/plugin install nexus-mcp@nexus-mcp`) | `mcp__plugin_nexus-mcp_nexus-mcp__search` |
+| Claude Desktop, Cursor, Cline (`"nexus-mcp"` key) | `search`, shown under the server name |
+| Codex (`[mcp_servers.nexus-mcp]`) | `search`, called through the server `nexus-mcp` |
+
+Project files and prompts should name tools without the prefix (`search`, `graph`).
+
+### Claude Code plugin (recommended)
+
+The plugin registers the server and adds a routing skill. Install the package, then run
+`/plugin marketplace add jaggernaut007/Nexus-MCP` and `/plugin install nexus-mcp@nexus-mcp`.
+Do not also run `claude mcp add`; that registers the server twice.
+
+### Codex CLI
+
+```bash
+codex mcp add nexus-mcp -- nexus-mcp-ci
+```
+
+or in `~/.codex/config.toml` (or a trusted project's `.codex/config.toml`):
+
+```toml
+[mcp_servers.nexus-mcp]
+command = "nexus-mcp-ci"
+startup_timeout_sec = 60   # the first start loads the embedding model; the default is 10
+```
+
+Codex reads the server instructions on connect. Add the short block from the README to
+your `AGENTS.md` if you want the rules in the project too.
+
 **If installed via pip (recommended):**
 
 ```bash

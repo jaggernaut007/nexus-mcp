@@ -291,9 +291,10 @@ def status() -> dict[str, Any]:
             result["staleness_warning"] = None
 
         result["hint"] = (
-            "Codebase is indexed. Use 'search' to find code (preferred over Grep/Glob), "
-            "'find_symbol' for definitions, 'graph' for the call graph, "
-            "'explain' for understanding symbols, 'graph(transitive=True)' before refactoring."
+            "Codebase is indexed. Use 'search' to find code you cannot name, "
+            "'find_symbol' for definitions, 'graph' for who calls what, "
+            "'explain' to understand a symbol, 'map' for the project layout, "
+            "and 'graph(transitive=True)' before changing a shared function."
         )
     else:
         result["hint"] = (
@@ -685,8 +686,7 @@ def graph(
     max_depth: int = 10,
 ) -> dict[str, Any]:
     """Trace callers/callees of a symbol, or (transitive=True, direction='callers')
-    the full transitive change-impact blast radius. MUST run transitive=True before
-    refactoring a widely-shared symbol."""
+    the full transitive change-impact blast radius."""
     if direction not in ("callers", "callees"):
         return {"error": "direction must be 'callers' or 'callees'."}
     if transitive and direction != "callers":
@@ -1001,8 +1001,8 @@ def _build_architecture(state) -> dict[str, Any]:
 
 
 def map_(detail: str = "summary") -> dict[str, Any]:
-    """Project orientation, preferred over Glob/ls/manual browsing. 'summary'
-    for a quick look, 'architecture' for design/dependency structure, 'full' for both."""
+    """Project overview. 'summary' for a quick look, 'architecture' for
+    design/dependency structure, 'full' for both."""
     if detail not in ("summary", "architecture", "full"):
         return {"error": "detail must be 'summary', 'architecture', or 'full'."}
 

@@ -36,7 +36,7 @@ The server starts on stdio (the default MCP transport). Configure your MCP clien
 **Claude Code:**
 
 ```bash
-claude mcp add nexus-mcp-ci -- nexus-mcp-ci
+claude mcp add nexus-mcp -- nexus-mcp-ci
 ```
 
 **Claude Desktop** (add to `~/Library/Application Support/Claude/claude_desktop_config.json`):
@@ -44,7 +44,7 @@ claude mcp add nexus-mcp-ci -- nexus-mcp-ci
 ```json
 {
   "mcpServers": {
-    "nexus-mcp-ci": {
+    "nexus-mcp": {
       "command": "nexus-mcp-ci",
       "args": []
     }
@@ -56,7 +56,7 @@ claude mcp add nexus-mcp-ci -- nexus-mcp-ci
 
 ```json
 {
-  "nexus-mcp-ci": {
+  "nexus-mcp": {
     "command": "nexus-mcp-ci",
     "transport": "stdio"
   }

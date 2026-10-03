@@ -2,6 +2,9 @@
 
 import asyncio
 
+import pytest
+from fastmcp.exceptions import ValidationError
+
 import nexus_mcp.server as server_module
 from nexus_mcp.core.graph_models import (
     NodeType,
@@ -225,10 +228,19 @@ class TestGraphCallees:
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
-        result = asyncio.run(
-            _call_tool(mcp, "graph", {"symbol_name": "helper", "direction": "sideways"})
-        )
-        assert "error" in result
+        # The tool schema now restricts `direction` to an enum, so the server rejects
+        # the call before it reaches core_api.
+        with pytest.raises(ValidationError):
+            asyncio.run(
+                _call_tool(mcp, "graph", {"symbol_name": "helper", "direction": "sideways"})
+            )
+
+    def test_invalid_direction_rejected_by_core_api(self, tmp_path):
+        """Callers that skip the MCP layer (core_api) still get an error dict."""
+        from nexus_mcp import core_api
+
+        _setup_graph_with_calls(get_state(), tmp_path)
+        assert "error" in core_api.graph("helper", direction="sideways")
 
     def test_transitive_with_callees_rejected(self, tmp_path):
         """graph_engine only has get_transitive_callers — transitive callees

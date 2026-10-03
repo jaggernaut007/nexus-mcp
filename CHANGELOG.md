@@ -12,9 +12,28 @@ All notable changes to this project will be documented in this file.
   results are a lower bound. See ADR-019.
 - `evals/routing`: a tool-routing eval that measures whether Claude Code calls the
   nexus tools unprompted, with a synthetic `shop_repo` fixture.
+- `evals/retrieval`: compares embedding models on file-level search quality
+  (docs/research/embedding-models-2026-10.md).
+- Server `instructions` sent on connect (issue #5): which tool answers which question.
+- Tool annotations (`readOnlyHint` and others) and a title on every tool, and enum
+  schemas for `mode`, `direction`, `verbosity`, `detail`, `action` and `ttl`.
+- The index records its embedding model and rebuilds when the model changes.
+- The saved graph is loaded on restart, so `graph()` works after a restart without a
+  full reindex.
+- Cyclomatic complexity and Python docstrings on graph nodes, so `analyze` is no longer
+  all zeros.
+- `docs/AGENT_ROUTING.md`, `docs/EVALS.md` and `docs/BACKLOG.md` (replaces `todo.md`).
 
 ### Changed
 
+- **Tool descriptions rewritten** (issues #5, #6, #8): each one now opens with the question it
+  answers, says what comes back and when not to use it. The "preferred over Grep" and "MUST"
+  wording is gone. The `memory` action no longer mentions the old tool names.
+- **Invalid enum values are now rejected by the tool schema** (a validation error from the
+  server) instead of an `{"error": ...}` result. `core_api` still returns the error dict.
+- One registration name, `nexus-mcp`, in every doc and on the site. The binary is still
+  `nexus-mcp-ci`.
+- `Dockerfile`, `smithery.yaml` and `glama.json` default to `bge-small-en` (issue #7).
 - `analyze` dead-code entries now say "No static caller found" instead of
   "Never called", and are far fewer now that call edges exist.
 - The benchmark harness no longer uses `--permission-mode bypassPermissions`. It

@@ -95,7 +95,7 @@
           "name": "How do I give Claude Code persistent memory across sessions?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Install Nexus-MCP with pip install nexus-mcp-ci, then register it with claude mcp add nexus-mcp-ci -- nexus-mcp-ci. The agent can then store decisions, notes and preferences with the memory tool and recall them by meaning in later sessions. The memory store is local and any MCP client can read it."
+            "text": "Install Nexus-MCP with pip install nexus-mcp-ci, then register it with claude mcp add nexus-mcp -- nexus-mcp-ci. The agent can then store decisions, notes and preferences with the memory tool and recall them by meaning in later sessions. The memory store is local and any MCP client can read it."
           }
         },
         {
@@ -436,7 +436,7 @@
               <button role="tab" aria-selected="false" aria-controls="tab-other" id="t-other" tabindex="-1">Cursor, Cline, Goose…</button>
             </div>
             <div class="panel" role="tabpanel" id="tab-cc" aria-labelledby="t-cc">
-              <div class="cmd wide"><span class="prompt" aria-hidden="true">$</span><code>claude mcp add nexus-mcp-ci -- nexus-mcp-ci</code><button class="copy" data-copy="claude mcp add nexus-mcp-ci -- nexus-mcp-ci" aria-label="Copy">Copy</button></div>
+              <div class="cmd wide"><span class="prompt" aria-hidden="true">$</span><code>claude mcp add nexus-mcp -- nexus-mcp-ci</code><button class="copy" data-copy="claude mcp add nexus-mcp -- nexus-mcp-ci" aria-label="Copy">Copy</button></div>
             </div>
             <div class="panel" role="tabpanel" id="tab-plugin" aria-labelledby="t-plugin" hidden>
               <pre class="block"><code>/plugin marketplace add jaggernaut007/Nexus-MCP
@@ -446,18 +446,18 @@
             <div class="panel" role="tabpanel" id="tab-desktop" aria-labelledby="t-desktop" hidden>
               <pre class="block"><code>{
   "mcpServers": {
-    "nexus-mcp-ci": { "command": "nexus-mcp-ci", "args": [] }
+    "nexus-mcp": { "command": "nexus-mcp-ci", "args": [] }
   }
-}</code><button class="copy" data-copy='{&#10;  "mcpServers": {&#10;    "nexus-mcp-ci": { "command": "nexus-mcp-ci", "args": [] }&#10;  }&#10;}' aria-label="Copy">Copy</button></pre>
+}</code><button class="copy" data-copy='{&#10;  "mcpServers": {&#10;    "nexus-mcp": { "command": "nexus-mcp-ci", "args": [] }&#10;  }&#10;}' aria-label="Copy">Copy</button></pre>
               <p class="note">Add this to <code>claude_desktop_config.json</code>.</p>
             </div>
             <div class="panel" role="tabpanel" id="tab-other" aria-labelledby="t-other" hidden>
               <pre class="block"><code>{
-  "nexus-mcp-ci": {
+  "nexus-mcp": {
     "command": "nexus-mcp-ci",
     "transport": "stdio"
   }
-}</code><button class="copy" data-copy='{&#10;  "nexus-mcp-ci": {&#10;    "command": "nexus-mcp-ci",&#10;    "transport": "stdio"&#10;  }&#10;}' aria-label="Copy">Copy</button></pre>
+}</code><button class="copy" data-copy='{&#10;  "nexus-mcp": {&#10;    "command": "nexus-mcp-ci",&#10;    "transport": "stdio"&#10;  }&#10;}' aria-label="Copy">Copy</button></pre>
               <p class="note">Any client that speaks MCP over stdio works the same way.</p>
             </div>
           </li>
@@ -483,7 +483,7 @@
           </details>
           <details>
             <summary>How do I give Claude Code persistent memory across sessions?</summary>
-            <p>Install Nexus-MCP with <code>pip install nexus-mcp-ci</code>, then register it with <code>claude mcp add nexus-mcp-ci -- nexus-mcp-ci</code>. The agent can then store decisions, notes and preferences with the memory tool and recall them by meaning in later sessions. The memory store is local and any MCP client can read it.</p>
+            <p>Install Nexus-MCP with <code>pip install nexus-mcp-ci</code>, then register it with <code>claude mcp add nexus-mcp -- nexus-mcp-ci</code>. The agent can then store decisions, notes and preferences with the memory tool and recall them by meaning in later sessions. The memory store is local and any MCP client can read it.</p>
           </details>
           <details>
             <summary>Is Nexus-MCP free?</summary>

@@ -189,7 +189,11 @@ Plan: `~/.claude/plans/go-through-the-docs-glistening-sketch.md` (phases A-F).
   memory. Findings on fusion and memory are in
   [docs/research/embedding-models-2026-10.md](docs/research/embedding-models-2026-10.md).
 - [x] Phase F: [docs/BACKLOG.md](docs/BACKLOG.md) replaces `todo.md`.
-- [ ] Phase A live run 1, then Phase B (descriptions), then Phase E (benchmark).
+- [x] Phase B (2026-10-03): server `instructions`, rewritten descriptions, enums, annotations,
+  one registration name, plugin and Codex docs, `docs/AGENT_ROUTING.md`, tool contract tests
+  (`tests/test_tool_contract.py`).
+- [ ] Routing eval live runs (before = tag `eval-baseline-descriptions`, after = HEAD) — blocked
+  on `CLAUDE_CODE_OAUTH_TOKEN`. Then Phase E (benchmark).
 
 ## Discoverability & Setup Audit — 2026-09-23
 - [x] Audited agent-facing surfaces (tool descriptions, README, `llms.txt`,

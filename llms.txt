@@ -21,7 +21,7 @@ Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexe
 
 - PyPI: `pip install nexus-mcp-ci` (or `pip install nexus-mcp-ci[gpu,reranker]` for all extras)
 - From source: `git clone https://github.com/jaggernaut007/Nexus-MCP && cd Nexus-MCP && ./setup.sh`
-- Add to Claude Code: `claude mcp add nexus-mcp-ci -- nexus-mcp-ci`
+- Add to Claude Code: `claude mcp add nexus-mcp -- nexus-mcp-ci`
 
 ## Getting Started
 

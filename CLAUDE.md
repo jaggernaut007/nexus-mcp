@@ -186,7 +186,7 @@ NEXUS_EMBEDDING_MODEL=jina-code nexus-mcp-ci
 export NEXUS_EMBEDDING_MODEL=jina-code
 
 # For Claude Code MCP config
-claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_MODEL=jina-code -- nexus-mcp-ci
+claude mcp add nexus-mcp -e NEXUS_EMBEDDING_MODEL=jina-code -- nexus-mcp-ci
 ```
 
 ### GPU / MPS acceleration

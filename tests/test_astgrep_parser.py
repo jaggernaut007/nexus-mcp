@@ -78,3 +78,74 @@ def test_extracts_classes_with_and_without_base_classes(tmp_path):
     parser.parse_file(str(src), graph)
 
     assert _class_names(graph) == {"Bare", "WithBase", "WithGeneric"}
+
+
+def _functions_by_name(tmp_path, filename, source):
+    path = tmp_path / filename
+    path.write_text(source)
+    graph = UniversalGraph()
+    AstGrepParser().parse_file(str(path), graph)
+    return {n.name: n for n in graph.nodes.values() if n.node_type.value == "function"}
+
+
+def test_complexity_counts_branch_points_in_python(tmp_path):
+    funcs = _functions_by_name(
+        tmp_path, "c.py",
+        "def straight():\n    return 1\n\n\n"
+        "def branchy(a, b):\n"
+        "    if a and b or a:\n"
+        "        for x in a:\n"
+        "            while x:\n"
+        "                x -= 1\n"
+        "    elif b:\n"
+        "        pass\n"
+        "    try:\n"
+        "        pass\n"
+        "    except ValueError:\n"
+        "        pass\n"
+        "    return [i for i in a if i] if a else None\n",
+    )
+    assert funcs["straight"].complexity == 1
+    # 1 + if, 2 boolean operators, for, while, elif, except, ternary, comprehension for/if
+    assert funcs["branchy"].complexity == 11
+
+
+def test_complexity_counts_branch_points_in_typescript(tmp_path):
+    funcs = _functions_by_name(
+        tmp_path, "c.ts",
+        "function f(a: number) {\n"
+        "  if (a > 1) { return 1; }\n"
+        "  for (let i = 0; i < a; i++) { }\n"
+        "  return a ? 1 : 2;\n}\n",
+    )
+    assert funcs["f"].complexity == 4
+
+
+def test_complexity_is_at_least_one_for_every_supported_language(tmp_path):
+    cases = {
+        "a.go": "package main\n\nfunc F() {}\n",
+        "A.java": "class A {\n  void f() { }\n}\n",
+        "a.rs": "fn f() {}\n",
+    }
+    for filename, source in cases.items():
+        assert list(_functions_by_name(tmp_path, filename, source).values())[0].complexity == 1
+
+
+def test_python_docstring_is_extracted_without_quotes(tmp_path):
+    funcs = _functions_by_name(
+        tmp_path, "d.py",
+        'def documented():\n    """Do the thing.\n\n    More detail."""\n    return 1\n\n\n'
+        "def single():\n    'one line'\n    return 2\n\n\n"
+        "def bare():\n    return 3\n\n\n"
+        "def not_a_docstring():\n    x = 1\n    return x\n",
+    )
+    assert funcs["documented"].docstring == "Do the thing.\n\nMore detail."
+    assert funcs["single"].docstring == "one line"
+    assert funcs["bare"].docstring is None
+    assert funcs["not_a_docstring"].docstring is None
+
+
+def test_docstring_is_capped(tmp_path):
+    long_text = "x" * 2000
+    funcs = _functions_by_name(tmp_path, "e.py", f'def f():\n    """{long_text}"""\n')
+    assert len(funcs["f"].docstring) == 500

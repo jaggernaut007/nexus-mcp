@@ -80,7 +80,8 @@ last file is parsed.
   the affected callers is future work.
 - `analyze` dead-code results change: before, every function was "never called".
   The reason text now says "No static caller found".
-- Function complexity and docstrings on ast-grep nodes are still empty. This ADR
-  does not change that.
+- The same parser change adds cyclomatic complexity (branch points per function) and
+  Python docstrings to graph nodes. Before it, `analyze` complexity was always zero.
+  Only Python counts `and`/`or`.
 - `INHERITS` edges are still not extracted.
 - The routing eval and the benchmark can now test the graph tools on real data.

@@ -24,7 +24,7 @@ only if a concrete need appears).
 | Python 3.13 support | pyproject `<3.13` cap | `tree-sitter-language-pack` or per-language wheels | `tree-sitter-languages` has no 3.13 wheel |
 | Enforce `max_memory_mb` | issue #1 | — | The setting exists but nothing reads it |
 | Re-resolve only affected callers after an incremental reindex | ADR-019 | — | Today every edge is rebuilt (about 9 s at 14,000 files) |
-| Extract `INHERITS` edges; add complexity and docstrings to ast-grep nodes | ADR-019 | — | `analyze` complexity is still zero |
+| Extract `INHERITS` edges; docstrings for non-Python graph nodes; `and`/`or` in complexity for other languages | ADR-019 | — | Complexity and Python docstrings exist since 2026-10-03 |
 | TS/JS arrow functions as graph nodes; Rust `use crate::` paths | ADR-019 | — | Known gaps in call-edge coverage |
 | Transitive callees in `graph` | ADR-017 | Call edges (done) | Only transitive callers exist |
 | Full benchmark run and published report | ROADMAP-2026 item 9, PROGRESS Phase 9 | Token; Phase B | Smoke run first; the full run takes several 5-hour windows on the Pro limit |

@@ -221,7 +221,7 @@ Plan: `~/.claude/plans/go-through-the-docs-glistening-sketch.md` (phases A-F).
 - [x] Historical docs left as written: `docs/adr/`, `IMPLEMENTATION_PLAN.md`,
   `RESEARCH.md`, `ROADMAP-2026.md`, `FUTURE_CONTRIBUTIONS.md`, `docs/plans/`, `CHANGELOG.md`.
 - [x] **Code gap found:** nothing created `CALLS` edges. Fixed 2026-10-02 (ADR-019).
-  Still open: ast-grep nodes have zero complexity and no docstrings.
+  Cyclomatic complexity and Python docstrings on ast-grep nodes added 2026-10-03.
 - [ ] Not changed (behavior, not docs): `Dockerfile`, `smithery.yaml`, `glama.json`
   default to `jina-code` while the package defaults to `bge-small-en` (issue #7).
 

@@ -55,6 +55,38 @@ CLASS_ANCESTOR_KINDS: Dict[str, tuple] = {
     "rust": (("impl_item", "type"),),
 }
 
+# Branch points that add one to cyclomatic complexity, per language. `&&`/`||` are
+# counted only for Python (`boolean_operator`); the other grammars give them no
+# distinct node kind, so those branches are not counted.
+COMPLEXITY_KINDS: Dict[str, tuple] = {
+    "python": (
+        "if_statement", "elif_clause", "for_statement", "while_statement", "except_clause",
+        "conditional_expression", "boolean_operator", "for_in_clause", "if_clause",
+        "case_clause",
+    ),
+    "javascript": (
+        "if_statement", "for_statement", "for_in_statement", "while_statement",
+        "do_statement", "switch_case", "catch_clause", "ternary_expression",
+    ),
+    "typescript": (
+        "if_statement", "for_statement", "for_in_statement", "while_statement",
+        "do_statement", "switch_case", "catch_clause", "ternary_expression",
+    ),
+    "go": (
+        "if_statement", "for_statement", "expression_case", "type_case",
+        "communication_case",
+    ),
+    "java": (
+        "if_statement", "for_statement", "enhanced_for_statement", "while_statement",
+        "do_statement", "switch_label", "catch_clause", "ternary_expression",
+    ),
+    "rust": (
+        "if_expression", "for_expression", "while_expression", "loop_expression",
+        "match_arm",
+    ),
+}
+
+MAX_DOCSTRING_CHARS = 500
 MAX_CALLS_PER_FUNCTION = 200
 MAX_CALL_TEXT = 120
 _PAREN_GROUP = re.compile(r"\([^()]*\)")
@@ -281,6 +313,8 @@ class AstGrepParser:
                     ),
                     language=language,
                     line_count=rng.end.line - rng.start.line + 1,
+                    complexity=self._complexity(match, language),
+                    docstring=self._docstring(match, language),
                     metadata=self._function_metadata(match, language),
                 )
                 graph.add_node(func_node)
@@ -298,6 +332,45 @@ class AstGrepParser:
                 continue
 
         return count
+
+    @staticmethod
+    def _complexity(match, language: str) -> int:
+        """Cyclomatic complexity: one plus the number of branch points in the body."""
+        kinds = COMPLEXITY_KINDS.get(language)
+        if not kinds:
+            return 0
+        try:
+            found = match.find_all({"rule": {"any": [{"kind": k} for k in kinds]}})
+        except Exception as e:
+            logger.debug("Complexity search failed: %s", e)
+            return 0
+        return 1 + len(found)
+
+    @staticmethod
+    def _docstring(match, language: str) -> Optional[str]:
+        """The leading string literal of a Python function body, without its quotes."""
+        if language != "python":
+            return None
+        try:
+            body = match.field("body")
+            children = body.children() if body else []
+            first = children[0] if children else None
+            if first is None or first.kind() != "expression_statement":
+                return None
+            inner = first.children()
+            if len(inner) != 1 or inner[0].kind() != "string":
+                return None
+            text = inner[0].text().strip()
+        except Exception as e:
+            logger.debug("Docstring read failed: %s", e)
+            return None
+        text = text.lstrip("rRbBuUfF")
+        for quote in ('"""', "'''", '"', "'"):
+            if text.startswith(quote) and text.endswith(quote) and len(text) >= 2 * len(quote):
+                text = text[len(quote):-len(quote)]
+                break
+        text = "\n".join(line.strip() for line in text.strip().splitlines())
+        return text[:MAX_DOCSTRING_CHARS] or None
 
     def _function_metadata(self, match, language: str) -> Dict[str, Any]:
         """Raw call names and enclosing class for one function node.

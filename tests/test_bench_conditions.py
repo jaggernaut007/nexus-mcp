@@ -187,3 +187,14 @@ class TestToolSearchEnv:
     def test_build_run_passes_tool_search_to_env(self, tmp_path):
         built = build_run("mcp-only", "hi", "sonnet", 1.0, tmp_path, env={}, tool_search=False)
         assert built["env"]["ENABLE_TOOL_SEARCH"] == "false"
+
+
+class TestStrictMcpConfig:
+    @pytest.mark.parametrize("condition", ["baseline", "mcp-only", "nexus"])
+    def test_strict_mcp_config_is_set_outside_the_plugin_condition(self, condition):
+        assert "--strict-mcp-config" in build_argv(condition, "hi", "sonnet", 1.0)
+
+    def test_plugin_condition_does_not_block_the_plugin_server(self):
+        argv = build_argv("nexus-plugin", "hi", "sonnet", 1.0)
+        assert "--strict-mcp-config" not in argv
+        assert "--plugin-dir" in argv

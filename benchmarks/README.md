@@ -25,7 +25,19 @@ python -m benchmarks.runner --tasks benchmarks/tasks/django.yaml --smoke   # 2 t
 python -m benchmarks.report benchmarks/results/runs-*.jsonl
 ```
 
-Default model is `claude-sonnet-5`; override with `--model <id>` on `runner.py`.
+Default model is the `sonnet` alias; override with `--model <id>` on `runner.py`.
+
+**Permissions.** Runs are headless, so nothing can answer a prompt. The harness uses
+`--permission-mode dontAsk` with an explicit `--allowedTools` list (`Read`, `Grep`, `Glob`,
+`ToolSearch` and the nexus tools). A tool outside the list is denied, and the denial is
+recorded. It does not use `bypassPermissions` or `--dangerously-skip-permissions`.
+
+**Auth and limits.** The isolated config directory has no login. Export
+`CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`) or `ANTHROPIC_API_KEY` first. On a
+subscription, a long run can hit the usage limit; the runner stops with exit code 3 and keeps
+its records. Run the same command again later and it skips what already finished. The default
+output file is `results/runs-<repo>.jsonl`, so reruns find it. `--save-raw` keeps each run's raw
+stream under `results/raw/` so a number can be recomputed if the parser changes.
 
 Full run (all tasks, both conditions, 3 reps — expect **$20-50** in API spend
 and tens of minutes of wall time):
@@ -40,6 +52,8 @@ python -m benchmarks.report benchmarks/results/runs-*.jsonl --out benchmarks/res
 
 **Conditions:**
 - `baseline` — `claude -p --tools Read,Grep,Glob` (no MCP servers, no skill).
+- `mcp-only` — same built-in tools, plus the `nexus-mcp` MCP server and nothing else: no
+  skill. It measures the tool descriptions and the server instructions alone.
 - `nexus` — same built-in tools, plus the `nexus-mcp` MCP server
   (`benchmarks/mcp-configs/nexus.json`) and the shipped
   `plugin/skills/nexus-mcp/SKILL.md` body injected via `--append-system-prompt`.
@@ -135,7 +149,7 @@ files; home-assistant/core: ~26,000) that no single conversation could read
 the whole thing, but the model may have memorized parts of django from
 training. Mitigations: home-assistant/core is pinned to a commit dated at
 model training-cutoff or later (check the `pinned_date` field in its task
-YAML against the **default model's** — `claude-sonnet-5`, or whatever
+YAML against the training cutoff of the model that `--model` resolved to — or whatever
 `--model` you actually ran with — training cutoff before publishing);
 wasted-read ratio is contamination-resistant by construction since it
 measures *reads*, not recalled knowledge; needle tasks ask for exact line

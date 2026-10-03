@@ -8,12 +8,13 @@ only if a concrete need appears).
 
 ## Next
 
+Done on 2026-10-03 and removed from this list: tool descriptions and server `instructions`
+(issue #5), one registration name (#6), plugin and Codex docs (#8), the tool-name parity test
+(#4, #10), and the `nexus-plugin` benchmark condition.
+
 | Item | Source | Depends on | Notes |
 |---|---|---|---|
-| Rewrite the 10 tool descriptions, add server `instructions`, add `Literal` enums and tool annotations | issue #5, POSITIONING D7/R3, plan phase B | The routing baseline run (needs `CLAUDE_CODE_OAUTH_TOKEN`) | Measure before and after. `mcp-only` condition isolates descriptions from the skill |
-| One registration name (`nexus-mcp`), bare tool names in docs, plugin prefix in SKILL.md | issue #6 | — | The plugin prefix is `mcp__plugin_nexus-mcp_nexus-mcp__*`; SKILL.md names the wrong one |
-| Document the Claude Code plugin in README and INSTALLATION | issue #8 | — | Add `docs/AGENT_ROUTING.md` as the single routing text |
-| Static test: registered tool names equal the names in `llms.txt` and the README table | issues #4, #10 | — | `tests/test_tools_basic.py:306` checks only a hard-coded set |
+| **Run the routing eval**: before (tag `eval-baseline-descriptions`) and after (HEAD) | docs/EVALS.md | `CLAUDE_CODE_OAUTH_TOKEN` | Decides whether the new descriptions help; keep `alwaysLoad` only if Tool-Search-on rows improve |
 | Fix `graph_relevance_search`: stop words, whole-word match | embedding eval finding 2 | — | Graph list lowers hybrid hit@1 from 0.72 to 0.60 on `nexus_mcp`; call edges raise hub centrality, so it gets worse |
 | Re-tune RRF weights on identifier-style queries | ROADMAP-2026 item 12 | Query set growth | Current 0.5/0.3/0.2 are untuned |
 | Measure idle and indexing memory of the default model; cut the 902 MB indexing peak | embedding eval finding 4 | — | Target is 350 MB; test smaller batches and unloading between batches |
@@ -28,7 +29,6 @@ only if a concrete need appears).
 | TS/JS arrow functions as graph nodes; Rust `use crate::` paths | ADR-019 | — | Known gaps in call-edge coverage |
 | Transitive callees in `graph` | ADR-017 | Call edges (done) | Only transitive callers exist |
 | Full benchmark run and published report | ROADMAP-2026 item 9, PROGRESS Phase 9 | Token; Phase B | Smoke run first; the full run takes several 5-hour windows on the Pro limit |
-| Fix `nexus-plugin` benchmark condition against `--strict-mcp-config` | plan phase E | — | The plugin's server is probably ignored |
 | Release 2.1.0 (not a patch) | CHANGELOG | All of the above | `find_symbol(name=)` became `symbol_name`, a breaking rename |
 
 ## Decide

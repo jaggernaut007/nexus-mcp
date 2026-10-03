@@ -32,6 +32,7 @@ import yaml
 
 from benchmarks import conditions as cond
 from benchmarks import transcript as tx
+from benchmarks.runner import claude_version
 from evals.routing import scoring
 
 EVAL_DIR = Path(__file__).resolve().parent.parent
@@ -361,15 +362,6 @@ def run_suite(
                     write_record(record, out_path)
                     written += 1
     return written
-
-
-def claude_version() -> str:
-    """Output of `claude --version`, or 'unknown'."""
-    try:
-        out = subprocess.run(["claude", "--version"], capture_output=True, text=True, timeout=20)
-        return out.stdout.strip() or "unknown"
-    except (OSError, subprocess.TimeoutExpired):
-        return "unknown"
 
 
 def main(argv: Optional[List[str]] = None) -> int:

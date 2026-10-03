@@ -63,7 +63,6 @@ def _common_args(
         "--no-session-persistence",
         "--max-budget-usd",
         str(max_budget_usd),
-        "--strict-mcp-config",
         "--disallowedTools",
         DISALLOWED_TOOLS,
     ]
@@ -90,6 +89,11 @@ def build_argv(
 
     argv = _common_args(model, max_budget_usd)
     argv += ["--tools", builtin_tools]
+    # --strict-mcp-config ignores every MCP server except the ones in --mcp-config.
+    # The plugin condition gets its server from the plugin itself, so it must not
+    # set the flag, or the server would never start.
+    if condition != "nexus-plugin":
+        argv.append("--strict-mcp-config")
 
     if condition == "mcp-only":
         argv += ["--mcp-config", str(mcp_config_path)]

@@ -183,6 +183,7 @@ All settings via environment variables with `NEXUS_` prefix:
 | `NEXUS_LOG_FORMAT` | `text` | Logging format (`text` or `json`) |
 | `NEXUS_EMBEDDING_BATCH_SIZE` | `32` | Embedding batch size |
 | `NEXUS_AUTO_WATCH` | `true` | Auto-reindex on file change |
+| `NEXUS_AUTO_RESTORE` | `true` | Reattach to the stored index when a new process starts |
 
 The [README](../README.md#configuration) lists every variable.
 

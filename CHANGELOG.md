@@ -21,6 +21,10 @@ All notable changes to this project will be documented in this file.
   index with a different vector width is also detected and rebuilt. Stored memories are
   re-embedded with the new model; a JSON backup is written first
   (`memories-before-model-change.json`).
+- A new server process reattaches to the index on disk (`NEXUS_AUTO_RESTORE`, default on):
+  `status` reports `indexed: true` at the start of a session, and the graph tools work, without
+  calling `index` first. It is skipped when the stored index is missing, built by another model,
+  or its project folder is gone.
 - The saved graph is loaded on restart, so `graph()` works after a restart without a
   full reindex.
 - Cyclomatic complexity and Python docstrings on graph nodes, so `analyze` is no longer

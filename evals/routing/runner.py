@@ -227,6 +227,7 @@ def stream_run(
 
     lines: List[str] = []
     effective = 0
+    total = 0
     stopped_early = False
 
     def on_timeout() -> None:
@@ -245,10 +246,10 @@ def stream_run(
                 event = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            effective += sum(
-                1 for n in _tool_use_names(event) if n not in scoring.NEUTRAL_TOOLS
-            )
-            if effective >= max_calls:
+            names = _tool_use_names(event)
+            effective += sum(1 for n in names if not scoring.is_neutral(n))
+            total += len(names)
+            if effective >= max_calls or total >= scoring.MAX_TOTAL_CALLS:
                 stopped_early = True
                 kill()
                 break

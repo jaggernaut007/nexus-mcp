@@ -387,6 +387,7 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_EMBEDDING_DEVICE` | `auto` | `auto` (CUDA → MPS → CPU), `cuda`, `mps`, `cpu` |
 | `NEXUS_STORAGE_DIR` | `.nexus` | Index storage directory |
 | `NEXUS_AUTO_WATCH` | `true` | Auto-reindex on file change via a debounced watcher, started after `index()` |
+| `NEXUS_AUTO_RESTORE` | `true` | A new server process reattaches to the stored index, so `status` is already `indexed: true` |
 | `NEXUS_STALENESS_CHECK_INTERVAL` | `15` | Seconds between `status()`/`search()` staleness checks (throttled, not per-call) |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max chars per code chunk |

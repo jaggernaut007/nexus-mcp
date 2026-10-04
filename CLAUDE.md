@@ -144,7 +144,8 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 
 ## Gotchas
 
-1. State is global singleton in state.py
+1. State is global singleton in state.py. A new process attaches the stored index through
+   `core_api.restore_session()` (`NEXUS_AUTO_RESTORE`, default `true`; tests set it `false`)
 2. Models lazy-loaded, unloaded after indexing (try/finally ensures cleanup)
 3. LanceDB tables: `chunks` (vectors), `memories` (memory layer)
 4. Graph engine is thread-safe with RLock

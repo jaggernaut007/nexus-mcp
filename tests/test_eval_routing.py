@@ -100,6 +100,20 @@ class TestScorePrompt:
                  _call("mcp__nexus-mcp__graph", direction="callers")]
         assert scoring.score_prompt(self.SPEC, calls)["passed"] is True
 
+    def test_score_prompt_set_up_calls_do_not_use_up_the_window(self):
+        calls = [_call("mcp__nexus-mcp__status"), _call("mcp__nexus-mcp__index"),
+                 _call("Glob"), _call("Read"),
+                 _call("mcp__nexus-mcp__graph", direction="callers")]
+        result = scoring.score_prompt(self.SPEC, calls)
+        assert result["passed"] is True
+        assert result["first_tool"] == "Glob"
+        assert result["calls_before_nexus"] == 2
+
+    def test_score_prompt_a_native_tool_named_status_is_not_set_up(self):
+        assert scoring.is_neutral("Grep") is False
+        assert scoring.is_neutral("mcp__other__status") is False
+        assert scoring.is_neutral("mcp__nexus-mcp__status") is True
+
     def test_score_prompt_tool_outside_window_fails(self):
         calls = [_call("Grep"), _call("Grep"), _call("Read"),
                  _call("mcp__nexus-mcp__graph", direction="callers")]
@@ -310,7 +324,16 @@ class TestStreamRun:
         got, timed_out, early, _err = runner.stream_run(["claude"], {}, Path("."), 30, 3)
         assert early is True
         assert timed_out is False
-        assert len(got) == 4  # ToolSearch does not count; stops at the third effective call
+        assert len(got) == 5  # ToolSearch and status do not count; stops at the third other call
+
+    def test_stream_run_stops_after_the_hard_cap_on_total_calls(self, monkeypatch):
+        lines = [_tool_event("mcp__nexus-mcp__status") for _ in range(20)]
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: _FakeProc(lines))
+        monkeypatch.setattr(runner.os, "killpg", lambda *a, **k: None)
+        monkeypatch.setattr(runner.os, "getpgid", lambda pid: pid)
+        got, _timed_out, early, _err = runner.stream_run(["claude"], {}, Path("."), 30, 3)
+        assert early is True
+        assert len(got) == scoring.MAX_TOTAL_CALLS
 
     def test_stream_run_reads_all_lines_when_under_limit(self, monkeypatch):
         lines = [_tool_event("Read")]

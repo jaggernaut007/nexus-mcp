@@ -41,6 +41,7 @@ class Settings:
     max_memory_mb: int = 350
 
     # Auto-watch / staleness
+    auto_restore: bool = True  # reattach to the index on disk when a new process starts
     auto_watch_enabled: bool = True
     staleness_check_interval_s: float = 15.0
 
@@ -82,6 +83,7 @@ class Settings:
             "NEXUS_FUSION_WEIGHT_BM25": ("fusion_weight_bm25", float),
             "NEXUS_FUSION_WEIGHT_GRAPH": ("fusion_weight_graph", float),
             "NEXUS_MAX_MEMORY_MB": ("max_memory_mb", int),
+            "NEXUS_AUTO_RESTORE": ("auto_restore", _bool),
             "NEXUS_AUTO_WATCH": ("auto_watch_enabled", _bool),
             "NEXUS_STALENESS_CHECK_INTERVAL": ("staleness_check_interval_s", float),
             "NEXUS_LOG_LEVEL": ("log_level", str),

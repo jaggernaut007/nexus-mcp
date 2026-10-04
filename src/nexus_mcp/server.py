@@ -30,8 +30,9 @@ for any question about how this codebase works: where something is, what calls w
 what breaks if a symbol changes, how the project is laid out, and what was decided \
 earlier. One call here replaces several greps and file reads.
 
-Start of a session: call `status`. If `indexed` is false, call `index` once with the \
-absolute project path. After that the index keeps itself fresh.
+Start of a session: call `status`. An index from an earlier session is reattached \
+automatically. If `indexed` is false, call `index` once with the absolute project path. \
+After that the index keeps itself fresh.
 
 Which tool answers which question:
 - "where is...", "how does...", "find the code that..." -> `search`
@@ -231,10 +232,11 @@ def create_server():
     @_audited
     def status() -> dict[str, Any]:
         """Check whether this project is indexed and whether the index is fresh. Call
-        it first in a session, before any other nexus tool. Returns `indexed`
-        (true/false), file and symbol counts, which engines are ready, memory use, and
-        a stale warning if files changed since the last index (a background reindex
-        starts by itself). If `indexed` is false, call `index`."""
+        it first in a session, before any other nexus tool. An index saved in an earlier
+        session is reattached here, so `indexed` is usually already true. Returns
+        `indexed` (true/false), file and symbol counts, which engines are ready, memory
+        use, and a stale warning if files changed since the last index (a background
+        reindex starts by itself). If `indexed` is false, call `index`."""
         guard_err = _guard("status")
         if guard_err:
             return guard_err

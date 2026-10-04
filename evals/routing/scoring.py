@@ -11,6 +11,10 @@ from typing import Any, Dict, List, Optional
 from benchmarks.transcript import MCP_TOOL_PREFIX, READ_TOOL, SEARCH_TOOLS, ToolCall
 
 NEUTRAL_TOOLS = ("ToolSearch",)
+# Session set-up calls. An agent that checks `status` and runs `index` before the real
+# work is doing what the server instructions say, so they do not use up the window.
+BOOTSTRAP_TOOLS = frozenset({"status", "index", "health"})
+MAX_TOTAL_CALLS = 8  # hard stop for a run that keeps setting up or wandering
 NATIVE_TOOLS = (READ_TOOL,) + SEARCH_TOOLS
 WINDOW = 3  # the expected tool must appear within this many effective calls
 
@@ -30,9 +34,16 @@ def normalize_tool(name: str) -> str:
     return name
 
 
+def is_neutral(name: str) -> bool:
+    """True for calls that do not count: tool discovery and nexus session set-up."""
+    if name in NEUTRAL_TOOLS:
+        return True
+    return is_nexus_tool(name) and normalize_tool(name) in BOOTSTRAP_TOOLS
+
+
 def effective_calls(calls: List[ToolCall]) -> List[ToolCall]:
-    """Tool calls without the neutral discovery tool (ToolSearch)."""
-    return [c for c in calls if c.name not in NEUTRAL_TOOLS]
+    """Tool calls without discovery (ToolSearch) and nexus set-up (status, index, health)."""
+    return [c for c in calls if not is_neutral(c.name)]
 
 
 # Server-side defaults of the nexus tools. A model that omits `direction` gets

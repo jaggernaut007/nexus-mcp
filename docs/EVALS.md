@@ -14,7 +14,8 @@ the ranking or the embedding model.
 **Setup.** Each run starts `claude -p` headless in a copy of the `shop_repo` fixture
 (`evals/fixtures/shop_repo`, 18 files, Python and TypeScript). The nexus server is connected from
 this checkout's source, so a description change is measured as soon as you make it. The prompt
-names no tool: "Who calls reserve_stock?". The runner stops the process after three tool calls.
+names no tool: "Who calls reserve_stock?". The runner stops the process after three tool calls that are not tool discovery
+(`ToolSearch`) or session set-up (`status`, `index`, `health`), or after eight calls of any kind.
 
 **Conditions.** `mcp-only` (the server, no skill) measures the descriptions and the server
 instructions alone. `nexus` adds the plugin skill to the system prompt. Each condition runs with
@@ -25,7 +26,8 @@ Tool Search on (the Claude Code default; the model sees tool names and instructi
 memory questions, plus three negatives where the right move is a built-in tool or no tool.
 
 **Metrics.** A run passes when one of the expected nexus tools appears within the first three
-tool calls (`ToolSearch` does not count) with the right arguments. The report also gives the
+counted tool calls (`ToolSearch`, `status`, `index` and `health` do not count) with the right
+arguments. The report also gives the
 nexus-first rate, the right-tool rate, the argument rate and the negative pass rate.
 
 **Isolation.** The run uses its own config directory and `--setting-sources ""`. It records the

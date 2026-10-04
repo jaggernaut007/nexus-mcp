@@ -12,8 +12,9 @@
 #   expect         negative prompts only. "native": the first effective call must be
 #                  Read, Grep or Glob. "none": the model must call no tool.
 #
-# "Effective" calls exclude ToolSearch. status and index count as calls, so the
-# 3-call window fits status -> index -> search.
+# "Effective" calls exclude ToolSearch and the nexus set-up tools (status, index,
+# health). An agent that checks status and runs index first is doing what the server
+# instructions say, so those calls do not use up the 3-call window.
 
 repo: shop_repo
 

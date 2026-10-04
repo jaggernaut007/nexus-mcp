@@ -175,6 +175,67 @@ def validate_query(query: str) -> Optional[dict]:
 
 # --- Shared helpers -------------------------------------------------------
 
+def restore_session() -> bool:
+    """Reattach to the index that is already on disk. Returns True if a codebase is attached.
+
+    Every new server process starts with no codebase in memory, even when the project
+    was indexed in an earlier session. Without this, each session would open with
+    `status` saying "not indexed" and `index` having to run before any real work. This
+    loads the saved graph and opens the stored tables for the root(s) recorded in the
+    index metadata. It does not reparse anything: `status` then reports staleness and
+    starts a background reindex if files changed, exactly as in a session that called
+    `index`. It does nothing when the index is missing, was built by another embedding
+    model, or its root no longer exists, and `index` then builds it as before.
+    """
+    global _pipeline
+    from nexus_mcp.config import get_settings
+    from nexus_mcp.state import get_state
+
+    state = get_state()
+    if state.is_indexed:
+        return True
+    settings = get_settings()
+    if not settings.auto_restore:
+        return False
+    metadata_path = settings.storage_path / "index_metadata.json"
+    if not metadata_path.exists():
+        return False
+    try:
+        import json
+
+        meta = json.loads(metadata_path.read_text())
+        roots = [Path(p) for p in meta.get("codebase_paths") or [meta.get("codebase_path", "")]]
+    except (OSError, ValueError):
+        return False
+    if not roots or not all(r.is_dir() for r in roots):
+        return False
+
+    if not _pipeline_lock.acquire(timeout=5):
+        return False  # an index is running; its result will attach the codebase
+    try:
+        if state.is_indexed:
+            return True
+        from nexus_mcp.indexing.pipeline import IndexingPipeline
+
+        pipeline = _pipeline or IndexingPipeline(settings)
+        if not pipeline._validate_index() or not pipeline._restore_graph():
+            return False
+        _pipeline = pipeline
+        state.codebase_path = roots[0]
+        state.codebase_paths = roots
+        state.vector_engine = pipeline.vector_engine
+        state.bm25_engine = pipeline.bm25_engine
+        state.graph_engine = pipeline.graph_engine
+        state._staleness_cache = None
+        logger.info("Restored the index of %s from %s", roots[0], settings.storage_path)
+        return True
+    except Exception as e:  # noqa: BLE001 - a bad saved index must not break the tool call
+        logger.warning("Could not restore the saved index: %s", e)
+        return False
+    finally:
+        _pipeline_lock.release()
+
+
 def require_indexed():
     """Check that a codebase is indexed and graph engine is available.
 
@@ -183,6 +244,8 @@ def require_indexed():
     from nexus_mcp.state import get_state
 
     state = get_state()
+    if not state.is_indexed:
+        restore_session()
     if not state.is_indexed or not state.graph_engine:
         return None, {"error": "No codebase indexed. Run 'index' first."}
     return state, None
@@ -258,6 +321,7 @@ def status() -> dict[str, Any]:
     from nexus_mcp.state import get_state
 
     state = get_state()
+    restore_session()
     rss_raw = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     if sys.platform == "darwin":
         peak_rss_mb = rss_raw / (1024 * 1024)
@@ -430,6 +494,8 @@ def search(
         return err
 
     state = get_state()
+    if not state.is_indexed:
+        restore_session()
     if not state.is_indexed or not state.vector_engine:
         return {"error": "No codebase indexed. Run 'index' first."}
 

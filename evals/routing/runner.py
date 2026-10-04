@@ -398,6 +398,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--only", default="", help="Comma list of prompt ids")
     parser.add_argument("--smoke", action="store_true", help="4 prompts, mcp-only, tool search on")
     parser.add_argument("--python", default=sys.executable, help="Python that can import nexus_mcp")
+    parser.add_argument(
+        "--src", default=str(REPO_ROOT / "src"),
+        help="Source directory of the nexus_mcp to test (default: this checkout). Point it at "
+        "another checkout, for example a tag, to measure the old tool descriptions",
+    )
     args = parser.parse_args(argv)
 
     specs = load_prompts()
@@ -420,9 +425,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         )
 
     require_login(CONFIG_DIR)
-    src_dir = REPO_ROOT / "src"
-    repo_dir = prepare_repo(args.python, src_dir)
-    mcp_config = write_mcp_config(WORK_DIR / "mcp.json", args.python, src_dir)
+    src_dir = Path(args.src).resolve()
+    if not (src_dir / "nexus_mcp").is_dir():
+        raise SystemExit(f"{src_dir} does not contain a nexus_mcp package")
+    # A separate work dir per source tree: an index built by one version must not be
+    # read by another (an older version cannot restore the graph a newer one saved).
+    work_dir = WORK_DIR if src_dir == (REPO_ROOT / "src").resolve() else (
+        WORK_DIR / f"src-{src_dir.parent.name}"
+    )
+    repo_dir = prepare_repo(args.python, src_dir, work_dir)
+    mcp_config = write_mcp_config(work_dir / "mcp.json", args.python, src_dir)
     version = claude_version()
 
     def run_one(spec: Dict[str, Any], condition: str, tool_search: bool) -> Dict[str, Any]:

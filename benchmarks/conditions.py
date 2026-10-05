@@ -25,6 +25,9 @@ ALLOWED_TOOLS = "Read,Grep,Glob,ToolSearch,mcp__nexus-mcp__*,mcp__plugin_nexus-m
 # same server with no skill, so tool descriptions and server instructions are
 # the only routing signal.
 KNOWN_CONDITIONS = ("baseline", "mcp-only", "nexus", "nexus-plugin")
+# The embedding device of the per-model servers and indexes. Pinned to CPU so every model runs
+# on the same device (the retrieval eval does too) and the CoreML provider is never used.
+BENCH_EMBEDDING_DEVICE = "cpu"
 # These two have no server of ours to configure, so `<name>@<model>` is an error.
 NO_MODEL_CONDITIONS = ("baseline", "nexus-plugin")
 
@@ -70,6 +73,7 @@ def model_mcp_config(
                 "env": {
                     "PYTHONPATH": src_dirs,
                     "NEXUS_EMBEDDING_MODEL": embedding_model,
+                    "NEXUS_EMBEDDING_DEVICE": BENCH_EMBEDDING_DEVICE,
                     "NEXUS_STORAGE_DIR": str(storage_dir),
                 },
             }

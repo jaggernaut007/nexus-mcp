@@ -5,16 +5,20 @@
 
 Each model gets its own folder, `benchmarks/repos/<repo>/.nexus-<model>`, so the indexes
 never mix. The runner starts the server with the same folder (conditions.model_mcp_config).
-A model that already has an index is skipped; delete its folder to rebuild.
+A model that already has an index is skipped; delete its folder to rebuild. A failed build
+removes its own folder.
 Each model is indexed in its own process, so peak memory is that model's own.
 """
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional
+
+from benchmarks.conditions import BENCH_EMBEDDING_DEVICE
 
 BENCH_DIR = Path(__file__).resolve().parent
 REPO_ROOT = BENCH_DIR.parent
@@ -34,6 +38,7 @@ def index_env(
     env = dict(base_env if base_env is not None else os.environ)
     env["NEXUS_STORAGE_DIR"] = str(storage_dir)
     env["NEXUS_EMBEDDING_MODEL"] = model
+    env["NEXUS_EMBEDDING_DEVICE"] = BENCH_EMBEDDING_DEVICE
     env["PYTHONPATH"] = os.pathsep.join([str(REPO_ROOT / "src"), str(REPO_ROOT)])
     return env
 
@@ -50,7 +55,11 @@ def preindex(repo_dir: Path, repo_name: str, model: str) -> bool:
         str(repo_dir), f"{repo_name}@{model}", str(META_FILE),
     ]
     proc = subprocess.run(cmd, env=index_env(storage, model), cwd=str(REPO_ROOT))
-    return proc.returncode == 0
+    if proc.returncode != 0:
+        # A half-built folder would count as "already indexed" on the next run.
+        shutil.rmtree(storage, ignore_errors=True)
+        return False
+    return True
 
 
 def main(argv: Optional[List[str]] = None) -> int:

@@ -61,6 +61,7 @@ class TestModelMcpConfig:
         assert server["args"] == ["-m", "benchmarks.nexus_server"]
         assert server["env"]["NEXUS_EMBEDDING_MODEL"] == "granite-97m-r2-int8"
         assert server["env"]["NEXUS_STORAGE_DIR"] == str(tmp_path / "idx")
+        assert server["env"]["NEXUS_EMBEDDING_DEVICE"] == "cpu"
 
     def test_pythonpath_holds_the_source_tree_and_the_repository_root(self, tmp_path):
         env = cond.model_mcp_config("m", tmp_path)["mcpServers"]["nexus-mcp"]["env"]
@@ -119,6 +120,7 @@ class TestPreindexModels:
         env = preindex_models.index_env(tmp_path / "s", "m", base_env={"X": "1"})
         assert env["X"] == "1"
         assert env["NEXUS_EMBEDDING_MODEL"] == "m"
+        assert env["NEXUS_EMBEDDING_DEVICE"] == "cpu"  # the server must use the same device
         assert env["NEXUS_STORAGE_DIR"] == str(tmp_path / "s")
         assert str(preindex_models.REPO_ROOT) in env["PYTHONPATH"].split(":")
 
@@ -141,11 +143,21 @@ class TestPreindexModels:
         assert seen["cmd"][-3:-1] == [str(tmp_path), "repo@m"]
         assert seen["env"]["NEXUS_STORAGE_DIR"] == str(tmp_path / ".nexus-m")
 
-    def test_preindex_reports_a_failed_child(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(
-            subprocess, "run", lambda cmd, **k: subprocess.CompletedProcess(cmd, 1)
-        )
+    def test_preindex_reports_a_failed_child_and_removes_its_partial_folder(
+        self, tmp_path, monkeypatch
+    ):
+        def fake_run(cmd, env=None, cwd=None):
+            (tmp_path / ".nexus-m").mkdir()  # what a child that died halfway leaves behind
+            return subprocess.CompletedProcess(cmd, 1)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
         assert preindex_models.preindex(tmp_path, "repo", "m") is False
+        assert not (tmp_path / ".nexus-m").exists()
+        # so the next attempt builds the index again instead of skipping it
+        monkeypatch.setattr(
+            subprocess, "run", lambda cmd, **k: subprocess.CompletedProcess(cmd, 0)
+        )
+        assert preindex_models.preindex(tmp_path, "repo", "m") is True
 
     def test_main_returns_1_when_a_model_fails(self, tmp_path, monkeypatch):
         (tmp_path / "repo").mkdir()

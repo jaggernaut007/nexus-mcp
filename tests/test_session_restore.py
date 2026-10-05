@@ -28,6 +28,7 @@ def project(tmp_path):
 def indexed_storage(project, tmp_path, monkeypatch):
     """Index the project once, as an earlier session would, then forget all in-memory state."""
     storage = tmp_path / "storage"
+    monkeypatch.chdir(tmp_path)  # restore only accepts a project root inside the working dir
     monkeypatch.setenv("NEXUS_STORAGE_DIR", str(storage))
     reset_settings()
     dims = model_dimensions(Settings().embedding_model)
@@ -67,6 +68,18 @@ def test_graph_tools_work_in_a_new_process_without_calling_index(
     result = core_api.graph("helper", direction="callers")
     assert "error" not in result
     assert [c["name"] for c in result["callers"]] == ["run"]
+
+
+def test_status_tool_starts_the_file_watcher_for_a_restored_index(indexed_storage, restore_on):
+    import asyncio
+
+    import nexus_mcp.server as server_module
+    from tests.conftest import _call_tool
+
+    mcp = server_module.create_server()
+    result = asyncio.run(_call_tool(mcp, "status"))
+    assert result["indexed"] is True
+    assert len(get_state()._file_watchers) == 1
 
 
 def test_restore_is_off_when_disabled(indexed_storage, monkeypatch):

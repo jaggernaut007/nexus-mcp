@@ -42,7 +42,7 @@ Nexus-MCP/
 │   ├── persistence/        # SQLite graph persistence
 │   ├── security/           # Permission categories, rate limiter
 │   └── middleware/         # Audit logging
-├── tests/                  # 607 tests across 45 files
+├── tests/                  # 843 tests
 ├── benchmarks/             # Token-efficiency benchmark harness (ADR-018)
 ├── self_test/              # End-to-end demo of all 10 tools
 ├── plugin/                 # Claude Code plugin: MCP registration + routing skill
@@ -59,7 +59,7 @@ Nexus-MCP/
 ## Running Tests
 
 ```bash
-# Full suite (607 tests)
+# Full suite (843 tests)
 pytest -v
 
 # Skip slow performance benchmarks (this is what CI runs)

@@ -98,7 +98,9 @@ def score_prompt(spec: Dict[str, Any], calls: List[ToolCall]) -> Dict[str, Any]:
 
     expect = spec.get("expect")
     if expect == "none":
-        result["passed"] = len(effective) == 0
+        # A question with no code in it should not touch nexus at all, so the set-up
+        # calls (status, index) that normally do not count are counted here.
+        result["passed"] = not any(c.name not in NEUTRAL_TOOLS for c in calls)
         return result
     if expect == "native":
         result["passed"] = bool(first and first.name in NATIVE_TOOLS)

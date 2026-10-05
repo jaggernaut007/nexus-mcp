@@ -8,6 +8,7 @@ from the `chunks` table used by vector/BM25 engines.
 import json
 import logging
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -97,6 +98,8 @@ class MemoryStore:
 
         rows = table.to_arrow().to_pylist()
         backup = Path(self._db_path).parent / f"{self._table_name}-before-model-change.json"
+        if backup.exists():  # keep the earlier backup; it may hold rows this one lacks
+            backup = backup.with_name(f"{backup.stem}-{int(time.time())}.json")
         backup.write_text(json.dumps(
             [{k: v for k, v in row.items() if k != "vector"} for row in rows], indent=2
         ))
@@ -110,7 +113,12 @@ class MemoryStore:
             self._table_name, schema=_make_memory_schema(self._vector_dims)
         )
         if rows:
-            new_table.add([{**row, "vector": vec} for row, vec in zip(rows, vectors)])
+            try:
+                new_table.add([{**row, "vector": vec} for row, vec in zip(rows, vectors)])
+            except Exception:
+                logger.error("Re-embedding failed after the old table was dropped; "
+                             "the memories are in %s", backup)
+                raise
         return new_table
 
     def _memory_to_row(self, memory: Memory, vector: List[float]) -> Dict[str, Any]:

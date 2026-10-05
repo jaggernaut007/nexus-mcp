@@ -6,6 +6,7 @@ into a single ranked list using Reciprocal Rank Fusion (RRF).
 
 import logging
 import re
+from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
 from nexus_mcp.indexing.chunker import _generate_chunk_id
@@ -21,12 +22,28 @@ STOP_WORDS = frozenset({
     "your", "use", "uses", "used", "one", "each", "per", "via", "get", "gets",
 })
 _CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+_WORD = re.compile(r"[^\W_]+")  # letters and digits of any script, no underscore
+
+
+@lru_cache(maxsize=262144)
+def _name_words_cached(name: str) -> tuple:
+    spaced = _CAMEL_BOUNDARY.sub("_", name)
+    return tuple(w.lower() for w in _WORD.findall(spaced))
 
 
 def _name_words(name: str) -> List[str]:
     """Lowercase words of an identifier: `create_order` and `CreateOrder` -> create, order."""
-    spaced = _CAMEL_BOUNDARY.sub("_", name)
-    return [w.lower() for w in re.split(r"[^A-Za-z0-9]+", spaced) if w]
+    return list(_name_words_cached(name))
+
+
+def _word_forms(word: str) -> set:
+    """The word and its plain singular and plural, so `order` finds `orders` and back."""
+    forms = {word, word + "s"}
+    if word.endswith("es") and len(word) > 4:
+        forms.add(word[:-2])
+    if word.endswith("s") and len(word) > 3:
+        forms.add(word[:-1])
+    return forms
 
 
 def graph_relevance_search(
@@ -49,21 +66,28 @@ def graph_relevance_search(
     """
     # Whole words only. Substring matching let "to", "in" or "an" hit every node whose
     # name contained those letters, and centrality then ranked the noise by hub score.
+    # Split the query like an identifier, so `order_total` finds `compute_order_total`.
     tokens = [
-        t.lower() for t in re.split(r"\W+", query)
-        if len(t) >= MIN_TOKEN_LENGTH and t.lower() not in STOP_WORDS
+        w for w in _name_words(query)
+        if len(w) >= MIN_TOKEN_LENGTH and w not in STOP_WORDS
     ]
     if not tokens:
         return []
-    wanted = set(tokens) | {t[:-1] for t in tokens if t.endswith("s") and len(t) > 3}
+    wanted: set = set()
+    for token in tokens:
+        wanted |= _word_forms(token)
+
+    # Copy the node list under the graph lock: a background reindex removes nodes from
+    # this dict, and iterating it while that happens raises "changed size during iteration".
+    with graph_engine._lock:
+        nodes = list(graph_engine.nodes.values())
 
     seen_ids: set = set()
     candidates: list = []
-    for node in graph_engine.nodes.values():
+    for node in nodes:
         if node.id in seen_ids:
             continue
-        name = node.name.lower()
-        if name in wanted or wanted & set(_name_words(node.name)):
+        if node.name.lower() in wanted or wanted.intersection(_name_words_cached(node.name)):
             seen_ids.add(node.id)
             candidates.append(node)
 

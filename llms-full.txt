@@ -1,6 +1,6 @@
 # Nexus-MCP
 
-> Unified, local-first MCP server combining hybrid search (vector + BM25 + graph), structural code graph analysis, and persistent semantic memory in a single process. Designed for AI coding agents via the Model Context Protocol. <350MB RAM, no API keys, no cloud dependencies. Source-available under PolyForm Noncommercial 1.0.0.
+> Unified, local-first MCP server combining hybrid search (vector + BM25 + graph), structural code graph analysis, and persistent semantic memory in a single process. Designed for AI coding agents via the Model Context Protocol. 350MB RAM target for a running server (indexing peaks higher), no API keys, no cloud dependencies. Source-available under PolyForm Noncommercial 1.0.0.
 
 This file contains the complete project documentation for Nexus-MCP, concatenated for LLM consumption.
 
@@ -17,7 +17,7 @@ This file contains the complete project documentation for Nexus-MCP, concatenate
 [![CI](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml/badge.svg)](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml)
 [![Glama MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 
-**Hybrid search + code graph + semantic memory in a single local MCP server — under 350 MB RAM.**
+**Hybrid search + code graph + semantic memory in a single local MCP server — 350 MB RAM target when running (indexing peaks higher; see [measurements](docs/research/embedding-models-2026-10.md)).**
 
 Nexus-MCP is a code intelligence server for the [Model Context Protocol](https://modelcontextprotocol.io). It gives AI agents precise, token-efficient answers about your codebase without cloud dependencies: no API keys, no data egress, no subscriptions.
 
@@ -401,6 +401,10 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_STALENESS_CHECK_INTERVAL` | `15` | Seconds between `status()`/`search()` staleness checks (throttled, not per-call) |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max chars per code chunk |
+| `NEXUS_EMBEDDING_BATCH_SIZE` | `32` | Chunks per embedding batch. Lower it to cut peak RAM while indexing |
+| `NEXUS_INDEX_FILE_BATCH_SIZE` | `50` | Files per streaming indexing batch |
+| `NEXUS_GRAPH_MAX_DEPTH` | `10` | Max depth for transitive graph queries |
+| `NEXUS_RERANKER_MODEL` | `ms-marco-MiniLM-L-12-v2` | FlashRank reranker model (optional) |
 | `NEXUS_MAX_MEMORY_MB` | `350` | Memory budget target |
 | `NEXUS_SEARCH_MODE` | `hybrid` | `hybrid`, `vector`, or `bm25` |
 | `NEXUS_FUSION_WEIGHT_VECTOR` | `0.5` | Vector score weight in RRF |
@@ -468,7 +472,7 @@ git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 pip install -e ".[dev]"
 
-pytest -v                    # 607 tests
+pytest -v                    # 843 tests (831 without slow)
 pytest -m "not slow"         # skip performance benchmarks
 pytest tests/test_hybrid_search.py  # single module
 ruff check .                 # lint
@@ -1023,7 +1027,7 @@ NEXUS_LOG_LEVEL=DEBUG NEXUS_SEARCH_MODE=vector nexus-mcp
 ## Running Tests
 
 ```bash
-# All tests (607)
+# All tests (843)
 pytest -v
 
 # Skip slow performance benchmarks
@@ -1631,7 +1635,7 @@ Nexus-MCP/
 │   ├── persistence/        # SQLite graph persistence
 │   ├── security/           # Permission categories, rate limiter
 │   └── middleware/         # Audit logging
-├── tests/                  # 607 tests across 45 files
+├── tests/                  # 843 tests
 ├── benchmarks/             # Token-efficiency benchmark harness (ADR-018)
 ├── self_test/              # End-to-end demo of all 10 tools
 ├── plugin/                 # Claude Code plugin: MCP registration + routing skill
@@ -1648,7 +1652,7 @@ Nexus-MCP/
 ## Running Tests
 
 ```bash
-# Full suite (607 tests)
+# Full suite (843 tests)
 pytest -v
 
 # Skip slow performance benchmarks (this is what CI runs)

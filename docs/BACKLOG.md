@@ -38,8 +38,20 @@ Done on 2026-10-03 and removed from this list: tool descriptions and server `ins
 |---|---|---|
 | Licence | POSITIONING D8 | PolyForm Noncommercial limits company use. Gates registry listings and the adoption push |
 | Embedding default | `docs/research/embedding-models-2026-10.md` | Evidence says keep `bge-small-en`. Reopen only with larger query sets |
-| `.gitignore` ignores `docs/POSITIONING.md`, which is tracked | working tree | Keep the file tracked, or untrack it on purpose |
-| `docs/AGENT-WORKFLOW-CHANGES.md` is untracked | working tree | Commit or delete |
+| `docs/POSITIONING.md` and `docs/AGENT-WORKFLOW-CHANGES.md` are local files, not in this repository (the first is git-ignored, the second is untracked). Items below that cite "POSITIONING" refer to the maintainer's copy | maintainer's checkout | Commit them, or move the decisions into this backlog |
+
+## Found by the pre-merge audit and not fixed yet
+
+| Item | Where | Notes |
+|---|---|---|
+| Raise the `fastmcp` lower bound | `pyproject.toml` (`>=2.0.0`) | `instructions=`, `annotations=` and `title=` were verified on 4.0.5 only; older 2.x may fail at start. Needs `uv lock` |
+| Add a word index for `graph_relevance_search` | `engines/fusion.py` | The scan costs 150-190 ms per query on 100k nodes; cache a word-to-node map in `add_node` |
+| `OAuth2Token` splits to `o`, `auth2`, `token`; digits stay glued to words | `engines/fusion.py` `_name_words` | Query "oauth" and "http" miss `OAuth2Token` and `getHTTP2Client` |
+| Calls rejected by the enum schema leave no audit record | `server.py` `_audited` | Validation runs before the wrapper |
+| `memory` migration drops the old table before adding rows | `memory/memory_store.py` | A JSON backup exists, but create the new table under a temporary name, then swap |
+| Tools that use `require_indexed` have no staleness check after a restore | `core_api.py` | `status` starts the watcher; `graph`, `explain`, `map`, `analyze` do not |
+| `index(B)` over storage that belongs to project A is not detected | `core_api.py` | With a shared `NEXUS_STORAGE_DIR`, `status` reports the other project as indexed |
+| Measure memory: idle, search and indexing, in separate runs | README headline | The headline now says "350 MB target"; the 902 MB figure is a combined peak |
 
 ## Later
 

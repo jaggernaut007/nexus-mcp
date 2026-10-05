@@ -6,7 +6,7 @@ Nexus-MCP is a unified code intelligence MCP (Model Context Protocol) server tha
 - **code-graph-mcp** — structural AST analysis + call graphs
 - **Live Grep** — 100% coverage fallback via ripgrep/grep
 
-Into a **single, memory-efficient MCP server** (<350MB RAM) with 10 tools for code search, navigation, analysis, and memory.
+Into a **single, memory-efficient MCP server** (350MB RAM target; indexing peaks at about 900MB, see docs/research/embedding-models-2026-10.md) with 10 tools for code search, navigation, analysis, and memory.
 
 ---
 

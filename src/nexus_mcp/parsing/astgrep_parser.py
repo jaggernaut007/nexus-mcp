@@ -419,7 +419,14 @@ class AstGrepParser:
     def _callee_text(call, field_name: Optional[str]) -> str:
         if field_name is not None:
             callee = call.field(field_name)
-            return callee.text() if callee else ""
+            if not callee:
+                return ""
+            # A long call chain (`a.m0().m1()...`) makes every callee text the whole
+            # prefix, so reading it is quadratic. Such a callee is dropped anyway.
+            span = callee.range()
+            if span.end.index - span.start.index > 4 * MAX_CALL_TEXT:
+                return ""
+            return callee.text()
         # Java method_invocation: object (optional) + name
         name = call.field("name")
         if not name:
@@ -433,7 +440,8 @@ class AstGrepParser:
         receiver = match.field("receiver")
         if not receiver:
             return None
-        found = re.findall(r"([A-Za-z_]\w*)\s*\)\s*$", receiver.text().strip())
+        text = re.sub(r"\[[^\[\]]*\]", "", receiver.text().strip())  # `Box[T]` -> `Box`
+        found = re.findall(r"([A-Za-z_]\w*)\s*\)\s*$", text)
         return found[0] if found else None
 
     @staticmethod

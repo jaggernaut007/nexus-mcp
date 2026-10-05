@@ -159,7 +159,7 @@ def apply_bare_isolation(argv: List[str], env: Dict[str, str]) -> List[str]:
 def apply_reduced_isolation(argv: List[str]) -> List[str]:
     """Fallback isolation when no API key is available: settings sources off.
 
-    --strict-mcp-config is already in _common_args. This adds
+    --strict-mcp-config is added by build_argv (not for the plugin condition). This adds
     --setting-sources "" so project/user settings files are not loaded.
     Real ~/.claude hooks/plugins loaded outside settings files are NOT
     covered by this fallback — callers must record the isolation mode used.

@@ -72,11 +72,24 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="+")
     args = parser.parse_args(argv)
-    records = load_records(args.paths)
-    if not records:
+    import glob
+    from pathlib import Path
+
+    files = sorted({f for pattern in args.paths for f in glob.glob(pattern)})
+    printed = False
+    for path in files:
+        records = load_records([path])
+        if not records:
+            continue
+        # One table per file: runs with the same prompt in two files are different
+        # measurements (before and after), and must not be merged into one.
+        print(f"## {Path(path).stem}\n")
+        print(render_markdown(records))
+        print()
+        printed = True
+    if not printed:
         print("No records found.", file=sys.stderr)
         return 1
-    print(render_markdown(records))
     return 0
 
 

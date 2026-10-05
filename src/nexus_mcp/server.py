@@ -230,7 +230,7 @@ def create_server():
 
     @mcp.tool(annotations=READ_ONLY, title="Index status")
     @_audited
-    def status() -> dict[str, Any]:
+    async def status() -> dict[str, Any]:
         """Check whether this project is indexed and whether the index is fresh. Call
         it first in a session, before any other nexus tool. An index saved in an earlier
         session is reattached here, so `indexed` is usually already true. Returns
@@ -240,7 +240,15 @@ def create_server():
         guard_err = _guard("status")
         if guard_err:
             return guard_err
-        return core_api.status()
+        # status() may reattach a stored index, which reads from disk: keep it off the
+        # event loop. The file watcher needs the running loop, so start it here. A session
+        # that called `index` already has one, and this does nothing then.
+        result = await asyncio.to_thread(core_api.status)
+        if result.get("indexed"):
+            from nexus_mcp.state import get_state
+
+            await core_api._ensure_file_watcher(get_state(), _settings.auto_watch_enabled)
+        return result
 
     @mcp.tool(annotations=READ_ONLY, title="Server health")
     @_audited

@@ -27,7 +27,9 @@ memory questions, plus three negatives where the right move is a built-in tool o
 
 **Metrics.** A run passes when one of the expected nexus tools appears within the first three
 counted tool calls (`ToolSearch`, `status`, `index` and `health` do not count) with the right
-arguments. The report also gives the
+arguments. "Nexus first" means that the first counted call is a nexus tool; set-up calls are skipped, so
+`status` then `search` counts as nexus first. For the no-tool negative prompt every call counts,
+including `status`. The report also gives the
 nexus-first rate, the right-tool rate, the argument rate and the negative pass rate.
 
 **Isolation.** The run uses its own config directory and `--setting-sources ""`. It records the

@@ -7,7 +7,7 @@
 [![CI](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml/badge.svg)](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml)
 [![Glama MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 
-**Hybrid search + code graph + semantic memory in a single local MCP server — under 350 MB RAM.**
+**Hybrid search + code graph + semantic memory in a single local MCP server — 350 MB RAM target when running (indexing peaks higher; see [measurements](docs/research/embedding-models-2026-10.md)).**
 
 Nexus-MCP is a code intelligence server for the [Model Context Protocol](https://modelcontextprotocol.io). It gives AI agents precise, token-efficient answers about your codebase without cloud dependencies: no API keys, no data egress, no subscriptions.
 
@@ -391,6 +391,10 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_STALENESS_CHECK_INTERVAL` | `15` | Seconds between `status()`/`search()` staleness checks (throttled, not per-call) |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max chars per code chunk |
+| `NEXUS_EMBEDDING_BATCH_SIZE` | `32` | Chunks per embedding batch. Lower it to cut peak RAM while indexing |
+| `NEXUS_INDEX_FILE_BATCH_SIZE` | `50` | Files per streaming indexing batch |
+| `NEXUS_GRAPH_MAX_DEPTH` | `10` | Max depth for transitive graph queries |
+| `NEXUS_RERANKER_MODEL` | `ms-marco-MiniLM-L-12-v2` | FlashRank reranker model (optional) |
 | `NEXUS_MAX_MEMORY_MB` | `350` | Memory budget target |
 | `NEXUS_SEARCH_MODE` | `hybrid` | `hybrid`, `vector`, or `bm25` |
 | `NEXUS_FUSION_WEIGHT_VECTOR` | `0.5` | Vector score weight in RRF |
@@ -458,7 +462,7 @@ git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 pip install -e ".[dev]"
 
-pytest -v                    # 607 tests
+pytest -v                    # 843 tests (831 without slow)
 pytest -m "not slow"         # skip performance benchmarks
 pytest tests/test_hybrid_search.py  # single module
 ruff check .                 # lint

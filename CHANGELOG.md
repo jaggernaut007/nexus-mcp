@@ -24,7 +24,9 @@ All notable changes to this project will be documented in this file.
 - A new server process reattaches to the index on disk (`NEXUS_AUTO_RESTORE`, default on):
   `status` reports `indexed: true` at the start of a session, and the graph tools work, without
   calling `index` first. It is skipped when the stored index is missing, built by another model,
-  or its project folder is gone.
+  or its project folder is gone, or the stored root is not the server's working directory or
+  inside it (the storage folder is not trusted: it can come from a clone or an archive). The
+  `status` tool is now async and starts the file watcher for a restored index.
 - The saved graph is loaded on restart, so `graph()` works after a restart without a
   full reindex.
 - Cyclomatic complexity and Python docstrings on graph nodes, so `analyze` is no longer

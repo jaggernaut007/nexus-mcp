@@ -175,6 +175,37 @@ def validate_query(query: str) -> Optional[dict]:
 
 # --- Shared helpers -------------------------------------------------------
 
+def _stored_roots(metadata_path: Path) -> List[Path]:
+    """Project roots named in the stored index metadata, or [] if any of them is unsafe.
+
+    The storage folder can come from a clone or an archive, so its contents are not
+    trusted. A root is accepted only when it is an absolute path to a folder that is the
+    server's working directory or inside it. Otherwise a `.nexus` folder could point the
+    server at any directory on the machine, or at a different project than the one the
+    agent is working in.
+    """
+    import json
+
+    try:
+        meta = json.loads(metadata_path.read_text())
+        raw = meta.get("codebase_paths") or [meta.get("codebase_path")]
+        paths = [Path(p) for p in raw if isinstance(p, str) and p]
+    except (OSError, ValueError, AttributeError, TypeError):
+        return []
+    if not paths or len(paths) != len(raw):
+        return []
+    cwd = Path.cwd().resolve()
+    roots = []
+    for path in paths:
+        if not path.is_absolute() or not path.is_dir():
+            return []
+        resolved = path.resolve()
+        if resolved != cwd and cwd not in resolved.parents:
+            return []
+        roots.append(path)
+    return roots
+
+
 def restore_session() -> bool:
     """Reattach to the index that is already on disk. Returns True if a codebase is attached.
 
@@ -200,18 +231,14 @@ def restore_session() -> bool:
     metadata_path = settings.storage_path / "index_metadata.json"
     if not metadata_path.exists():
         return False
-    try:
-        import json
-
-        meta = json.loads(metadata_path.read_text())
-        roots = [Path(p) for p in meta.get("codebase_paths") or [meta.get("codebase_path", "")]]
-    except (OSError, ValueError):
-        return False
-    if not roots or not all(r.is_dir() for r in roots):
+    roots = _stored_roots(metadata_path)
+    if not roots:
         return False
 
-    if not _pipeline_lock.acquire(timeout=5):
-        return False  # an index is running; its result will attach the codebase
+    # Never wait: sync tools can share a thread with the server. If an index is running,
+    # it attaches the codebase when it finishes and this call reports "not indexed" now.
+    if not _pipeline_lock.acquire(blocking=False):
+        return False
     try:
         if state.is_indexed:
             return True

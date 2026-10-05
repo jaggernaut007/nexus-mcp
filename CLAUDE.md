@@ -1,6 +1,6 @@
 # Nexus-MCP
 
-Unified MCP server: hybrid search + code graph + semantic memory. Target: <350MB RAM.
+Unified MCP server: hybrid search + code graph + semantic memory. Target: <350MB RAM for a running server. Indexing peaked at 902MB in the 2026-10 measurement (docs/research/embedding-models-2026-10.md).
 
 ## Use Nexus-MCP Tools Before Built-in Tools
 
@@ -115,7 +115,7 @@ plugin/
 pip install nexus-mcp-ci   # Install from PyPI
 pip install -e ".[dev]"    # Install from source with dev deps
 ./setup.sh                 # Setup script (venv + install + verify)
-pytest -v                  # Run tests (607 tests)
+pytest -v                  # Run tests (843 tests, 831 without slow)
 pytest -m "not slow"       # Skip performance benchmarks
 ruff check .               # Lint
 nexus-mcp-ci               # Run server

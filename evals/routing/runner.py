@@ -17,6 +17,7 @@ in the shell that starts this runner.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -85,9 +86,12 @@ def done_keys(out_path: Path) -> Set[Tuple[str, str, bool, int]]:
                 continue
             if rec.get("run_error") or rec.get("usage_limit") or rec.get("isolation_problems"):
                 continue  # a failed or non-isolated run is retried on the next start
-            keys.add(
-                run_key(rec["prompt_id"], rec["condition"], rec["tool_search"], rec["rep"])
-            )
+            try:
+                keys.add(
+                    run_key(rec["prompt_id"], rec["condition"], rec["tool_search"], rec["rep"])
+                )
+            except KeyError:
+                continue  # a line from another tool or an older format
     return keys
 
 
@@ -126,10 +130,24 @@ def write_mcp_config(path: Path, python: str, src_dir: Path) -> Path:
     return path
 
 
+def fixture_digest(root: Path) -> str:
+    """Hash of every file name and content under `root`, to notice a changed fixture."""
+    digest = hashlib.sha256()
+    for path in sorted(p for p in root.rglob("*") if p.is_file()):
+        digest.update(str(path.relative_to(root)).encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
 def prepare_repo(python: str, src_dir: Path, work_dir: Path = WORK_DIR) -> Path:
     """Copy the fixture into the work dir and index it once. Returns the copy."""
     repo = work_dir / "shop_repo"
-    if not (repo / ".nexus").exists():
+    stamp = work_dir / "fixture.sha256"
+    fixture_hash = fixture_digest(FIXTURE_DIR)
+    # Rebuild when the fixture changed or an earlier indexing run was cut off: a partial
+    # `.nexus` folder would otherwise be reused for every later run.
+    if not (repo / ".nexus").exists() or not stamp.exists() or stamp.read_text() != fixture_hash:
+        shutil.rmtree(repo, ignore_errors=True)
         shutil.copytree(FIXTURE_DIR, repo, dirs_exist_ok=True)
         env = {**os.environ, "PYTHONPATH": str(src_dir)}
         meta = work_dir / "setup_meta.json"
@@ -139,6 +157,7 @@ def prepare_repo(python: str, src_dir: Path, work_dir: Path = WORK_DIR) -> Path:
             check=True,
             env=env,
         )
+        stamp.write_text(fixture_hash)  # written last: only a finished index gets a stamp
     return repo
 
 
@@ -431,7 +450,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # A separate work dir per source tree: an index built by one version must not be
     # read by another (an older version cannot restore the graph a newer one saved).
     work_dir = WORK_DIR if src_dir == (REPO_ROOT / "src").resolve() else (
-        WORK_DIR / f"src-{src_dir.parent.name}"
+        WORK_DIR / f"src-{hashlib.sha256(str(src_dir).encode()).hexdigest()[:10]}"
     )
     repo_dir = prepare_repo(args.python, src_dir, work_dir)
     mcp_config = write_mcp_config(work_dir / "mcp.json", args.python, src_dir)

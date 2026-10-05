@@ -1,6 +1,6 @@
 # Nexus-MCP
 
-> Unified, local-first MCP server combining hybrid search (vector + BM25 + graph), structural code graph analysis, and persistent semantic memory in a single process. Designed for AI coding agents via the Model Context Protocol. <350MB RAM, no API keys, no cloud dependencies. Source-available under PolyForm Noncommercial 1.0.0.
+> Unified, local-first MCP server combining hybrid search (vector + BM25 + graph), structural code graph analysis, and persistent semantic memory in a single process. Designed for AI coding agents via the Model Context Protocol. 350MB RAM target for a running server (indexing peaks higher), no API keys, no cloud dependencies. Source-available under PolyForm Noncommercial 1.0.0.
 
 Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexes codebases into three engines (vector embeddings, BM25 keyword index, rustworkx code graph) and fuses results via Reciprocal Rank Fusion with FlashRank re-ranking. Agents get the code they need in 500-2000 tokens instead of reading entire files (5000-15000 tokens). Supports 25+ programming languages via dual parsing (tree-sitter + ast-grep).
 

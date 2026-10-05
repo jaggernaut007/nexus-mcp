@@ -82,18 +82,46 @@ model reaches the right file; the difference is only in how high it ranks.
 - The index records its model and rebuilds when the model changes.
 - `Dockerfile`, `smithery.yaml` and `glama.json` default to `bge-small-en` (issues #1, #7).
 
+## Second round, 2026-10-05: a larger project and a public project
+
+Two new suites, run with `python -m evals.retrieval.run --candidates bge-small-en,granite-97m-r2-int8
+--suites jobscout,flask`. `flask` is `pallets/flask` at `d73fa1c` (22 queries, 24 files). `jobscout`
+is a private Python service of about 200 modules (27 queries); its query file is git-ignored.
+Each suite has identifier-style queries (7 and 5) beside the prose queries. CPU only, one run.
+
+| Suite | Model | vector hit@1 | hybrid hit@1 | hybrid-no-graph hit@1 | bm25 hit@1 | Index s | Peak RSS MB |
+|---|---|---|---|---|---|---|---|
+| flask | bge-small-en | 0.64 | 0.50 | 0.59 | 0.55 | 26 | 1,132 |
+| flask | granite-97m-r2-int8 | 0.50 | 0.41 | 0.36 | 0.55 | 40 | 2,435 |
+| jobscout | bge-small-en | 0.63 | 0.70 | 0.70 | 0.48 | 135 | 1,132 |
+| jobscout | granite-97m-r2-int8 | 0.59 | 0.67 | 0.74 | 0.48 | 212 | 2,435 |
+
+The peak RSS is one process per model that indexed both suites. One query is worth 3.7 points on
+`jobscout` and 4.5 points on `flask`, so a difference of one or two queries is noise.
+
+1. **`bge-small-en` stays the default.** It is ahead on `flask` (vector 0.64 against 0.50, three
+   queries) and level on `jobscout` (0.63 against 0.59; hybrid 0.70 against 0.67). No result
+   reaches the 5-point bar in granite's favour that holds on both suites. Granite indexes 1.5 times
+   slower and its process peaks at twice the memory. This agrees with the 2026-10-03 round.
+2. **Fusion is the bigger lever, and it is not consistent.** On `jobscout`, hybrid beats vector
+   (0.70 against 0.63). On `flask` it loses (0.50 against 0.64). The loss is on prose queries
+   (hybrid 0.41, vector 0.59), where bm25 has no shared words to match. Removing the graph list
+   gives `bge-small-en` back 9 points on `flask` and changes nothing on `jobscout`. For granite
+   the effect differs: it gains 7 points on `jobscout` and loses 5 on `flask`. The graph list is
+   not a reliable gain. Roadmap item 12 (tune the weights) needs these suites.
+3. **Identifier queries are easy for vectors.** On `jobscout` the vector score is 1.00 for 7 of 7
+   identifier queries, while bm25 reaches 0.71. Plain keyword search is not the reference for
+   identifiers here. Prose queries are the hard case (0.41 to 0.60 hit@1 for `bge-small-en`).
+4. **`jina-code` was dropped.** Its first run on these suites was still indexing after more than
+   90 minutes and hit the time limit. It is deprecated (see ADR-004, amendment).
+
 ## Next steps
 
-1. Measure idle and indexing memory for the default model in separate runs.
-2. Fix `graph_relevance_search` (stop words, whole-word match), then re-run the eval.
-3. Add 20 identifier-style queries and re-tune the fusion weights.
-4. Grow the query sets before drawing any model conclusion. Use the django suite of
-   `benchmarks/tasks` once its clone exists.
-
-5. Compare `bge-small-en` and `granite-97m-r2-int8` on a larger real project and on Flask
-   (`evals/retrieval`, suites `jobscout` and `flask`). `jina-code` was dropped from this
-   comparison and deprecated on 2026-10-05: its first run on those two suites was still
-   indexing after more than 90 minutes and hit the time limit (see ADR-004, amendment).
+1. Measure idle and indexing memory for the default model in separate runs. Done: `docs/MEMORY.md`.
+2. Fix `graph_relevance_search` (stop words, whole-word match), then re-run the eval. Done.
+3. Re-tune the fusion weights on the `flask` and `jobscout` suites, split by query kind.
+4. Run the live agent benchmark per model (`benchmarks.runner --embedding-models`) to see
+   whether a retrieval difference changes the answers of an agent.
 
 ## Reproduce
 

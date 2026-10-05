@@ -14,7 +14,8 @@ Done on 2026-10-03 and removed from this list: tool descriptions and server `ins
 
 | Item | Source | Depends on | Notes |
 |---|---|---|---|
-| **Run the routing eval**: before (tag `eval-baseline-descriptions`) and after (HEAD) | docs/EVALS.md | `CLAUDE_CODE_OAUTH_TOKEN` | Decides whether the new descriptions help; keep `alwaysLoad` only if Tool-Search-on rows improve |
+| Routing eval, remaining rows: Tool Search off, the `nexus` skill condition, 3 runs per prompt | docs/EVALS.md | `CLAUDE_CODE_OAUTH_TOKEN` | Main rows done 2026-10-05 (56% to 88%). Decide on `alwaysLoad` only after the Tool-Search rows |
+| Make `memory` beat Claude's own file memory for "remember that..."; revisit `analyze` for "review this directory" | docs/EVALS.md | A held-out prompt set | Do not tune on the same 25 prompts; add new prompts first |
 | Graph list still lowers hybrid hit@1 slightly after the whole-word fix (0.68 without it, 0.64 with it on `nexus_mcp`) | embedding eval finding 2 | Query set growth | Whole-word matching and stop words cut the loss from 12 points to 4. Re-test with a larger query set before dropping or reweighting the graph list |
 | Re-tune RRF weights on identifier-style queries | ROADMAP-2026 item 12 | Query set growth | Current 0.5/0.3/0.2 are untuned |
 | Measure idle and indexing memory of the default model; cut the 902 MB indexing peak | embedding eval finding 4 | — | Target is 350 MB; test smaller batches and unloading between batches |

@@ -22,7 +22,7 @@ instructions alone. `nexus` adds the plugin skill to the system prompt. Each con
 Tool Search on (the Claude Code default; the model sees tool names and instructions first) and off
 (all tools load up front).
 
-**Prompts.** 26 prompts in `evals/routing/prompts.yaml`: search, symbol, graph, map, analyze and
+**Prompts.** 25 prompts in `evals/routing/prompts.yaml`: search, symbol, graph, map, analyze and
 memory questions, plus three negatives where the right move is a built-in tool or no tool.
 
 **Metrics.** A run passes when one of the expected nexus tools appears within the first three
@@ -50,11 +50,55 @@ limit) resumes when you start it again with the same `--label`.
 **Limits.** One model (`sonnet`), one repository, one repetition by default. The prompts are
 written by the maintainer. Treat a difference of one or two prompts as noise.
 
-### Results
+### Results (2026-10-05)
 
-Not run yet: the first run needs `CLAUDE_CODE_OAUTH_TOKEN`. The commit `eval-baseline-descriptions`
-(tag) holds the descriptions from before the rewrite, so the baseline can still be measured from
-a checkout of that tag.
+`mcp-only` condition, Tool Search on, model `sonnet` (Claude Code 2.1.280), one run for each of the
+25 prompts. **Before** is the source at tag `eval-baseline-descriptions` (old descriptions, no server
+instructions, no enums or annotations, no session restore). **After** is commit `7517bec`.
+
+| | Before | After |
+|---|---|---|
+| Pass | 56% (14 of 25) | **88% (22 of 25)** |
+| Nexus tool called first | 27% | **86%** |
+| Right tool within 3 counted calls | 50% | 86% |
+| Right arguments | 50% | 86% |
+| Negatives (grep or no tool is right) | 100% | 100% |
+| Median wall time per run | 10 s | 17 s |
+
+| Category (prompts) | Before | After |
+|---|---|---|
+| search (5) | 40% | 100% |
+| symbol (4) | 25% | 75% |
+| graph (4) | 75% | 100% |
+| map (3) | 67% | 100% |
+| analyze (3) | 67% | 67% |
+| memory (3) | 33% | 67% |
+| negative (3) | 100% | 100% |
+
+Eight prompts went from fail to pass and none went from pass to fail. Before, Claude usually reached
+for Grep, Glob or Read first, and used a nexus tool only after those. After, it loads the tool
+through Tool Search and calls it first. No run had an isolation problem or a denied call.
+
+The three prompts that still fail:
+
+- `symbol-reserve` ("Where is reserve_stock defined?"): Claude used Grep. The descriptions say that
+  built-in grep is as good for a name you already know, so this answer is defensible. The prompt
+  stays in the set; it is a prompt on which the eval and the guidance disagree.
+- `analyze-quality` ("Review the code quality of the shop/payments directory"): Claude globbed and
+  read the files.
+- `memory-store-decision` ("Remember that we decided..."): Claude read and wrote a file. Claude
+  Code has its own memory convention, and the `memory` description does not beat it here.
+
+**What this does and does not show.** It is one model, one small repository, one run per prompt, and
+prompts that the maintainer wrote, so a change of one or two prompts is noise. The gain is large and
+consistent across categories, so it is unlikely to be noise, but it is not a measure of real-world
+use. The "before" run differs from "after" in more than the descriptions: it also lacks the server
+instructions, the enums and annotations, and the session restore (it had to call `index` first). To
+attribute the gain to each part, run each change alone. The cost is time: a run is 7 seconds longer
+at the median, because Claude now loads and calls nexus tools where it used to grep.
+
+**Not yet measured:** Tool Search off, the `nexus` condition (with the plugin skill), more than one
+run per prompt, and Codex.
 
 ## Retrieval eval
 

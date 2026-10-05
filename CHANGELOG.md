@@ -35,7 +35,9 @@ All notable changes to this project will be documented in this file.
 
 - Graph relevance in hybrid search now matches whole identifier words and ignores stop words,
   so short query words no longer match every node whose name contains those letters.
-- **Tool descriptions rewritten** (issues #5, #6, #8): each one now opens with the question it
+- **Tool descriptions rewritten** (issues #5, #6, #8). In the routing eval (25 prompts, Claude Sonnet,
+  Tool Search on) the pass rate went from 56% to 88% and a nexus tool was called first 86% of
+  the time instead of 27%. Each description now opens with the question it
   answers, says what comes back and when not to use it. The "preferred over Grep" and "MUST"
   wording is gone. The `memory` action no longer mentions the old tool names.
 - **Invalid enum values are now rejected by the tool schema** (a validation error from the

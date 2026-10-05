@@ -1233,6 +1233,9 @@ gpu = [
     { name = "optimum", extra = ["onnxruntime-gpu"] },
     { name = "sentence-transformers", extra = ["onnx-gpu"] },
 ]
+onnx = [
+    { name = "optimum-onnx", extra = ["onnxruntime"] },
+]
 reranker = [
     { name = "flashrank" },
 ]
@@ -1240,7 +1243,7 @@ reranker = [
 [package.metadata]
 requires-dist = [
     { name = "ast-grep-py", specifier = ">=0.28.0" },
-    { name = "fastmcp", specifier = ">=2.0.0" },
+    { name = "fastmcp", specifier = ">=3.1,<5" },
     { name = "flashrank", marker = "extra == 'reranker'", specifier = ">=0.2.0" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "lancedb", specifier = ">=0.4.0" },
@@ -1248,6 +1251,7 @@ requires-dist = [
     { name = "onnxruntime", specifier = ">=1.17.0,<1.24.0" },
     { name = "optimum", specifier = ">=1.19.0" },
     { name = "optimum", extras = ["onnxruntime-gpu"], marker = "extra == 'gpu'", specifier = ">=1.19.0" },
+    { name = "optimum-onnx", extras = ["onnxruntime"], marker = "extra == 'onnx'", specifier = ">=0.1.0" },
     { name = "pathspec", specifier = ">=0.11.0" },
     { name = "pyarrow", specifier = ">=14.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
@@ -1262,7 +1266,7 @@ requires-dist = [
     { name = "tree-sitter-languages", specifier = ">=1.10.0" },
     { name = "watchdog", specifier = ">=3.0.0" },
 ]
-provides-extras = ["dev", "gpu", "reranker", "bench"]
+provides-extras = ["dev", "gpu", "reranker", "onnx", "bench"]
 
 [[package]]
 name = "numpy"
@@ -1673,6 +1677,9 @@ wheels = [
 ]
 
 [package.optional-dependencies]
+onnxruntime = [
+    { name = "onnxruntime" },
+]
 onnxruntime-gpu = [
     { name = "onnxruntime-gpu", version = "1.24.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "onnxruntime-gpu", version = "1.30.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },

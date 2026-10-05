@@ -175,6 +175,18 @@ def validate_query(query: str) -> Optional[dict]:
 
 # --- Shared helpers -------------------------------------------------------
 
+def _stored_root_set(metadata_path: Path) -> Optional[set]:
+    """Resolved project roots named in the index metadata, or None if unreadable."""
+    import json
+
+    try:
+        meta = json.loads(metadata_path.read_text())
+        raw = meta.get("codebase_paths") or [meta.get("codebase_path")]
+        return {str(Path(p).resolve()) for p in raw if isinstance(p, str) and p}
+    except (OSError, ValueError, AttributeError, TypeError):
+        return None
+
+
 def _stored_roots(metadata_path: Path) -> List[Path]:
     """Project roots named in the stored index metadata, or [] if any of them is unsafe.
 
@@ -275,6 +287,10 @@ def require_indexed():
         restore_session()
     if not state.is_indexed or not state.graph_engine:
         return None, {"error": "No codebase indexed. Run 'index' first."}
+    # `status` and `search` already check for changed files. The graph tools did not, so
+    # after a restored session they could serve an old graph. The check is throttled.
+    if _get_staleness(state)["stale"]:
+        _trigger_background_reindex(state.codebase_path, state.codebase_paths)
     return state, None
 
 
@@ -476,7 +492,12 @@ async def index(
         else:
             codebase_path = validated[0]
             metadata_path = settings.storage_path / "index_metadata.json"
-            if metadata_path.exists():
+            # Incremental only if the stored index belongs to this same project. A shared
+            # storage folder can hold another project's index; diffing against it would
+            # mix the two, so build from scratch instead.
+            if metadata_path.exists() and _stored_root_set(metadata_path) == {
+                str(codebase_path.resolve())
+            }:
                 result = await asyncio.to_thread(
                     _pipeline.incremental_index, codebase_path, _cb
                 )

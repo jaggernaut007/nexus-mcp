@@ -6,7 +6,7 @@ Nexus-MCP is a unified code intelligence MCP (Model Context Protocol) server tha
 - **code-graph-mcp** — structural AST analysis + call graphs
 - **Live Grep** — 100% coverage fallback via ripgrep/grep
 
-Into a **single, memory-efficient MCP server** (350MB RAM target; indexing peaks at about 900MB, see docs/research/embedding-models-2026-10.md) with 10 tools for code search, navigation, analysis, and memory.
+Into a **single, memory-efficient MCP server** (about 90MB idle and 460MB with the model loaded, see docs/MEMORY.md) with 10 tools for code search, navigation, analysis, and memory.
 
 ---
 
@@ -20,7 +20,7 @@ Into a **single, memory-efficient MCP server** (350MB RAM target; indexing peaks
 
 ### What Nexus-MCP Solves
 - Single process, single MCP connection, 10 tools
-- <350MB RAM via ONNX Runtime + LanceDB mmap + lightweight models
+- Low memory: LanceDB mmap and a lazy-loaded model (see docs/MEMORY.md for measured numbers)
 - Hybrid search combining vector + BM25 + graph signals + live-grep fallback
 - Cross-engine tools like `explain` (graph + vector) and `graph` (static call-graph traversal)
 
@@ -133,7 +133,7 @@ Old names (`find_callers`, `find_callees`, `impact`, `overview`, `architecture`,
 
 | Metric | Target | Previous (two MCPs) |
 |--------|--------|--------------------|
-| Total RAM | <350MB | ~1-2GB |
+| Total RAM | ~90MB idle, ~460MB with the model loaded | ~1-2GB |
 | Warm start | <5s | ~13s combined |
 | Incremental reindex (1 file) | <1s | ~2s |
 | Hybrid search + re-rank | <500ms | ~200ms (vector only) |

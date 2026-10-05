@@ -211,6 +211,37 @@ def create_server():
 
         return wrapper
 
+    # --- Audit calls that the schema rejects -------------------------------------------
+    # Enum and type validation runs before `_audited`, so a call with an invalid argument
+    # would leave no audit record. This middleware records it, then re-raises.
+
+    from fastmcp.exceptions import ValidationError as _SchemaError
+    from fastmcp.server.middleware import Middleware
+
+    class _AuditRejectedCalls(Middleware):
+        async def on_call_tool(self, context, call_next):
+            import time as _time
+
+            from nexus_mcp.middleware.audit import generate_correlation_id
+
+            start = _time.monotonic()
+            try:
+                return await call_next(context)
+            except _SchemaError:
+                try:
+                    _audit.log_invocation(
+                        tool_name=context.message.name,
+                        params=dict(context.message.arguments or {}),
+                        result_status="invalid_arguments",
+                        duration_ms=(_time.monotonic() - start) * 1000,
+                        correlation_id=generate_correlation_id(),
+                    )
+                except Exception as e:  # noqa: BLE001 - auditing must never hide the real error
+                    logger.warning("Audit logging failed for a rejected call: %s", e)
+                raise
+
+    mcp.add_middleware(_AuditRejectedCalls())
+
     # --- MCP Tools (thin wrappers over core_api) ---
 
     from mcp.types import ToolAnnotations

@@ -13,7 +13,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://jaggernaut007.github.io/nexus-mcp/">
   <meta property="og:title" content="Nexus-MCP: MCP Server for AI Coding Agent Memory &amp; Code Search">
-  <meta property="og:description" content="Persistent project memory, a live codebase map and symbol explanations for any MCP agent. Local, private, 350 MB RAM target.">
+  <meta property="og:description" content="Persistent project memory, a live codebase map and symbol explanations for any MCP agent. Local, private, no API keys.">
   <meta property="og:image" content="https://jaggernaut007.github.io/nexus-mcp/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -61,7 +61,7 @@
       "applicationSubCategory": "Model Context Protocol server",
       "operatingSystem": "macOS, Linux, Windows",
       "programmingLanguage": "Python",
-      "description": "A local MCP server that gives AI coding agents persistent project memory, a live codebase map, hybrid code search and symbol explanations. No API keys. 350 MB RAM target.",
+      "description": "A local MCP server that gives AI coding agents persistent project memory, a live codebase map, hybrid code search and symbol explanations. No API keys.",
       "url": "https://jaggernaut007.github.io/nexus-mcp/",
       "downloadUrl": "https://pypi.org/project/nexus-mcp-ci/",
       "installUrl": "https://pypi.org/project/nexus-mcp-ci/",
@@ -203,7 +203,7 @@
           </div>
           <ul class="proof">
             <li><strong>0</strong> API keys</li>
-            <li><strong>&lt;350 MB</strong> RAM target</li>
+            <li><strong>~90 MB</strong> RAM idle</li>
             <li><strong>25+</strong> languages</li>
             <li><strong>10</strong> focused tools</li>
           </ul>
@@ -247,7 +247,7 @@
           <p><strong>Nexus-MCP is a local Model Context Protocol (MCP) server for AI coding agents.</strong> It adds three things an agent lacks by default: persistent project memory across sessions, a live map of your codebase, and plain explanations of any function or class. It works with Claude Code, Claude Desktop, Cursor, Windsurf, Cline, Continue and Goose.</p>
           <dl class="facts">
             <div><dt>Install</dt><dd><code>pip install nexus-mcp-ci</code></dd></div>
-            <div><dt>Runs</dt><dd>Locally. No API keys. 350 MB RAM target.</dd></div>
+            <div><dt>Runs</dt><dd>Locally. No API keys.</dd></div>
             <div><dt>Transport</dt><dd>MCP over stdio</dd></div>
             <div><dt>Languages</dt><dd>25+ (tree-sitter)</dd></div>
             <div><dt>License</dt><dd>PolyForm Noncommercial 1.0.0</dd></div>
@@ -410,7 +410,7 @@
     <section class="section private">
       <div class="wrap grid4">
         <div class="fact"><h3>Private by design</h3><p>Embeddings run locally. Your code never leaves the machine. It works offline and in air-gapped setups.</p></div>
-        <div class="fact"><h3>Light on your laptop</h3><p>Disk-backed vectors and a lazy-loaded model aim for a RAM target of 350 MB while the server runs. Indexing peaks higher, so see the README for measured numbers.</p></div>
+        <div class="fact"><h3>Light on your laptop</h3><p>Disk-backed vectors and a lazy-loaded model keep it near 90 MB idle. With the embedding model loaded it uses about 460 MB.</p></div>
         <div class="fact"><h3>Any MCP client</h3><p>Standard stdio transport. Config by <code>NEXUS_*</code> environment variables, not vendor files.</p></div>
         <div class="fact"><h3>Safe defaults</h3><p>Input validation, read-only permission mode, audit logs with redaction, and optional rate limits.</p></div>
       </div>

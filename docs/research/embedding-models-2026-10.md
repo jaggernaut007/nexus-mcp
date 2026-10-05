@@ -66,12 +66,11 @@ model reaches the right file; the difference is only in how high it ranks.
 3. **BM25 hurts on paraphrased queries.** On `shop_repo`, hybrid hit@1 is 0.38 and vector
    is 0.75 for the shipped model. This is partly the query design (no shared words).
    Re-measure with identifier-style queries before changing the weights.
-4. **Memory is the real problem.** The PyTorch default peaks at 902 MB for one process
-   that indexes and searches. The ONNX candidates peak at 1.6–2.2 GB. CLAUDE.md states a
-   target below 350 MB. The 902 MB figure covers indexing (batches of 32 chunks) and
-   two suites in one process, so it is a ceiling, not an idle figure; it still needs a
-   dedicated measurement. A smaller `embedding_batch_size`, unloading the model between
-   batches, and the sequence cap are the first things to test.
+4. **Memory is the real problem.** The PyTorch default peaked at 902 MB in this eval,
+   which indexes two suites and searches in one process. The ONNX candidates peak at
+   1.6–2.2 GB. A separate measurement of the default model (`docs/MEMORY.md`) gives about
+   90 MB idle, 460 MB with the model loaded and 500 MB while indexing a small project,
+   so the old target of 350 MB is not met once the model loads.
 5. **int8 of the same model keeps the quality.** `bge-small-en-int8` matches the fp32
    model on every metric, but it is slower to index on CPU (41 s against 30 s) and uses
    more memory in this setup. The int8 file is not worth shipping for `bge-small-en`.

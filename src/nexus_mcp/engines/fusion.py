@@ -4,36 +4,28 @@ Combines results from vector search, BM25, and graph relevance
 into a single ranked list using Reciprocal Rank Fusion (RRF).
 """
 
+import heapq
 import logging
-import re
-from functools import lru_cache
+from collections import Counter
 from typing import Any, Dict, List, Optional
 
+from nexus_mcp.core.graph_models import identifier_words
 from nexus_mcp.indexing.chunker import _generate_chunk_id
 
 logger = logging.getLogger(__name__)
 
 
 MIN_TOKEN_LENGTH = 3
+MAX_GRAPH_CANDIDATES = 1000
 STOP_WORDS = frozenset({
     "the", "and", "for", "with", "that", "this", "from", "when", "where", "what", "which",
     "who", "how", "does", "are", "was", "were", "not", "any", "all", "into", "over", "than",
     "then", "them", "they", "its", "our", "out", "has", "have", "had", "can", "will", "you",
     "your", "use", "uses", "used", "one", "each", "per", "via", "get", "gets",
 })
-_CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
-_WORD = re.compile(r"[^\W_]+")  # letters and digits of any script, no underscore
-
-
-@lru_cache(maxsize=262144)
-def _name_words_cached(name: str) -> tuple:
-    spaced = _CAMEL_BOUNDARY.sub("_", name)
-    return tuple(w.lower() for w in _WORD.findall(spaced))
-
-
 def _name_words(name: str) -> List[str]:
     """Lowercase words of an identifier: `create_order` and `CreateOrder` -> create, order."""
-    return list(_name_words_cached(name))
+    return list(identifier_words(name))
 
 
 def _word_forms(word: str) -> set:
@@ -68,28 +60,21 @@ def graph_relevance_search(
     # name contained those letters, and centrality then ranked the noise by hub score.
     # Split the query like an identifier, so `order_total` finds `compute_order_total`.
     tokens = [
-        w for w in _name_words(query)
+        w for w in identifier_words(query)
         if len(w) >= MIN_TOKEN_LENGTH and w not in STOP_WORDS
     ]
     if not tokens:
         return []
-    wanted: set = set()
+    # Count how many query words each node matches, and keep the best few. A common word
+    # such as "handle" can match thousands of nodes; scoring all of them costs time and
+    # adds nothing, because a node that matches several words is the better candidate.
+    hits: Counter = Counter()
     for token in tokens:
-        wanted |= _word_forms(token)
-
-    # Copy the node list under the graph lock: a background reindex removes nodes from
-    # this dict, and iterating it while that happens raises "changed size during iteration".
-    with graph_engine._lock:
-        nodes = list(graph_engine.nodes.values())
-
-    seen_ids: set = set()
-    candidates: list = []
-    for node in nodes:
-        if node.id in seen_ids:
-            continue
-        if node.name.lower() in wanted or wanted.intersection(_name_words_cached(node.name)):
-            seen_ids.add(node.id)
-            candidates.append(node)
+        hits.update(graph_engine.find_node_ids_by_words(_word_forms(token)))
+    best = heapq.nsmallest(MAX_GRAPH_CANDIDATES, hits.items(), key=lambda kv: (-kv[1], kv[0]))
+    candidates = [n for n in (graph_engine.get_node(nid) for nid, _ in best) if n is not None]
+    # A set has no order; sort so equal scores always come back in the same order.
+    candidates.sort(key=lambda n: (n.location.file_path, n.location.start_line, n.name))
 
     if not candidates:
         return []

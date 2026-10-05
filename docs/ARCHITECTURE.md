@@ -1,6 +1,6 @@
 # Architecture
 
-Nexus-MCP is a unified Model Context Protocol (MCP) server that combines vector search, full-text search, code graph analysis, and semantic memory into a single process. It is designed to run locally with <350MB RAM.
+Nexus-MCP is a unified Model Context Protocol (MCP) server that combines vector search, full-text search, code graph analysis, and semantic memory into a single process. It is designed to run locally with a small memory footprint (see docs/MEMORY.md for measured numbers).
 
 Nexus-MCP consolidates two predecessor projects into a single server ([ADR-001](adr/ADR-001-single-mcp-consolidation.md)):
 - **CodeGrok MCP** (by rdondeti / Ravitez Dondeti, MIT license) — Contributed the symbol extraction pipeline, embedding service, parallel indexing, core data models, and memory retrieval system.
@@ -158,7 +158,7 @@ Query →       → Graph relevance search    ─┘
 
 ## Memory Budget
 
-Target: <350MB RSS. Achieved through:
+Measured: about 90MB idle and 460MB with the model loaded (docs/MEMORY.md). The footprint comes from:
 - ONNX Runtime (~50MB) for jina-code instead of PyTorch (~500MB); the bge-small-en default uses PyTorch
 - LanceDB mmap (vectors stay on disk, ~20-50MB overhead)
 - Lazy model loading — embedding model loaded during indexing, unloaded after

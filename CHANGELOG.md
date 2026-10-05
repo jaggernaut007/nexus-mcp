@@ -35,6 +35,20 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- `fastmcp` is now `>=3.1,<5` (the new APIs were verified on 4.0.5). New optional extra
+  `onnx` (`pip install nexus-mcp-ci[onnx]`) for the ONNX backend on optimum 2.x.
+- Memory use is measured and documented (`docs/MEMORY.md`): about 90 MB idle, 460 MB with the
+  embedding model loaded. The old "under 350 MB" claim is removed from the docs and the site.
+- Calls that the tool schema rejects (for example an invalid enum value) now leave an audit
+  record with the status `invalid_arguments`.
+- The graph tools check for changed files (throttled) and start a background reindex, as
+  `status` and `search` already did.
+- Indexing project B over a storage folder that holds project A now rebuilds the index instead of
+  diffing against A.
+- Memory migration after a model change goes through a temp table, and an interrupted migration is
+  finished on the next open.
+- Graph relevance in hybrid search keeps a word index (no scan of every node), splits digits and
+  joined words (`OAuth2Token` matches `oauth`), and scores at most 1,000 candidates.
 - Graph relevance in hybrid search now matches whole identifier words and ignores stop words,
   so short query words no longer match every node whose name contains those letters.
 - **Tool descriptions rewritten** (issues #5, #6, #8). In the routing eval (25 prompts, Claude Sonnet,

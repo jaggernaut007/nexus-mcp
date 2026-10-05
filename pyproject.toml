@@ -32,7 +32,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "fastmcp>=2.0.0",
+    "fastmcp>=3.1,<5",
     "lancedb>=0.4.0",
     "sentence-transformers>=3.0.0",
     "optimum>=1.19.0",
@@ -68,6 +68,11 @@ gpu = [
 ]
 reranker = [
     "flashrank>=0.2.0",
+]
+onnx = [
+    # optimum 2.x moved the ONNX Runtime code into optimum-onnx. Needed to load a model
+    # with the ONNX backend (jina-code, or the candidates in evals/retrieval).
+    "optimum-onnx[onnxruntime]>=0.1.0",
 ]
 bench = [
     "pyyaml>=6.0",

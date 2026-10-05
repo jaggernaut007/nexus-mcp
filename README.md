@@ -7,7 +7,7 @@
 [![CI](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml/badge.svg)](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml)
 [![Glama MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 
-**Hybrid search + code graph + semantic memory in a single local MCP server — 350 MB RAM target when running (indexing peaks higher; see [measurements](docs/research/embedding-models-2026-10.md)).**
+**Hybrid search + code graph + semantic memory in a single local MCP server. About 90 MB idle and 460 MB with the embedding model loaded ([measurements](docs/MEMORY.md)).**
 
 Nexus-MCP is a code intelligence server for the [Model Context Protocol](https://modelcontextprotocol.io). It gives AI agents precise, token-efficient answers about your codebase without cloud dependencies: no API keys, no data egress, no subscriptions.
 

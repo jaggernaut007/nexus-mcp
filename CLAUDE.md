@@ -1,6 +1,6 @@
 # Nexus-MCP
 
-Unified MCP server: hybrid search + code graph + semantic memory. Target: <350MB RAM for a running server. Indexing peaked at 902MB in the 2026-10 measurement (docs/research/embedding-models-2026-10.md).
+Unified MCP server: hybrid search + code graph + semantic memory. Memory (measured, docs/MEMORY.md): ~90MB idle, ~460MB with the embedding model loaded, ~500MB while indexing a small project. The old <350MB target is not met once the model is loaded.
 
 ## Use Nexus-MCP Tools Before Built-in Tools
 

@@ -24,6 +24,8 @@ Done on 2026-10-03 and removed from this list: tool descriptions and server `ins
 | `compact` search mode and stable JSON shapes | ROADMAP-2026 item 8 | — | `search` always returns snippets up to 2,000 characters |
 | Python 3.13 support | pyproject `<3.13` cap | `tree-sitter-language-pack` or per-language wheels | `tree-sitter-languages` has no 3.13 wheel |
 | Enforce `max_memory_mb` | issue #1 | — | The setting exists but nothing reads it |
+| `nexus_mcp.__version__` says 2.0.0 while the package is 2.0.3; `status` reports it | 2026-10-05 benchmark trace | — | Derive it from the package metadata or bump it with each release, and test that it equals `pyproject.toml` |
+| Fusion weights: hybrid loses to vector on prose queries in Flask (0.50 against 0.64 hit@1) | docs/research/embedding-models-2026-10.md, round 2 | Query set growth | Tune on the `flask` and `jobscout` suites split by query kind (roadmap item 12) |
 | Re-resolve only affected callers after an incremental reindex | ADR-019 | — | Today every edge is rebuilt (about 9 s at 14,000 files) |
 | Extract `INHERITS` edges; docstrings for non-Python graph nodes; `and`/`or` in complexity for other languages | ADR-019 | — | Complexity and Python docstrings exist since 2026-10-03 |
 | TS/JS arrow functions as graph nodes; Rust `use crate::` paths | ADR-019 | — | Known gaps in call-edge coverage |

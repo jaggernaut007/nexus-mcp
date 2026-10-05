@@ -126,3 +126,66 @@ def test_restore_is_a_no_op_when_a_codebase_is_already_attached(
     engine = get_state().graph_engine
     assert core_api.restore_session() is True
     assert get_state().graph_engine is engine
+
+
+def test_concurrent_first_calls_all_see_the_restored_index(indexed_storage, restore_on):
+    """An agent sends `status` and `search` in one turn: both reach restore at once.
+
+    Found by the live benchmark. The loser of the race used to answer "No codebase indexed.
+    Run 'index' first.", and the agent then dropped nexus for Grep. Every caller must wait for
+    the one restore that is running and then see the attached index.
+    """
+    import threading
+    import time
+
+    original = IndexingPipeline._restore_graph
+
+    def slow_restore(self):
+        time.sleep(0.4)  # keeps the first restore running while the others arrive
+        return original(self)
+
+    results = []
+    barrier = threading.Barrier(4)
+
+    def call():
+        barrier.wait()
+        results.append(core_api.restore_session())
+
+    with patch.object(IndexingPipeline, "_restore_graph", slow_restore):
+        threads = [threading.Thread(target=call) for _ in range(4)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=30)
+
+    assert results == [True, True, True, True]
+
+
+def test_require_indexed_does_not_report_not_indexed_during_a_concurrent_restore(
+    indexed_storage, restore_on
+):
+    import threading
+    import time
+
+    original = IndexingPipeline._restore_graph
+
+    def slow_restore(self):
+        time.sleep(0.4)
+        return original(self)
+
+    errors = []
+    barrier = threading.Barrier(2)
+
+    def call():
+        barrier.wait()
+        _state, error = core_api.require_indexed()
+        errors.append(error)
+
+    with patch.object(IndexingPipeline, "_restore_graph", slow_restore):
+        threads = [threading.Thread(target=call) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=30)
+
+    assert errors == [None, None]

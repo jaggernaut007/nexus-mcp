@@ -30,6 +30,12 @@ logger = logging.getLogger(__name__)
 _pipeline = None
 _pipeline_lock = threading.Lock()
 
+# Serialises `restore_session` against itself. An agent often sends `status` and `search` in
+# one turn, so two calls reach restore together. The second must wait for the first and then
+# find the index attached, not answer "not indexed". Restore takes under a few seconds, and it
+# only ever *tries* `_pipeline_lock`, so waiting here cannot wait on a running index.
+_restore_lock = threading.Lock()
+
 
 # --- Background reindex / staleness -----------------------------------------
 
@@ -230,7 +236,6 @@ def restore_session() -> bool:
     `index`. It does nothing when the index is missing, was built by another embedding
     model, or its root no longer exists, and `index` then builds it as before.
     """
-    global _pipeline
     from nexus_mcp.config import get_settings
     from nexus_mcp.state import get_state
 
@@ -247,8 +252,18 @@ def restore_session() -> bool:
     if not roots:
         return False
 
-    # Never wait: sync tools can share a thread with the server. If an index is running,
-    # it attaches the codebase when it finishes and this call reports "not indexed" now.
+    # Wait for a restore that is already running (see `_restore_lock`), then look again.
+    with _restore_lock:
+        if state.is_indexed:
+            return True
+        return _restore_locked(state, settings, roots)
+
+
+def _restore_locked(state, settings, roots) -> bool:
+    """The body of `restore_session`. The caller holds `_restore_lock`."""
+    global _pipeline
+    # Never wait for the index lock: if an index is running, it attaches the codebase when
+    # it finishes and this call reports "not indexed" now.
     if not _pipeline_lock.acquire(blocking=False):
         return False
     try:

@@ -371,7 +371,7 @@ All settings use the `NEXUS_` environment variable prefix:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NEXUS_STORAGE_DIR` | `.nexus` | Storage directory for indexes and graph DB |
-| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | Embedding model: `bge-small-en`, `jina-code` |
+| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | Embedding model: `bge-small-en` (`jina-code` is deprecated) |
 | `NEXUS_EMBEDDING_DEVICE` | `auto` | Device: `auto` (CUDA > MPS > CPU), `cuda`, `mps`, `cpu` |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max characters per code chunk |
@@ -382,7 +382,7 @@ All settings use the `NEXUS_` environment variable prefix:
 | `NEXUS_PERMISSION_LEVEL` | `full` | Permission level: `full` or `read` |
 | `NEXUS_AUDIT_ENABLED` | `true` | Enable audit logging |
 | `NEXUS_RATE_LIMIT_ENABLED` | `false` | Enable per-tool rate limiting |
-| `NEXUS_TRUST_REMOTE_CODE` | `true` | Allow `trust_remote_code` in models. Only `jina-code` needs it; set `false` with `bge-small-en` |
+| `NEXUS_TRUST_REMOTE_CODE` | `true` | Allow `trust_remote_code` in models. Only the deprecated `jina-code` needs it; set `false` with `bge-small-en` |
 | `NEXUS_AUTO_WATCH` | `true` | Auto-reindex on file change (debounced watcher started after `index`) |
 | `NEXUS_STALENESS_CHECK_INTERVAL` | `15` | Seconds between `status()`/`search()` staleness checks |
 

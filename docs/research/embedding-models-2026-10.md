@@ -90,6 +90,11 @@ model reaches the right file; the difference is only in how high it ranks.
 4. Grow the query sets before drawing any model conclusion. Use the django suite of
    `benchmarks/tasks` once its clone exists.
 
+5. Compare `bge-small-en` and `granite-97m-r2-int8` on a larger real project and on Flask
+   (`evals/retrieval`, suites `jobscout` and `flask`). `jina-code` was dropped from this
+   comparison and deprecated on 2026-10-05: its first run on those two suites was still
+   indexing after more than 90 minutes and hit the time limit (see ADR-004, amendment).
+
 ## Reproduce
 
 ```bash

@@ -126,7 +126,7 @@ Source files
     │           deterministic IDs: SHA256(file_path + symbol_name + line)
     │           avoids duplicate inserts on incremental reindex
     │
-    ├─ Step 6: Embed ──────────── bge-small-en: 384-dim (default) or jina-code: 768-dim via ONNX
+    ├─ Step 6: Embed ──────────── bge-small-en: 384-dim
     │           lazy-loaded, unloaded after indexing (try/finally)
     │           GPU/MPS auto-detected; falls back to CPU
     │
@@ -144,7 +144,7 @@ Source files
 ```
 search("how does auth work")
          │
-         ├─► vector_engine.search(query, n=30)  ← cosine similarity on 384-dim (bge-small-en) or 768-dim (jina-code) embeddings
+         ├─► vector_engine.search(query, n=30)  ← cosine similarity on 384-dim (bge-small-en) embeddings
          │                                         "auth" finds "verify_credentials", "token_check"
          │
          ├─► bm25_engine.search(query, n=30)    ← Tantivy FTS on same LanceDB table
@@ -170,7 +170,7 @@ search("how does auth work")
 | Layer | Technology | Decision Rationale |
 |-------|-----------|-------------------|
 | **Vector store** | LanceDB | mmap disk-backed → ~20–50 MB overhead vs ChromaDB's in-memory model. Native Tantivy FTS means one store for both vector and BM25. ([ADR-002](docs/adr/ADR-002-lancedb-over-chromadb.md)) |
-| **Embeddings** | bge-small-en (default) or ONNX Runtime + jina-code | bge-small-en is lightweight (384-dim, no trust_remote_code). jina-code is code-specific (161M params, 8192 seq len) on ONNX (~50 MB vs PyTorch ~500 MB). Lazy-load/unload keeps RAM flat after indexing. ([ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md)) |
+| **Embeddings** | bge-small-en | Lightweight (384-dim, no trust_remote_code). Lazy-load/unload keeps RAM flat after indexing. ([ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md)) |
 | **Graph engine** | rustworkx PyDiGraph | Rust-backed, O(1) node lookup, PageRank + centrality algorithms. Thread-safe with RLock. ([ADR-006](docs/adr/ADR-006-rustworkx-graph-engine.md)) |
 | **Symbol parser** | tree-sitter 0.21.3 | 25+ languages, incremental parsing, AST-level symbol extraction with metadata. Parallel via ThreadPool. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
 | **Graph parser** | ast-grep | Structural matching for containment and import edges (call edges are resolved after indexing; inheritance edges are not extracted yet). Sequential run for graph consistency. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
@@ -276,7 +276,7 @@ pip install -e ".[dev]"
 
 **Python 3.10–3.12 supported.** Python 3.13+ is not yet supported by the current dependency stack, and the packaged Glama/Docker build uses Python 3.12 for compatibility. Optional: `rg` (ripgrep) for 100% search coverage fallback on unindexed files.
 
-> The optional `jina-code` model requires ONNX Runtime. If you see ONNX/Optimum errors:
+> The deprecated `jina-code` model requires ONNX Runtime. If you see ONNX/Optimum errors:
 > ```bash
 > pip install "sentence-transformers[onnx]" "optimum[onnxruntime]>=1.19.0"
 > ```
@@ -291,9 +291,6 @@ pip install -e ".[dev]"
 ```bash
 # Minimal
 claude mcp add nexus-mcp -- nexus-mcp-ci
-
-# With the code-specific embedding model (requires trust_remote_code)
-claude mcp add nexus-mcp -e NEXUS_EMBEDDING_MODEL=jina-code -- nexus-mcp-ci
 
 # GPU embeddings
 claude mcp add nexus-mcp -e NEXUS_EMBEDDING_DEVICE=cuda -- nexus-mcp-ci
@@ -313,7 +310,7 @@ claude mcp add nexus-mcp -- /path/to/.venv/bin/nexus-mcp-ci
       "command": "nexus-mcp-ci",
       "args": [],
       "env": {
-        "NEXUS_EMBEDDING_MODEL": "jina-code"
+        "NEXUS_EMBEDDING_DEVICE": "cpu"
       }
     }
   }
@@ -393,7 +390,7 @@ All settings via `NEXUS_` environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | `bge-small-en` (384-dim, lightweight) or `jina-code` (768-dim, code-optimized) |
+| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | `bge-small-en` (384-dim). `jina-code` is deprecated |
 | `NEXUS_EMBEDDING_DEVICE` | `auto` | `auto` (CUDA → MPS → CPU), `cuda`, `mps`, `cpu` |
 | `NEXUS_STORAGE_DIR` | `.nexus` | Index storage directory |
 | `NEXUS_AUTO_WATCH` | `true` | Auto-reindex on file change via a debounced watcher, started after `index()` |
@@ -413,18 +410,18 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_PERMISSION_LEVEL` | `full` | `full`, `read`, or `restricted` |
 | `NEXUS_RATE_LIMIT_ENABLED` | `false` | Enable per-tool token-bucket rate limiting |
 | `NEXUS_AUDIT_ENABLED` | `true` | Structured audit logging with correlation IDs |
-| `NEXUS_TRUST_REMOTE_CODE` | `true` | Required for jina-code; set `false` with bge-small-en |
+| `NEXUS_TRUST_REMOTE_CODE` | `true` | Needed only by the deprecated jina-code; set `false` with bge-small-en |
 | `NEXUS_LOG_LEVEL` | `INFO` | Logging level |
 | `NEXUS_LOG_FORMAT` | `text` | `text` or `json` |
 
-The Python package defaults to `bge-small-en`. The `Dockerfile`, `smithery.yaml` and `glama.json` use the same default. Set `NEXUS_EMBEDDING_MODEL=jina-code` to opt in to the code-specific model.
+The Python package defaults to `bge-small-en`. The `Dockerfile`, `smithery.yaml` and `glama.json` use the same default. `jina-code` still loads, with a warning, so an existing index keeps working. It is deprecated and will be removed in a future major release.
 
 ### Embedding Models
 
 | Model | Key | Dims | Max Seq | Backend | `trust_remote_code` |
 |-------|-----|:----:|:-------:|---------|:-------------------:|
 | BGE Small EN v1.5 (default) | `bge-small-en` | 384 | 512 | PyTorch | No |
-| Jina Embeddings v2 Code | `jina-code` | 768 | 8,192 | ONNX | Yes |
+| Jina Embeddings v2 Code (deprecated) | `jina-code` | 768 | 8,192 | ONNX | Yes |
 
 **After changing model, re-index.** Embeddings from different models are incompatible.
 
@@ -560,7 +557,7 @@ Expected output: all 10 tools exercised with pass/fail per tool and a summary.
 ## Known Limitations
 
 - **Sequential graph parsing**: ast-grep runs sequentially (not parallel) to keep the call graph consistent. This is the main indexing bottleneck on large codebases.
-- **bge-small-en uses PyTorch**: The lightweight model uses PyTorch instead of ONNX, so it doesn't benefit from the same ~50 MB footprint as jina-code.
+- **bge-small-en uses PyTorch**: The default model runs on PyTorch, not ONNX.
 - **No incremental graph updates**: Graph is rebuilt in full on incremental reindex (only vector/BM25 are incremental at the chunk level).
 - **No SSE transport**: Only stdio transport is currently supported.
 - **Language coverage**: 25+ languages get tree-sitter symbol extraction. ast-grep structure (functions, classes, imports) covers Python, JavaScript, TypeScript, Go, Java, and Rust; other languages have no graph structure.
@@ -1001,7 +998,7 @@ All settings use the `NEXUS_` environment variable prefix:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NEXUS_STORAGE_DIR` | `.nexus` | Storage directory for indexes and graph DB |
-| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | Embedding model: `bge-small-en`, `jina-code` |
+| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | Embedding model: `bge-small-en` (`jina-code` is deprecated) |
 | `NEXUS_EMBEDDING_DEVICE` | `auto` | Device: `auto` (CUDA > MPS > CPU), `cuda`, `mps`, `cpu` |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max characters per code chunk |
@@ -1012,7 +1009,7 @@ All settings use the `NEXUS_` environment variable prefix:
 | `NEXUS_PERMISSION_LEVEL` | `full` | Permission level: `full` or `read` |
 | `NEXUS_AUDIT_ENABLED` | `true` | Enable audit logging |
 | `NEXUS_RATE_LIMIT_ENABLED` | `false` | Enable per-tool rate limiting |
-| `NEXUS_TRUST_REMOTE_CODE` | `true` | Allow `trust_remote_code` in models. Only `jina-code` needs it; set `false` with `bge-small-en` |
+| `NEXUS_TRUST_REMOTE_CODE` | `true` | Allow `trust_remote_code` in models. Only the deprecated `jina-code` needs it; set `false` with `bge-small-en` |
 | `NEXUS_AUTO_WATCH` | `true` | Auto-reindex on file change (debounced watcher started after `index`) |
 | `NEXUS_STALENESS_CHECK_INTERVAL` | `15` | Seconds between `status()`/`search()` staleness checks |
 
@@ -1326,7 +1323,7 @@ Set via environment variables before starting the server:
 ```bash
 # Embedding model selection
 export NEXUS_EMBEDDING_MODEL=bge-small-en       # Default: bge-small-en (384d, lightweight)
-                                                 # Options: jina-code (768d, code-specific)
+                                                 # jina-code (768d) is deprecated
 export NEXUS_EMBEDDING_DEVICE=auto               # auto (CUDA > MPS > CPU), cuda, mps, cpu
 
 # Search tuning
@@ -1360,12 +1357,12 @@ See the [README configuration table](../README.md#configuration) for every varia
 
 ### Embedding Models
 
-Nexus-MCP supports two embedding models. Only registered model names are accepted; custom model names raise a `ConfigurationError`.
+Nexus-MCP recommends one embedding model, `bge-small-en`. `jina-code` still loads, with a warning, so an existing index keeps working; it is deprecated. Only registered model names are accepted; custom model names raise a `ConfigurationError`.
 
 | Model | HuggingFace ID | Dims | Code-specific? | Notes |
 |-------|---------------|------|:-:|---|
 | `bge-small-en` (default) | `BAAI/bge-small-en-v1.5` | 384 | No | Smallest download (~50MB), general text, PyTorch backend |
-| `jina-code` | `jinaai/jina-embeddings-v2-base-code` | 768 | Yes | Best code search quality, ONNX, needs `trust_remote_code` |
+| `jina-code` (deprecated) | `jinaai/jina-embeddings-v2-base-code` | 768 | Yes | ONNX, needs `trust_remote_code` and a 612 MiB download; slow CPU index. Removal in a future major release |
 
 GPU/MPS auto-detection (`NEXUS_EMBEDDING_DEVICE=auto`) tries CUDA first, then Apple MPS, then falls back to CPU. For explicit GPU support, install with `pip install -e ".[gpu]"`.
 
@@ -1439,7 +1436,7 @@ flowchart TB
         direction TB
         Parse["parsing/\ntree-sitter (symbols, parallel) +\nast-grep (relationships, sequential) +\nfile_watcher (NEXUS_AUTO_WATCH)"]
         Chunk["indexing/chunker.py\nsymbols → CodeChunks"]
-        Embed["indexing/embedding_service.py\nbge-small-en (PyTorch) / jina-code (ONNX Runtime)"]
+        Embed["indexing/embedding_service.py\nbge-small-en (PyTorch)"]
         Parse --> Chunk --> Embed
     end
 
@@ -1494,7 +1491,7 @@ The 8-step pipeline transforms source code into searchable indexes:
 3. **Parse graph** — ast-grep extracts functions, classes and import relationships as `CONTAINS`/`IMPORTS` edges (sequential). It also records the callee names inside each function. After the last batch, `indexing/call_resolver.py` turns those names into `CALLS` edges. No parser creates `INHERITS` edges yet.
 4. **Transfer graph** — Populate rustworkx graph from ast-grep results
 5. **Chunk** — Convert symbols to CodeChunks with deterministic IDs
-6. **Embed** — generates vectors (384-dim bge-small-en default, PyTorch; 768-dim jina-code, ONNX Runtime)
+6. **Embed** — generates vectors (384-dim bge-small-en, PyTorch; the deprecated 768-dim jina-code still loads, on ONNX Runtime)
 7. **Store** — Write chunks to LanceDB, rebuild FTS index
 8. **Cleanup** — Unload embedding model, save metadata for incremental reindex
 
@@ -1570,11 +1567,11 @@ Query →       → Graph relevance search    ─┘
 ## Memory Budget
 
 Measured: about 90MB idle and 460MB with the model loaded (docs/MEMORY.md). The footprint comes from:
-- ONNX Runtime (~50MB) for jina-code instead of PyTorch (~500MB); the bge-small-en default uses PyTorch
+- ONNX Runtime is used only by the deprecated jina-code; the bge-small-en default uses PyTorch
 - LanceDB mmap (vectors stay on disk, ~20-50MB overhead)
 - Lazy model loading — embedding model loaded during indexing, unloaded after
 - GPU/MPS auto-detection (`NEXUS_EMBEDDING_DEVICE=auto`) for faster inference when available
-- Two model options: bge-small-en (384d, default), jina-code (768d)
+- One recommended model: bge-small-en (384d). jina-code (768d) is deprecated
 
 ## Thread Safety
 

@@ -28,7 +28,7 @@ flowchart TB
         direction TB
         Parse["parsing/\ntree-sitter (symbols, parallel) +\nast-grep (relationships, sequential) +\nfile_watcher (NEXUS_AUTO_WATCH)"]
         Chunk["indexing/chunker.py\nsymbols → CodeChunks"]
-        Embed["indexing/embedding_service.py\nbge-small-en (PyTorch) / jina-code (ONNX Runtime)"]
+        Embed["indexing/embedding_service.py\nbge-small-en (PyTorch)"]
         Parse --> Chunk --> Embed
     end
 
@@ -83,7 +83,7 @@ The 8-step pipeline transforms source code into searchable indexes:
 3. **Parse graph** — ast-grep extracts functions, classes and import relationships as `CONTAINS`/`IMPORTS` edges (sequential). It also records the callee names inside each function. After the last batch, `indexing/call_resolver.py` turns those names into `CALLS` edges. No parser creates `INHERITS` edges yet.
 4. **Transfer graph** — Populate rustworkx graph from ast-grep results
 5. **Chunk** — Convert symbols to CodeChunks with deterministic IDs
-6. **Embed** — generates vectors (384-dim bge-small-en default, PyTorch; 768-dim jina-code, ONNX Runtime)
+6. **Embed** — generates vectors (384-dim bge-small-en, PyTorch; the deprecated 768-dim jina-code still loads, on ONNX Runtime)
 7. **Store** — Write chunks to LanceDB, rebuild FTS index
 8. **Cleanup** — Unload embedding model, save metadata for incremental reindex
 
@@ -159,11 +159,11 @@ Query →       → Graph relevance search    ─┘
 ## Memory Budget
 
 Measured: about 90MB idle and 460MB with the model loaded (docs/MEMORY.md). The footprint comes from:
-- ONNX Runtime (~50MB) for jina-code instead of PyTorch (~500MB); the bge-small-en default uses PyTorch
+- ONNX Runtime is used only by the deprecated jina-code; the bge-small-en default uses PyTorch
 - LanceDB mmap (vectors stay on disk, ~20-50MB overhead)
 - Lazy model loading — embedding model loaded during indexing, unloaded after
 - GPU/MPS auto-detection (`NEXUS_EMBEDDING_DEVICE=auto`) for faster inference when available
-- Two model options: bge-small-en (384d, default), jina-code (768d)
+- One recommended model: bge-small-en (384d). jina-code (768d) is deprecated
 
 ## Thread Safety
 

@@ -14,11 +14,10 @@ startCommand:
         default: ".nexus"
       embedding_model:
         type: "string"
-        description: "Embedding model: bge-small-en (default, 384d) or jina-code (768d, code-specific)"
+        description: "Embedding model: bge-small-en (default, 384d)"
         default: "bge-small-en"
         enum:
           - "bge-small-en"
-          - "jina-code"
       max_memory_mb:
         type: "integer"
         description: "Memory budget in MB"

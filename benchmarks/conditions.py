@@ -4,9 +4,11 @@ No subprocess execution here — runner.py does that. Keeping this pure makes
 argv/env construction testable without spawning a real CLI process.
 """
 
+import json
 import os
+import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILL_PATH = REPO_ROOT / "plugin" / "skills" / "nexus-mcp" / "SKILL.md"
@@ -23,6 +25,65 @@ ALLOWED_TOOLS = "Read,Grep,Glob,ToolSearch,mcp__nexus-mcp__*,mcp__plugin_nexus-m
 # same server with no skill, so tool descriptions and server instructions are
 # the only routing signal.
 KNOWN_CONDITIONS = ("baseline", "mcp-only", "nexus", "nexus-plugin")
+# These two have no server of ours to configure, so `<name>@<model>` is an error.
+NO_MODEL_CONDITIONS = ("baseline", "nexus-plugin")
+
+
+def split_condition(name: str) -> Tuple[str, Optional[str]]:
+    """Split `nexus@granite` into ("nexus", "granite"). A plain name has no model."""
+    base, _, model = name.partition("@")
+    return base, (model or None)
+
+
+def expand_conditions(names: List[str], embedding_models: List[str]) -> List[str]:
+    """Add the embedding model to each nexus condition: one `<name>@<model>` per model.
+
+    `baseline` has no server and `nexus-plugin` brings its own, so neither takes a model;
+    a name that already carries `@model` is kept.
+    With no models the list is returned unchanged (the server then uses its default).
+    """
+    out: List[str] = []
+    for name in names:
+        base, model = split_condition(name)
+        if base in NO_MODEL_CONDITIONS or model or not embedding_models:
+            out.append(name)
+        else:
+            out += [f"{name}@{m}" for m in embedding_models]
+    return out
+
+
+def model_mcp_config(
+    embedding_model: str, storage_dir: Path, python: Optional[str] = None
+) -> Dict[str, Any]:
+    """MCP config that starts nexus with one embedding model and its own index folder.
+
+    The server starts through `benchmarks.nexus_server`, so a candidate model that is
+    not in the shipped registry (see evals/retrieval/candidates.py) still loads.
+    `storage_dir` must hold an index built with the same model (preindex_models.py).
+    """
+    src_dirs = os.pathsep.join([str(REPO_ROOT / "src"), str(REPO_ROOT)])
+    return {
+        "mcpServers": {
+            "nexus-mcp": {
+                "command": python or sys.executable,
+                "args": ["-m", "benchmarks.nexus_server"],
+                "env": {
+                    "PYTHONPATH": src_dirs,
+                    "NEXUS_EMBEDDING_MODEL": embedding_model,
+                    "NEXUS_STORAGE_DIR": str(storage_dir),
+                },
+            }
+        }
+    }
+
+
+def write_model_mcp_config(
+    path: Path, embedding_model: str, storage_dir: Path, python: Optional[str] = None
+) -> Path:
+    """Write `model_mcp_config` to `path` (parents are created) and return the path."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(model_mcp_config(embedding_model, storage_dir, python), indent=2))
+    return path
 
 
 def strip_frontmatter(skill_text: str) -> str:
@@ -80,12 +141,15 @@ def build_argv(
 ) -> List[str]:
     """Build the full argv for a `claude` invocation under the given condition.
 
-    `condition` is one of KNOWN_CONDITIONS. Raises ValueError otherwise.
+    `condition` is one of KNOWN_CONDITIONS, optionally with `@<embedding model>` (the model
+    is applied through `mcp_config_path`, not here). Raises ValueError otherwise.
     `builtin_tools` is the `--tools` list; the routing eval adds `ToolSearch`
     so deferred MCP tools stay discoverable.
     """
-    if condition not in KNOWN_CONDITIONS:
+    base, embedding_model = split_condition(condition)
+    if base not in KNOWN_CONDITIONS or (embedding_model and base in NO_MODEL_CONDITIONS):
         raise ValueError(f"Unknown condition: {condition!r}, expected one of {KNOWN_CONDITIONS}")
+    condition = base
 
     argv = _common_args(model, max_budget_usd)
     argv += ["--tools", builtin_tools]
@@ -178,10 +242,12 @@ def build_run(
     env: Optional[Dict[str, str]] = None,
     tool_search: Optional[bool] = None,
     builtin_tools: str = BASELINE_TOOLS,
+    mcp_config_path: Path = NEXUS_MCP_CONFIG,
 ) -> Dict[str, Any]:
     """Build the full (argv, env, isolation_mode) triple for one run."""
     argv = build_argv(
-        condition, prompt, model, max_budget_usd, builtin_tools=builtin_tools
+        condition, prompt, model, max_budget_usd, mcp_config_path=mcp_config_path,
+        builtin_tools=builtin_tools,
     )
     # --mcp-config, --tools and similar options take a list of values and swallow a
     # prompt that follows them. Take the prompt off, add the isolation flags, then put

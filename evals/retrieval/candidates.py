@@ -1,6 +1,7 @@
 """Embedding-model candidates for the retrieval eval.
 
-Only `bge-small-en` and `jina-code` ship in nexus_mcp.indexing.embedding_service.
+Only `bge-small-en` is recommended in nexus_mcp.indexing.embedding_service (`jina-code`
+also ships but is deprecated and is not benchmarked).
 The other entries exist only inside this eval, so a trial never changes the shipped
 registry. Each entry has the same keys as a registry entry, plus `approx_mb`, the
 size of the ONNX file that gets downloaded (from the Hugging Face file listing,
@@ -49,7 +50,6 @@ CANDIDATES: Dict[str, Optional[Dict[str, Any]]] = {
         "onnx_file": "onnx/model_int8.onnx",
         "approx_mb": 150,
     },
-    "jina-code": None,
 }
 
 

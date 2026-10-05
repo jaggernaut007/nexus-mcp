@@ -70,6 +70,13 @@ All notable changes to this project will be documented in this file.
   match `graph()` and `explain()`. Callers that pass `find_symbol(name=...)` must
   switch to `find_symbol(symbol_name=...)`.
 
+### Deprecated
+
+- **`jina-code` embedding model.** It still loads, with a warning, so an existing index keeps
+  working. It is no longer offered in `smithery.yaml` or `glama.json` or recommended in the
+  docs, and it will be removed in a future major release (it also needs `trust_remote_code`).
+  Use `bge-small-en`, then re-index. See the amendment in ADR-004.
+
 ### Documentation
 
 - Replaced pre-2.0.0 tool names (`find_callers`, `impact`, `remember`, ...) with

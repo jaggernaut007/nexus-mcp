@@ -42,7 +42,7 @@ Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexe
 
 - **Search pipeline**: query -> [vector, BM25, graph] parallel -> RRF fusion (weights 0.5/0.3/0.2) -> FlashRank re-rank -> token budget truncation
 - **Storage**: LanceDB (vectors + FTS, mmap disk-backed), SQLite (graph persistence), no ChromaDB
-- **Embedding**: bge-small-en-v1.5 default (384d), optional jina-code (768d, ONNX Runtime)
+- **Embedding**: bge-small-en-v1.5 default (384d); jina-code is deprecated
 - **Graph**: rustworkx PyDiGraph — containment, import and static call edges; caller/callee and impact traversal
 - **Parsing**: tree-sitter (symbol extraction for embeddings) + ast-grep (containment and import structure for the graph)
 - **Memory**: LanceDB-backed semantic memory with 6 types, TTL expiration, tag filtering

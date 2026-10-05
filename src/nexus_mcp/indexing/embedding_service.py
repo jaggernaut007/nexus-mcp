@@ -2,7 +2,8 @@
 
 Supported models:
 - bge-small-en (384d, 512 seq len, PyTorch) — DEFAULT, lightweight general
-- jina-code (768d, 8192 seq len, ONNX) — code-specific
+- jina-code (768d, 8192 seq len, ONNX) — code-specific. DEPRECATED: it still loads, but
+  it needs trust_remote_code and a 612 MiB download, and it indexes far slower on CPU.
 """
 
 import gc
@@ -23,6 +24,11 @@ EMBEDDING_MODELS = {
         "prompt_prefix": "",
         "query_prefix": "",
         "backend": "onnx",
+        "deprecated": (
+            "jina-code is deprecated and will be removed in a future major release. "
+            "It needs trust_remote_code, a 612 MiB download and a slow CPU index. "
+            "Use bge-small-en (the default), then re-index."
+        ),
     },
     "bge-small-en": {
         "hf_name": "BAAI/bge-small-en-v1.5",
@@ -115,6 +121,8 @@ class EmbeddingService:
         with self._lock:
             if self._model_loaded:
                 return
+            if self.config.get("deprecated"):
+                logger.warning(self.config["deprecated"])
             try:
                 from sentence_transformers import SentenceTransformer
             except ImportError:

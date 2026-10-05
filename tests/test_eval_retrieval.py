@@ -54,7 +54,9 @@ class TestMetrics:
 class TestQuerySuites:
     def test_every_relevant_file_exists_on_disk(self):
         for name, suite in run.load_suites().items():
-            root = run.REPO_ROOT / suite["root"]
+            root = run.suite_root(suite)
+            if not root.is_dir():
+                continue  # the flask clone or a private project is not on this machine
             for q in suite["queries"]:
                 for rel in q["relevant"]:
                     assert (root / rel).is_file(), f"{name}/{q['id']}: {rel} not found"
@@ -68,6 +70,8 @@ class TestQuerySuites:
         # A query that spells the file name tests spelling, not meaning.
         for suite in run.load_suites().values():
             for q in suite["queries"]:
+                if q.get("kind") == "identifier":
+                    continue  # these name symbols on purpose
                 for rel in q["relevant"]:
                     stem = Path(rel).stem
                     text = q["query"].lower()
@@ -151,3 +155,48 @@ class TestRender:
 
     def test_peak_rss_mb_is_positive(self):
         assert run.peak_rss_mb() > 0
+
+    def test_render_markdown_splits_hit_at_1_by_query_kind(self):
+        mode = {"hit@1": 0.5, "hit@5": 0.75, "recall@10": 0.8, "mrr@10": 0.6,
+                "median_query_ms": 12.0, "queries": 4,
+                "by_kind": {"concept": {"hit@1": 0.25, "queries": 3},
+                            "identifier": {"hit@1": 1.0, "queries": 1}}}
+        runs = [{"candidate": "m1", "peak_rss_mb": 300.0, "suites": {
+            "s": {"index_seconds": 3.2, "modes": {m: mode for m in run.MODES}}}}]
+        text = run.render_markdown(runs, ["s"])
+        assert "| Model | Mode | concept | identifier |" in text
+        assert "| m1 | vector | 0.25 (3) | 1.00 (1) |" in text
+
+    def test_render_markdown_skips_kind_table_when_only_one_kind(self):
+        mode = {"hit@1": 0.5, "hit@5": 0.75, "recall@10": 0.8, "mrr@10": 0.6,
+                "median_query_ms": 12.0, "queries": 4,
+                "by_kind": {"concept": {"hit@1": 0.5, "queries": 4}}}
+        runs = [{"candidate": "m1", "peak_rss_mb": 300.0, "suites": {
+            "s": {"index_seconds": 3.2, "modes": {m: mode for m in run.MODES}}}}]
+        assert "by query kind" not in run.render_markdown(runs, ["s"])
+
+    def test_render_markdown_marks_a_suite_whose_root_is_missing(self):
+        runs = [{"candidate": "m1", "peak_rss_mb": 1.0,
+                 "suites": {"s": {"error": "root not found: /nope"}}}]
+        assert "| m1 | failed |" in run.render_markdown(runs, ["s"])
+
+
+class TestSuiteLoading:
+    def test_suite_root_expands_home_and_resolves_relative_to_the_repo(self):
+        assert run.suite_root({"root": "~/x"}) == (Path.home() / "x").resolve()
+        assert run.suite_root({"root": "evals/fixtures/shop_repo"}) == (
+            run.REPO_ROOT / "evals/fixtures/shop_repo"
+        ).resolve()
+
+    def test_kind_of_defaults_to_concept(self):
+        assert run.kind_of({"id": "a"}) == "concept"
+        assert run.kind_of({"id": "a", "kind": "identifier"}) == "identifier"
+
+    def test_load_suites_includes_the_public_flask_suite(self):
+        assert "flask" in run.load_suites()
+
+    def test_run_candidate_reports_a_missing_root_instead_of_crashing(self, tmp_path, monkeypatch):
+        suite = {"root": str(tmp_path / "absent"), "queries": []}
+        monkeypatch.setattr(run, "load_suites", lambda *a, **k: {"gone": suite})
+        out = run.run_candidate("bge-small-en", ["gone"], work_dir=tmp_path / "w")
+        assert "root not found" in out["suites"]["gone"]["error"]

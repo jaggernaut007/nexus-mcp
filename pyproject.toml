@@ -88,7 +88,7 @@ packages = ["src/nexus_mcp"]
 [tool.ruff]
 target-version = "py310"
 line-length = 100
-extend-exclude = ["evals/fixtures"]
+extend-exclude = ["evals/fixtures", "benchmarks/repos"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]

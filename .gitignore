@@ -65,3 +65,7 @@ benchmarks/results/
 benchmarks/.claude-bench/
 evals/results/
 evals/.claude-eval/
+
+# Private query suites and task files (a private project's names stay local)
+evals/retrieval/queries.local.yaml
+benchmarks/tasks/private/

@@ -44,3 +44,33 @@ suites:
       - {id: confirm, query: "tell the customer that the purchase went through", relevant: [shop/notifications.py]}
       - {id: admin-only, query: "only staff with the admin role may do this", relevant: [shop/auth.py]}
       - {id: cart, query: "put an item into the basket shown in the browser", relevant: [web/src/cart.ts]}
+
+  # Public suite: pallets/flask. Clone it first (shallow, no history):
+  #   git clone --depth 1 https://github.com/pallets/flask.git benchmarks/repos/flask
+  # Ground truth was checked against d73fa1cdcbd8b1465c151db8924ba58b1dd14e35 (2026-09-08).
+  # A query with `kind: identifier` names code symbols on purpose, to give bm25 a fair test.
+  flask:
+    root: benchmarks/repos/flask/src/flask
+    queries:
+      - {id: per-request-hooks, query: "run some code before every view and again after the response is built", relevant: [sansio/scaffold.py, app.py]}
+      - {id: request-scope, query: "keep data about the current request available everywhere without passing it around", relevant: [ctx.py, globals.py]}
+      - {id: cookie-session, query: "remember the user between page loads by storing signed data in a cookie", relevant: [sessions.py]}
+      - {id: load-settings, query: "read application options from a Python file or an environment variable", relevant: [config.py]}
+      - {id: json-types, query: "turn dates and UUIDs into JSON text when answering", relevant: [json/provider.py]}
+      - {id: jinja-loader, query: "find HTML template files in the app and in its modules", relevant: [templating.py]}
+      - {id: modular-routes, query: "split an application into reusable parts that each own some URLs", relevant: [blueprints.py, sansio/blueprints.py]}
+      - {id: class-views, query: "write a handler as a class with one method per HTTP verb", relevant: [views.py]}
+      - {id: shell-commands, query: "list the URL rules and start the development server from a terminal", relevant: [cli.py]}
+      - {id: fake-client, query: "send fake requests to the app in unit tests without opening a socket", relevant: [testing.py]}
+      - {id: error-output, query: "write error messages to the console unless a handler already exists", relevant: [logging.py]}
+      - {id: redirect-body, query: "explain why a form post lost its data after a redirect during debugging", relevant: [debughelpers.py]}
+      - {id: download-file, query: "send a file to the browser with caching headers and safe path handling", relevant: [helpers.py]}
+      - {id: body-limits, query: "limit upload size and parse a JSON request body", relevant: [wrappers.py]}
+      - {id: event-hooks, query: "notify other code when a template is rendered or a request starts", relevant: [signals.py]}
+      - {id: register-route, query: "attach a function to a URL pattern and a set of HTTP methods", relevant: [sansio/app.py, sansio/scaffold.py]}
+      - {id: next-page-notice, query: "show a one-time message on the following page", relevant: [helpers.py]}
+      - {id: id-dispatch, kind: identifier, query: "full_dispatch_request preprocess_request", relevant: [app.py]}
+      - {id: id-cookie, kind: identifier, query: "SecureCookieSession SecureCookieSessionInterface", relevant: [sessions.py]}
+      - {id: id-loader, kind: identifier, query: "DispatchingJinjaLoader", relevant: [templating.py]}
+      - {id: id-config, kind: identifier, query: "from_pyfile from_envvar from_prefixed_env", relevant: [config.py]}
+      - {id: id-group, kind: identifier, query: "FlaskGroup routes_command", relevant: [cli.py]}

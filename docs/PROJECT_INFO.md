@@ -68,8 +68,8 @@ Into a **single, memory-efficient MCP server** (about 90MB idle and 460MB with t
 |-------|-----------|-----|
 | MCP Framework | FastMCP ≥2.0 | Standard MCP server framework |
 | Vector + FTS Storage | LanceDB ≥0.4 | Embedded, mmap, vectors + FTS in one DB |
-| Inference | ONNX Runtime (jina-code) / PyTorch (bge-small-en) | jina-code runs on ONNX (~50MB vs ~500MB for PyTorch); bge-small-en uses PyTorch |
-| Embedding Model | bge-small-en (default) | 384 dims, lightweight; jina-code (768d, code-specific) is optional |
+| Inference | PyTorch (bge-small-en) | The deprecated jina-code runs on ONNX Runtime |
+| Embedding Model | bge-small-en (default) | 384 dims, lightweight; jina-code (768d) is deprecated |
 | Symbol Parsing | tree-sitter 0.21.3 | Extract code symbols for embeddings |
 | Structural Analysis | ast-grep-py ≥0.28 | Build the containment and import graph (plus callee names, resolved into call edges after indexing) |
 | Graph Engine | rustworkx ≥0.15 | In-memory directed graph, Rust-backed |
@@ -177,7 +177,7 @@ All settings via environment variables with `NEXUS_` prefix:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | Embedding model (`bge-small-en`, `jina-code`) |
+| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | Embedding model (`bge-small-en`; `jina-code` is deprecated) |
 | `NEXUS_STORAGE_DIR` | `.nexus` | Per-project storage directory |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this (MB) |
 | `NEXUS_LOG_FORMAT` | `text` | Logging format (`text` or `json`) |
@@ -206,7 +206,7 @@ The [README](../README.md#configuration) lists every variable.
 |----------|-----------|
 | LanceDB over ChromaDB | Embedded, mmap (disk-backed), native FTS, fewer dependencies |
 | ONNX Runtime over PyTorch | 50MB vs 500MB RAM, 2.5x faster CPU inference |
-| bge-small-en default | Lightweight 384d embeddings ([ADR-004](adr/ADR-004-bge-small-default-model.md)); jina-code (768d, code-specific) is optional; GPU/MPS auto-detection |
+| bge-small-en default | Lightweight 384d embeddings ([ADR-004](adr/ADR-004-bge-small-default-model.md)); jina-code (768d) is deprecated; GPU/MPS auto-detection |
 | rustworkx over Neo4j | In-memory graph is sufficient, no DB server dependency |
 | Single MCP over two | Halves memory, eliminates cross-process coordination |
 | Dual parsers (tree-sitter + ast-grep) | Each excels at different task: symbols vs structure |

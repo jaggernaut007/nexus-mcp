@@ -3,6 +3,12 @@
 Usage:
     python -m benchmarks.runner --tasks tasks/django.yaml --conditions baseline,nexus --reps 3
     python -m benchmarks.runner --tasks tasks/django.yaml --smoke
+    python -m benchmarks.runner --tasks tasks/private/jobscout.yaml \
+        --conditions baseline,nexus --embedding-models bge-small-en,granite-97m-r2-int8
+
+With --embedding-models, each nexus condition runs once per model as `<name>@<model>`
+(for example `nexus@granite-97m-r2-int8`). Build those indexes first with
+`python -m benchmarks.preindex_models`.
 
 Writes one JSONL record per run to benchmarks/results/runs-<timestamp>.jsonl.
 Each run is a subprocess with a wall-clock timeout independent of
@@ -24,6 +30,7 @@ import yaml
 from benchmarks import conditions as cond
 from benchmarks import scoring
 from benchmarks import transcript as tx
+from benchmarks.preindex_models import storage_dir_for
 
 BENCH_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = BENCH_DIR / "results"
@@ -124,7 +131,18 @@ def run_once(
     timeout_s = task.get("timeout_s", 600)
     prompt = task["prompt"].strip() + PROMPT_SUFFIX
 
-    built = cond.build_run(condition, prompt, model, max_budget, config_dir)
+    base, embedding_model = cond.split_condition(condition)
+    mcp_config = cond.NEXUS_MCP_CONFIG
+    if embedding_model:
+        mcp_config = cond.write_model_mcp_config(
+            RESULTS_DIR / "mcp-configs" / f"{repo_dir.name}-{embedding_model}.json",
+            embedding_model,
+            storage_dir_for(repo_dir, embedding_model),
+        )
+
+    built = cond.build_run(
+        condition, prompt, model, max_budget, config_dir, mcp_config_path=mcp_config
+    )
     argv, env, isolation_mode = built["argv"], built["env"], built["isolation_mode"]
 
     started = time.time()
@@ -163,7 +181,7 @@ def run_once(
     ):
         raise UsageLimitReached(trace.final_answer)
     files = (
-        trace.files_read_baseline if condition == "baseline" else trace.files_surfaced_nexus
+        trace.files_read_baseline if base == "baseline" else trace.files_surfaced_nexus
     )
     score = scoring.score_run(
         files,
@@ -176,6 +194,7 @@ def run_once(
         "task_id": task["id"],
         "category": task.get("category"),
         "condition": condition,
+        "embedding_model": embedding_model,
         "repo": repo["name"],
         "repo_sha": repo["pin"],
         "model": model,
@@ -226,6 +245,15 @@ def run_suite(
         raise SystemExit(
             f"Repo not found at {repo_dir}. Run benchmarks/setup_repos.sh first."
         )
+
+    for name in condition_names:
+        embedding_model = cond.split_condition(name)[1]
+        if embedding_model and not storage_dir_for(repo_dir, embedding_model).exists():
+            raise SystemExit(
+                f"No {embedding_model} index for {repo_dir.name}. Build it first:\n"
+                f"  PYTHONPATH=src:. python -m benchmarks.preindex_models "
+                f"--repo {repo_dir.name} --models {embedding_model}"
+            )
 
     tasks = suite["tasks"]
     if task_ids:
@@ -300,6 +328,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument(
         "--conditions", default=",".join(DEFAULT_CONDITIONS), help="Comma-separated conditions"
     )
+    parser.add_argument(
+        "--embedding-models", default="",
+        help="Comma-separated embedding models. Each nexus condition runs once per model "
+        "(needs an index from preindex_models.py). Empty: the server's default model",
+    )
     parser.add_argument("--reps", type=int, default=DEFAULT_REPS)
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument(
@@ -317,7 +350,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     suite = load_task_suite(Path(args.tasks))
-    condition_names = [c.strip() for c in args.conditions.split(",") if c.strip()]
+    condition_names = cond.expand_conditions(
+        [c.strip() for c in args.conditions.split(",") if c.strip()],
+        [m.strip() for m in args.embedding_models.split(",") if m.strip()],
+    )
 
     task_ids = None
     reps = args.reps

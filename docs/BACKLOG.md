@@ -19,7 +19,7 @@ Done on 2026-10-03 and removed from this list: tool descriptions and server `ins
 | Graph list still lowers hybrid hit@1 slightly after the whole-word fix (0.68 without it, 0.64 with it on `nexus_mcp`) | embedding eval finding 2 | Query set growth | Whole-word matching and stop words cut the loss from 12 points to 4. Re-test with a larger query set before dropping or reweighting the graph list |
 | Re-tune RRF weights on identifier-style queries | ROADMAP-2026 item 12 | Query set growth | Current 0.5/0.3/0.2 are untuned |
 | Bring memory under the old 350 MB target, or change the target | docs/MEMORY.md | — | Measured 460 MB with the model loaded. Test `embedding_batch_size`, a lower `max_seq_length`, an int8 model, and unloading the model after an idle period |
-| `trust_remote_code` default to `false`, enable only for `jina-code` | PROGRESS Phase 6a vs `config.py:52` | — | Code and docs disagree today |
+| `trust_remote_code` default to `false` (only the deprecated `jina-code` needs it); remove `jina-code` in the next major release, which makes the flag unnecessary | PROGRESS Phase 6a vs `config.py:52` | — | Code and docs disagree today |
 | `suggested_action` and `isError` on error results | ROADMAP-2026 item 5 | — | Errors come back as normal results with an `error` key |
 | `compact` search mode and stable JSON shapes | ROADMAP-2026 item 8 | — | `search` always returns snippets up to 2,000 characters |
 | Python 3.13 support | pyproject `<3.13` cap | `tree-sitter-language-pack` or per-language wheels | `tree-sitter-languages` has no 3.13 wheel |

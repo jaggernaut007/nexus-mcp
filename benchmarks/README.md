@@ -48,6 +48,30 @@ python -m benchmarks.runner --tasks benchmarks/tasks/home-assistant.yaml
 python -m benchmarks.report benchmarks/results/runs-*.jsonl --out benchmarks/results/report.md --csv benchmarks/results/report.csv
 ```
 
+### Comparing embedding models, or benchmarking your own project
+
+The `nexus` conditions can run once per embedding model. Each model needs its own index of
+the repo, built first and outside the measured runs:
+
+```bash
+PYTHONPATH=src:. python -m benchmarks.preindex_models --repo django \
+    --models bge-small-en,granite-97m-r2-int8
+python -m benchmarks.runner --tasks benchmarks/tasks/django.yaml --smoke \
+    --conditions baseline,nexus --embedding-models bge-small-en,granite-97m-r2-int8
+```
+
+Each record's condition is then `nexus@<model>` (for example `nexus@granite-97m-r2-int8`), so the report
+shows one row per model beside `baseline`. `baseline` runs once, because it has no server.
+`nexus-plugin` takes no model: the plugin starts its own server with the default model.
+The models that are not in the shipped registry (the granite candidates, see
+`evals/retrieval/candidates.py`) load through `benchmarks/nexus_server.py`, which registers
+the model in memory only. This is the same code path as the shipped server.
+
+For your own project, put the code in `benchmarks/repos/<name>` (a clone is fine; check out only
+the code, so no `CLAUDE.md` or docs leak a hint into the runs), write a task file in the format
+below, and keep a private one under `benchmarks/tasks/private/` (git-ignored). Ground truth must
+be checked with grep against the pinned commit.
+
 ## Methodology
 
 **Conditions:**
@@ -169,6 +193,8 @@ numbers, which models don't reliably memorize even for famous code.
 - `runner.py` — orchestrates real `claude` subprocess runs, writes JSONL
 - `report.py` — aggregates JSONL into markdown + CSV
 - `setup_repos.sh` / `_preindex_one.py` — one-time repo clone + pre-index
+- `preindex_models.py` — one index per embedding model (`<repo>/.nexus-<model>`)
+- `nexus_server.py` — starts the server with a candidate model that is not in the registry
 - `repos/`, `results/`, `.claude-bench/` — gitignored, generated locally
 
 ## Known gotchas

@@ -8,7 +8,7 @@ Single MCP server consolidating CodeGrok + code-graph-mcp. 10 tools (`index`, `s
 
 ## Stack
 - **LanceDB**: vectors + FTS (replaces ChromaDB)
-- **ONNX Runtime**: inference for `jina-code` (replaces PyTorch)
+- **ONNX Runtime**: inference for the deprecated `jina-code` only
 - **bge-small-en**: default embedding model (384d, ~50MB download, PyTorch backend)
 - **rustworkx**: in-memory directed graph
 - **tree-sitter + ast-grep**: dual parsing

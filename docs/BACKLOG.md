@@ -21,7 +21,7 @@ Done on 2026-10-03 and removed from this list: tool descriptions and server `ins
 | Bring memory under the old 350 MB target, or change the target | docs/MEMORY.md | — | Measured 460 MB with the model loaded. Test `embedding_batch_size`, a lower `max_seq_length`, an int8 model, and unloading the model after an idle period |
 | `trust_remote_code` default to `false` (only the deprecated `jina-code` needs it); remove `jina-code` in the next major release, which makes the flag unnecessary | PROGRESS Phase 6a vs `config.py:52` | — | Code and docs disagree today |
 | `suggested_action` and `isError` on error results | ROADMAP-2026 item 5 | — | Errors come back as normal results with an `error` key |
-| `compact` search mode and stable JSON shapes | ROADMAP-2026 item 8 | — | `search` always returns snippets up to 2,000 characters |
+| Stable JSON shapes (the `compact` mode itself is done, see `detail` on `search` and `graph`) | ROADMAP-2026 item 8 | — | Next: a live rerun of the jobscout benchmark to confirm the token cut and that accuracy holds |
 | Python 3.13 support | pyproject `<3.13` cap | `tree-sitter-language-pack` or per-language wheels | `tree-sitter-languages` has no 3.13 wheel |
 | Enforce `max_memory_mb` | issue #1 | — | The setting exists but nothing reads it |
 | `nexus_mcp.__version__` says 2.0.0 while the package is 2.0.3; `status` reports it | 2026-10-05 benchmark trace | — | Derive it from the package metadata or bump it with each release, and test that it equals `pyproject.toml` |

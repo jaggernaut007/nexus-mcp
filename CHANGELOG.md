@@ -35,6 +35,15 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **`search` and `graph` return a compact result by default** (new `detail` parameter,
+  `"compact"` or `"full"`). The first live benchmark measured a median 16,000-character `search`
+  result and a 46,000-character `graph` result. Compact `search` trims the snippets (about 600
+  characters for the top 5 results, about 240 for the rest), and leaves out `id`, `score`,
+  `rrf_score`, `_fusion_sources`, `absolute_path` and the fields that repeat the snippet. Compact
+  `graph` returns name, type, file and lines, and `transitive=True` lists at most 40 symbols
+  (`truncated: true` when there are more; `impacted_files` always names all of them). On a
+  460-file project the results are about 40% (`search`) and 20% (transitive `graph`) of the
+  full size, with the same files in the same order. Pass `detail="full"` for the old shape.
 - `fastmcp` is now `>=3.1,<5` (the new APIs were verified on 4.0.5). New optional extra
   `onnx` (`pip install nexus-mcp-ci[onnx]`) for the ONNX backend on optimum 2.x.
 - Memory use is measured and documented (`docs/MEMORY.md`): about 90 MB idle, 460 MB with the

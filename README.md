@@ -218,14 +218,14 @@ better under MCP Tool Search than many thin ones.
 
 | Tool | Use When |
 |------|----------|
-| `search(query, limit, language, symbol_type, mode, rerank, live_grep)` | Primary code discovery. `mode`: `hybrid` (default), `vector`, or `bm25`. Falls back to live grep if results are sparse. Returns a non-null `warning` if the index looked stale (a background reindex is triggered automatically; results still return immediately). |
+| `search(query, limit, language, symbol_type, mode, rerank, live_grep, detail)` | Primary code discovery. `mode`: `hybrid` (default), `vector`, or `bm25`. `detail`: `compact` (default, short snippets) or `full`. Falls back to live grep if results are sparse. Returns a non-null `warning` if the index looked stale (a background reindex is triggered automatically; results still return immediately). |
 
 ### Graph Analysis
 
 | Tool | Use When |
 |------|----------|
 | `find_symbol(symbol_name, exact)` | Look up a specific symbol. `exact=False` for fuzzy matching. |
-| `graph(symbol_name, direction, transitive, max_depth)` | `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True`** (was `impact()`) gives the transitive change blast radius before a refactor (a lower bound: static edges only). It requires `direction="callers"`; `direction="callees"` with `transitive=True` returns an error. Call edges are static and name-based, so use `search` for call sites the graph cannot see (see [Known Limitations](#known-limitations)). |
+| `graph(symbol_name, direction, transitive, max_depth, detail)` | `detail`: `compact` (default: name, file, lines) or `full`. `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True`** (was `impact()`) gives the transitive change blast radius before a refactor (a lower bound: static edges only). It requires `direction="callers"`; `direction="callees"` with `transitive=True` returns an error. Call edges are static and name-based, so use `search` for call sites the graph cannot see (see [Known Limitations](#known-limitations)). |
 | `explain(symbol_name, verbosity)` | **Replaces `Read` for understanding code.** Graph relationships + semantic context + quality metrics in one call. |
 | `analyze(path)` | Code quality: cyclomatic complexity, cognitive complexity, code smells, dependency metrics. |
 

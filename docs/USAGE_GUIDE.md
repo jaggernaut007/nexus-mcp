@@ -137,8 +137,9 @@ Parameters:
 - `mode` — "hybrid" (default), "vector", or "bm25"
 - `rerank` — Enable FlashRank reranking (default True)
 - `live_grep` — Force the live-grep fallback (`rg`, then `grep`) (default False)
+- `detail` — "compact" (default) or "full"
 
-Returns results with `filepath` (relative), `absolute_path`, `code_snippet` (truncated to 2000 chars), `score`, `symbol_name`, `line_start`/`line_end`, and a `hint` field. Raw embedding vectors are stripped from results. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a non-null `warning`. A background reindex starts, and the results still return at once.
+Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `line_start`/`line_end`, and a `hint` field. With `detail="compact"` the snippet of each of the top 5 results is trimmed to about 600 characters at a line boundary, and the other results get about 240. The `# path:line` header line, the fields that repeat the snippet (`signature`, `docstring`), the internal fields (`id`, `score`, `rrf_score`, `_fusion_sources`, `absolute_path`) and empty values are left out. Measured on a 460-file project, a compact result is about 40% of the size of a full one, for the same files in the same order. With `detail="full"` the snippet is up to 2000 characters and those fields are present. Raw embedding vectors are always stripped. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a non-null `warning`. A background reindex starts, and the results still return at once.
 
 ### Graph Analysis
 
@@ -166,6 +167,9 @@ Parameters:
 - `direction` — "callers" (default) or "callees"
 - `transitive` — `True` returns the full transitive change impact. It works only with `direction="callers"`. Run it before you refactor a shared symbol.
 - `max_depth` — Maximum traversal depth for `transitive=True` (default 10)
+- `detail` — "compact" (default): name, type, file and lines for each symbol. "full": adds docstring, complexity, signature types and the node id.
+
+With `transitive=True` and `detail="compact"`, `impacted_symbols` lists at most 40 symbols and sets `truncated: true` when there are more. A compact result is about 20% of the size of a full one. `total_impacted` is the true count, and `impacted_files` always names every impacted symbol.
 
 > **Limit:** call edges are static and name-based. Dynamic dispatch, callbacks and reflection are invisible, and a name shared by several definitions gets no edge. Treat results as a lower bound and use `search` for other call sites. See [Known Limitations](../README.md#known-limitations).
 

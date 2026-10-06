@@ -20,6 +20,8 @@ READ_TOOLS = {"status", "health", "search", "find_symbol", "graph", "analyze", "
 ENUMS = {
     ("search", "mode"): ["hybrid", "vector", "bm25"],
     ("graph", "direction"): ["callers", "callees"],
+    ("search", "detail"): ["compact", "full"],
+    ("graph", "detail"): ["compact", "full"],
     ("explain", "verbosity"): ["summary", "detailed", "full"],
     ("map", "detail"): ["summary", "architecture", "full"],
     ("memory", "action"): ["store", "search", "delete"],

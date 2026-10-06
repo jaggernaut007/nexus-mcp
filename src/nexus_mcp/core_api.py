@@ -338,6 +338,21 @@ def _serialize_node(node: UniversalNode, codebase_path: Optional[Path] = None) -
     }
 
 
+def _serialize_node_compact(
+    node: UniversalNode, codebase_path: Optional[Path] = None
+) -> dict[str, Any]:
+    """The few fields that name a symbol and say where it is. Used by `graph`."""
+    full = _serialize_node(node, codebase_path)
+    loc = full["location"]
+    return {
+        "name": full["name"],
+        "type": full["type"],
+        "file": loc["file"],
+        "start_line": loc["start_line"],
+        "end_line": loc["end_line"],
+    }
+
+
 def _serialize_relationship(rel: UniversalRelationship) -> dict[str, Any]:
     """Convert a UniversalRelationship to a JSON-serializable dict."""
     return {
@@ -536,6 +551,47 @@ async def index(
 
 # --- Search -----------------------------------------------------------------
 
+# The live benchmark measured a median 16,000 characters per `search` result, 62% of it
+# snippet text, and 18,500 per `graph` result. These limits and the compact shape cut that.
+DETAIL_LEVELS = ("compact", "full")
+COMPACT_SNIPPET_CHARS = 600  # the top COMPACT_TOP_RESULTS results
+COMPACT_TAIL_SNIPPET_CHARS = 240  # the rest: enough for the signature
+COMPACT_TOP_RESULTS = 5
+FULL_SNIPPET_CHARS = 2000
+MAX_IMPACTED_LISTED = 40
+# Fields that help ranking or debugging but not an agent's answer. `signature` and
+# `docstring` are also the first lines of the chunk text, so the snippet carries them.
+_SEARCH_INTERNAL_FIELDS = (
+    "id", "score", "rrf_score", "_fusion_sources", "absolute_path", "signature", "docstring",
+)
+
+
+def _strip_chunk_header(code: str) -> str:
+    """Drop the `# path:line` first line of a chunk text. `filepath` and `line_start` say it."""
+    first, sep, rest = code.partition("\n")
+    return rest if sep and first.startswith("# ") and ":" in first else code
+
+
+def _trim_snippet(code: str, limit: int) -> str:
+    """Cut ``code`` to at most ``limit`` characters, at a line boundary when one exists."""
+    if len(code) <= limit:
+        return code
+    cut = code[:limit]
+    newline = cut.rfind("\n")
+    if newline > limit // 2:
+        cut = cut[:newline]
+    return cut + "\n... (truncated)"
+
+
+def _compact_search_result(r: dict[str, Any]) -> dict[str, Any]:
+    """Drop internal fields and empty values from one search result."""
+    return {
+        k: v
+        for k, v in r.items()
+        if k not in _SEARCH_INTERNAL_FIELDS and v not in ("", None, [], {})
+    }
+
+
 def search(
     query: str,
     limit: int = 10,
@@ -544,9 +600,14 @@ def search(
     mode: str = "hybrid",
     rerank: bool = True,
     live_grep: bool = False,
+    detail: str = "compact",
 ) -> dict[str, Any]:
     """Primary code discovery: hybrid vector+BM25+graph search with RRF fusion,
-    optional reranking, and an automatic live-grep fallback when results are sparse."""
+    optional reranking, and an automatic live-grep fallback when results are sparse.
+
+    ``detail="compact"`` (default) drops internal fields and trims each snippet to
+    ``COMPACT_SNIPPET_CHARS``; ``detail="full"`` keeps scores, ids, absolute paths and
+    snippets up to ``FULL_SNIPPET_CHARS``."""
     from nexus_mcp.config import get_settings
     from nexus_mcp.engines.fusion import ReciprocalRankFusion, graph_relevance_search
     from nexus_mcp.engines.reranker import FlashReranker
@@ -555,6 +616,8 @@ def search(
     err = validate_query(query)
     if err:
         return err
+    if detail not in DETAIL_LEVELS:
+        return {"error": f"Invalid detail: {detail}. Must be one of {list(DETAIL_LEVELS)}"}
 
     state = get_state()
     if not state.is_indexed:
@@ -679,15 +742,21 @@ def search(
     roots = getattr(state, "codebase_paths", [])
     if not roots and state.codebase_path:
         roots = [state.codebase_path]
-    for r in results:
+    compact = detail == "compact"
+    for rank, r in enumerate(results):
         r.pop("vector", None)
 
+        snippet_limit = FULL_SNIPPET_CHARS
+        if compact:
+            top = rank < COMPACT_TOP_RESULTS
+            snippet_limit = COMPACT_SNIPPET_CHARS if top else COMPACT_TAIL_SNIPPET_CHARS
         if "text" in r:
             code = r.pop("text")
-            if len(code) > 2000:
-                r["code_snippet"] = code[:2000] + "\n... (truncated)"
-            else:
-                r["code_snippet"] = code
+            if compact:
+                code = _strip_chunk_header(code)
+            r["code_snippet"] = _trim_snippet(code, snippet_limit)
+        elif compact and r.get("code_snippet"):
+            r["code_snippet"] = _trim_snippet(r["code_snippet"], snippet_limit)
 
         abs_path = r.get("absolute_path") or r.get("filepath")
         if not abs_path:
@@ -707,6 +776,9 @@ def search(
 
             r["language"] = get_language_for_file(r["absolute_path"]) or "unknown"
 
+    if compact:
+        results = [_compact_search_result(r) for r in results]
+
     return {
         "query": query,
         "total": len(results),
@@ -717,6 +789,7 @@ def search(
         "hint": (
             "Results include code_snippet — you can often answer "
             "without needing to Read the file."
+            + (" Snippets are trimmed; use detail='full' or Read for the rest." if compact else "")
         ),
     }
 
@@ -752,7 +825,9 @@ def find_symbol(symbol_name: str, exact: bool = True) -> dict[str, Any]:
     return {"total": len(symbols), "symbols": symbols}
 
 
-def _graph_immediate(state, symbol_name: str, direction: str) -> dict[str, Any]:
+def _graph_immediate(
+    state, symbol_name: str, direction: str, detail: str = "compact"
+) -> dict[str, Any]:
     matches = _resolve_symbol(state.graph_engine, symbol_name, exact=True)
     if not matches:
         return {"error": f"Symbol '{symbol_name}' not found."}
@@ -760,6 +835,7 @@ def _graph_immediate(state, symbol_name: str, direction: str) -> dict[str, Any]:
     get_related = (
         state.graph_engine.get_callers if direction == "callers" else state.graph_engine.get_callees
     )
+    serialize = _serialize_node_compact if detail == "compact" else _serialize_node
 
     all_related = []
     seen: set[str] = set()
@@ -767,7 +843,7 @@ def _graph_immediate(state, symbol_name: str, direction: str) -> dict[str, Any]:
         for related in get_related(node.id):
             if related.id not in seen:
                 seen.add(related.id)
-                all_related.append(_serialize_node(related, state.codebase_path))
+                all_related.append(serialize(related, state.codebase_path))
 
     return {
         "symbol": symbol_name,
@@ -777,27 +853,29 @@ def _graph_immediate(state, symbol_name: str, direction: str) -> dict[str, Any]:
     }
 
 
-def _graph_transitive_impact(state, symbol_name: str, max_depth: int) -> dict[str, Any]:
+def _graph_transitive_impact(
+    state, symbol_name: str, max_depth: int, detail: str = "compact"
+) -> dict[str, Any]:
     max_depth = max(1, min(max_depth, 50))
 
     matches = _resolve_symbol(state.graph_engine, symbol_name, exact=True)
     if not matches:
         return {"error": f"Symbol '{symbol_name}' not found."}
 
+    compact = detail == "compact"
+    serialize = _serialize_node_compact if compact else _serialize_node
     all_impacted = []
+    by_file: dict[str, list[str]] = {}
     seen: set[str] = set()
     for node in matches:
         for caller in state.graph_engine.get_transitive_callers(node.id, max_depth=max_depth):
             if caller.id not in seen:
                 seen.add(caller.id)
-                all_impacted.append(_serialize_node(caller, state.codebase_path))
+                all_impacted.append(serialize(caller, state.codebase_path))
+                short = _serialize_node_compact(caller, state.codebase_path)
+                by_file.setdefault(short["file"], []).append(short["name"])
 
-    by_file: dict[str, list[str]] = {}
-    for item in all_impacted:
-        fp = item["location"]["file"]
-        by_file.setdefault(fp, []).append(item["name"])
-
-    return {
+    result: dict[str, Any] = {
         "symbol": symbol_name,
         "direction": "callers",
         "transitive": True,
@@ -806,6 +884,12 @@ def _graph_transitive_impact(state, symbol_name: str, max_depth: int) -> dict[st
         "impacted_symbols": all_impacted,
         "impacted_files": by_file,
     }
+    # `impacted_files` already names every symbol, so a long list can be cut without
+    # losing the blast radius. A 46,000-character result was measured on a widely used symbol.
+    if compact and len(all_impacted) > MAX_IMPACTED_LISTED:
+        result["impacted_symbols"] = all_impacted[:MAX_IMPACTED_LISTED]
+        result["truncated"] = True
+    return result
 
 
 def graph(
@@ -813,11 +897,17 @@ def graph(
     direction: str = "callers",
     transitive: bool = False,
     max_depth: int = 10,
+    detail: str = "compact",
 ) -> dict[str, Any]:
     """Trace callers/callees of a symbol, or (transitive=True, direction='callers')
-    the full transitive change-impact blast radius."""
+    the full transitive change-impact blast radius.
+
+    ``detail="compact"`` (default) returns name, type, file and lines for each symbol;
+    ``detail="full"`` adds docstring, complexity, signature types and the node id."""
     if direction not in ("callers", "callees"):
         return {"error": "direction must be 'callers' or 'callees'."}
+    if detail not in DETAIL_LEVELS:
+        return {"error": f"Invalid detail: {detail}. Must be one of {list(DETAIL_LEVELS)}"}
     if transitive and direction != "callers":
         return {
             "error": (
@@ -836,8 +926,8 @@ def graph(
         return err
 
     if transitive:
-        return _graph_transitive_impact(state, symbol_name, max_depth)
-    return _graph_immediate(state, symbol_name, direction)
+        return _graph_transitive_impact(state, symbol_name, max_depth, detail)
+    return _graph_immediate(state, symbol_name, direction, detail)
 
 
 def analyze(path: str = "") -> dict[str, Any]:

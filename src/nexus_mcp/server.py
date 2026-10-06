@@ -353,6 +353,10 @@ def create_server():
         ] = "hybrid",
         rerank: Annotated[bool, "FlashRank reranking (default True)"] = True,
         live_grep: Annotated[bool, "Force live-grep fallback (rg/grep)"] = False,
+        detail: Annotated[
+            Literal["compact", "full"],
+            "'compact' (default): short snippets, no scores or ids. 'full': long snippets, scores",
+        ] = "compact",
     ) -> dict[str, Any]:
         """Find code by meaning or by keyword: "where is...", "how does... work",
         "find the code that...", "what handles...". Returns ranked snippets with file
@@ -373,6 +377,7 @@ def create_server():
             mode=mode,
             rerank=rerank,
             live_grep=live_grep,
+            detail=detail,
         )
 
     @mcp.tool(annotations=READ_ONLY, title="Find a symbol")
@@ -405,6 +410,10 @@ def create_server():
             "before changing a shared symbol. Only valid with direction='callers'.",
         ] = False,
         max_depth: Annotated[int, "Max traversal depth when transitive=True (default 10)"] = 10,
+        detail: Annotated[
+            Literal["compact", "full"],
+            "'compact' (default): name, file and lines. 'full': adds docstring and complexity",
+        ] = "compact",
     ) -> dict[str, Any]:
         """Trace the call graph: who calls a function (direction='callers') or what
         it calls (direction='callees'). With transitive=true it lists everything that
@@ -417,7 +426,11 @@ def create_server():
         if guard_err:
             return guard_err
         return core_api.graph(
-            symbol_name, direction=direction, transitive=transitive, max_depth=max_depth
+            symbol_name,
+            direction=direction,
+            transitive=transitive,
+            max_depth=max_depth,
+            detail=detail,
         )
 
     @mcp.tool(annotations=READ_ONLY, title="Analyze code quality")

@@ -139,7 +139,9 @@ class TestSearch:
     def test_search_result_format(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "search", {"query": "test"})
+            # The default shape is compact since 2.1.0 (tests/test_compact_results.py).
+            # This test pins the full shape, which is now opt-in.
+            return await _call_tool(mcp, "search", {"query": "test", "detail": "full"})
 
         result = asyncio.run(run())
         r = result["results"][0]

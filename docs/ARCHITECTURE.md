@@ -97,7 +97,7 @@ Incremental reindexing uses mtime-based change detection: only new/modified file
 
 **Graph Engine** (`engines/graph_engine.py`) — rustworkx (Rust-backed) directed graph. Stores nodes (functions, classes) and edges. The engine supports `CALLS` traversal for callers, callees and transitive impact analysis. `CALLS` edges come from `indexing/call_resolver.py`, which rebuilds them after every index or reindex.
 
-**Fusion** (`engines/fusion.py`) — Reciprocal Rank Fusion combines results from vector, BM25, and graph engines with configurable weights (default: 0.5/0.3/0.2).
+**Fusion** (`engines/fusion.py`) — Reciprocal Rank Fusion combines results from the vector and BM25 engines with configurable weights (default: 0.5/0.3). The graph list has weight 0 by default, so it is not used; set `NEXUS_FUSION_WEIGHT_GRAPH` above 0 to add it. Before fusion, results in test files move after results in source files unless the query asks for tests (`demote_test_files`).
 
 **Reranker** (`engines/reranker.py`) — Optional FlashRank two-stage reranker. Gracefully degrades to passthrough if not installed.
 

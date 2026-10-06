@@ -139,7 +139,9 @@ Parameters:
 - `live_grep` — Force the live-grep fallback (`rg`, then `grep`) (default False)
 - `detail` — "compact" (default) or "full"
 
-Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `line_start`/`line_end`, and a `hint` field. With `detail="compact"` the snippet of each of the top 5 results is trimmed to about 600 characters at a line boundary, and the other results get about 240. The `# path:line` header line, the fields that repeat the snippet (`signature`, `docstring`), the internal fields (`id`, `score`, `rrf_score`, `_fusion_sources`, `absolute_path`) and empty values are left out. Measured on a 460-file project, a compact result is about 40% of the size of a full one, for the same files in the same order. With `detail="full"` the snippet is up to 2000 characters and those fields are present. Raw embedding vectors are always stripped. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a non-null `warning`. A background reindex starts, and the results still return at once.
+Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `line_start`/`line_end`, and a `hint` field. With `detail="compact"` each of the top 3 results carries its whole symbol, up to 2000 characters (cut at a line boundary and marked `(truncated)` when longer), so the agent can answer without a file read. The other results get about 240 characters. The `# path:line` header line, the fields that repeat the snippet (`signature`, `docstring`), the internal fields (`id`, `score`, `rrf_score`, `_fusion_sources`, `absolute_path`) and empty values are left out. Measured on a 460-file project, a compact result is about 7,000 characters, 40% of a full one.
+
+Results in test files come after results in source files, unless the query itself asks for tests (a word such as "test", "fixture" or "mock", or a name such as `test_login`). No result is removed. On a 45,000-chunk index of django, where 70% of the chunks are tests, this raised hit@1 from 6 of 12 to 8 of 12 task queries. Hybrid mode fuses vector and keyword results; the graph list is off by default (`NEXUS_FUSION_WEIGHT_GRAPH=0`). With `detail="full"` the snippet is up to 2000 characters and those fields are present. Raw embedding vectors are always stripped. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a non-null `warning`. A background reindex starts, and the results still return at once.
 
 ### Graph Analysis
 
@@ -170,6 +172,15 @@ Parameters:
 - `detail` — "compact" (default): name, type, file and lines for each symbol. "full": adds docstring, complexity, signature types and the node id.
 
 With `transitive=True` and `detail="compact"`, `impacted_symbols` lists at most 40 symbols and sets `truncated: true` when there are more. A compact result is about 20% of the size of a full one. `total_impacted` is the true count, and `impacted_files` always names every impacted symbol.
+
+A callers result (immediate or transitive) also has `references`: every line where the name appears as a whole word, from a live text search of the project.
+
+```
+"references": {"total_files": 3, "total_lines": 6, "truncated": false,
+               "files": {"src/agents/budget.py": [12], "src/agents/runtime.py": [4, 88]}}
+```
+
+The caller list holds only the calls that static analysis resolved, so it is a lower bound. `references` is the complete text answer, with source files before test files, so a separate grep is not needed. It lists at most 40 files and 8 lines per file; `truncated` says when the caps cut it, and the totals always count everything. A name with no graph node (a constant, or a language without graph support) returns its `references` with an empty caller list instead of an error.
 
 > **Limit:** call edges are static and name-based. Dynamic dispatch, callbacks and reflection are invisible, and a name shared by several definitions gets no edge. Treat results as a lower bound and use `search` for other call sites. See [Known Limitations](../README.md#known-limitations).
 
@@ -238,7 +249,8 @@ export NEXUS_EMBEDDING_DEVICE=auto               # auto (CUDA > MPS > CPU), cuda
 export NEXUS_SEARCH_MODE=hybrid          # hybrid, vector, or bm25
 export NEXUS_FUSION_WEIGHT_VECTOR=0.5    # Vector weight in RRF
 export NEXUS_FUSION_WEIGHT_BM25=0.3      # BM25 weight in RRF
-export NEXUS_FUSION_WEIGHT_GRAPH=0.2     # Graph weight in RRF
+export NEXUS_FUSION_WEIGHT_GRAPH=0       # Graph weight in RRF. 0 (default) = graph list off
+export NEXUS_WARM_START=true             # Load the index and the model while the server starts
 
 # Resource limits
 export NEXUS_MAX_FILE_SIZE_MB=10         # Skip files larger than this

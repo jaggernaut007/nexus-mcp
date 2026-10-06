@@ -11,6 +11,7 @@ import asyncio
 import json as _json
 import logging
 import signal
+import threading
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Optional
 
 from nexus_mcp import core_api
@@ -30,9 +31,9 @@ for any question about how this codebase works: where something is, what calls w
 what breaks if a symbol changes, how the project is laid out, and what was decided \
 earlier. One call here replaces several greps and file reads.
 
-Start of a session: call `status`. An index from an earlier session is reattached \
-automatically. If `indexed` is false, call `index` once with the absolute project path. \
-After that the index keeps itself fresh.
+No setup call is needed: the index of an earlier session is attached when the server \
+starts and keeps itself fresh. Go straight to the tool that answers the question. Only \
+if a tool answers "No codebase indexed", call `index` once with the absolute project path.
 
 Which tool answers which question:
 - "where is...", "how does...", "find the code that..." -> `search`
@@ -43,9 +44,11 @@ Which tool answers which question:
 - "most complex code", "dead code", "review quality" -> `analyze`
 - a decision, preference or note to keep across sessions -> `memory`
 
+`search` returns the whole code of its top results, and `graph` returns every text \
+reference beside the call edges, so a follow-up file read or grep is usually not needed. \
 Use your built-in grep or file read when you already know the exact file or string. \
 Call edges are static: calls through callbacks, reflection or dynamic dispatch are not \
-visible, so confirm with `search` before you delete code.
+visible, so read the references list of `graph` before you delete code.
 """
 
 
@@ -262,12 +265,13 @@ def create_server():
     @mcp.tool(annotations=READ_ONLY, title="Index status")
     @_audited
     async def status() -> dict[str, Any]:
-        """Check whether this project is indexed and whether the index is fresh. Call
-        it first in a session, before any other nexus tool. An index saved in an earlier
-        session is reattached here, so `indexed` is usually already true. Returns
-        `indexed` (true/false), file and symbol counts, which engines are ready, memory
-        use, and a stale warning if files changed since the last index (a background
-        reindex starts by itself). If `indexed` is false, call `index`."""
+        """Check whether this project is indexed and whether the index is fresh. You do
+        not need it before other nexus tools: an index saved in an earlier session is
+        attached when the server starts. Use it when a tool says "No codebase indexed" or
+        to see index size. Returns `indexed` (true/false), file and symbol counts, which
+        engines are ready, memory use, and a stale warning if files changed since the
+        last index (a background reindex starts by itself). If `indexed` is false, call
+        `index`."""
         guard_err = _guard("status")
         if guard_err:
             return guard_err
@@ -359,10 +363,11 @@ def create_server():
         ] = "compact",
     ) -> dict[str, Any]:
         """Find code by meaning or by keyword: "where is...", "how does... work",
-        "find the code that...", "what handles...". Returns ranked snippets with file
-        path and line range, usually enough to answer without opening the file.
-        It combines semantic, keyword and graph search, and falls back to live text
-        search when results are few. Use it before reading files to explore. For an
+        "find the code that...", "what handles...". Returns ranked results with file
+        path and line range. The first three carry the whole function or class, so you
+        can answer without opening the file. Source files rank before test files unless
+        the query asks for tests. It combines semantic, keyword and graph search, and
+        falls back to live text search when results are few. For an
         exact string or a file you already know, your built-in grep or read is just as
         good. A non-null `warning` means the index was slightly stale; results still
         return."""
@@ -419,9 +424,10 @@ def create_server():
         it calls (direction='callees'). With transitive=true it lists everything that
         depends on the symbol, directly or indirectly; use that before you change a
         signature or rename, move or delete a shared function ("what breaks if I
-        change X"). Edges are static, so calls through callbacks, reflection or
-        dynamic dispatch are missing. Treat the result as a lower bound and confirm
-        with `search`."""
+        change X"). A callers result also has `references`: every file and line where
+        the name appears as a whole word, so you do not need a grep to check it. Edges
+        are static, so calls through callbacks, reflection or dynamic dispatch are
+        missing from the caller list; `references` still shows those lines."""
         guard_err = _guard("graph")
         if guard_err:
             return guard_err
@@ -576,6 +582,9 @@ def main():
     signal.signal(signal.SIGINT, _shutdown_handler)
 
     server = create_server()
+    if settings.warm_start and settings.auto_restore:
+        # Not a tool call: the first `search` then finds the index and the model loaded.
+        threading.Thread(target=core_api.warm_up, name="nexus-warm-up", daemon=True).start()
     try:
         server.run()
     finally:

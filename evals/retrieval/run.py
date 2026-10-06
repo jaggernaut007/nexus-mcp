@@ -35,7 +35,9 @@ REPO_ROOT = EVAL_DIR.parent
 QUERIES_PATH = Path(__file__).resolve().parent / "queries.yaml"
 WORK_DIR = EVAL_DIR / ".claude-eval" / "retrieval"
 RESULTS_DIR = EVAL_DIR / "results"
-MODES = ("bm25", "vector", "hybrid", "hybrid-no-graph")
+SOURCE_FIRST_OVERFETCH = 4  # the same factor as core_api.SEARCH_OVERFETCH
+GRAPH_REFERENCE_WEIGHT = 0.2  # the production weight of the graph list before 2026-10-06
+MODES = ("bm25", "vector", "hybrid", "hybrid-no-graph", "hybrid-source-first")
 
 
 LOCAL_QUERIES_PATH = QUERIES_PATH.with_name("queries.local.yaml")
@@ -90,11 +92,19 @@ def to_relative_files(results: List[Dict[str, Any]], root: Path) -> List[str]:
 
 def rank_files(pipeline, settings, root: Path, query: str, mode: str, limit: int = 10) -> List[str]:
     """Ranked files for one query. Mirrors core_api.search, minus rerank and live grep."""
-    from nexus_mcp.engines.fusion import ReciprocalRankFusion, graph_relevance_search
+    from nexus_mcp.engines.fusion import (
+        ReciprocalRankFusion,
+        demote_test_files,
+        graph_relevance_search,
+    )
 
-    overfetch = limit * 2
+    # `hybrid-source-first` is what `core_api.search` does since 2026-10-06: no graph
+    # list, a wider fetch, and test files after source files in each list. `hybrid` is
+    # the earlier production order (with the graph list), kept as the reference.
+    source_first = mode == "hybrid-source-first"
+    overfetch = limit * (SOURCE_FIRST_OVERFETCH if source_first else 2)
     ranked: Dict[str, list] = {}
-    fused_modes = ("hybrid", "hybrid-no-graph")
+    fused_modes = ("hybrid", "hybrid-no-graph", "hybrid-source-first")
     if mode == "vector" or mode in fused_modes:
         ranked["vector"] = pipeline.vector_engine.search(query, limit=overfetch)
     if mode == "bm25" or mode in fused_modes:
@@ -105,17 +115,21 @@ def rank_files(pipeline, settings, root: Path, query: str, mode: str, limit: int
         graph = graph_relevance_search(pipeline.graph_engine, query, limit=overfetch)
         if graph:
             ranked["graph"] = graph
+    if source_first:
+        ranked = {k: demote_test_files(query, v)[: limit * 2] for k, v in ranked.items()}
     if len(ranked) > 1:
         fusion = ReciprocalRankFusion(
             weights={
                 "vector": settings.fusion_weight_vector,
                 "bm25": settings.fusion_weight_bm25,
-                "graph": settings.fusion_weight_graph,
+                "graph": GRAPH_REFERENCE_WEIGHT,
             }
         )
         results = fusion.fuse(ranked)
     else:
         results = next(iter(ranked.values()), [])
+    if source_first:
+        results = demote_test_files(query, results)
     return to_relative_files(results, root)
 
 

@@ -259,6 +259,29 @@ def restore_session() -> bool:
         return _restore_locked(state, settings, roots)
 
 
+def warm_up() -> bool:
+    """Attach the stored index and load the embedding model before the first tool call.
+
+    The server runs this in a background thread at start. Measured on a 45,000-chunk
+    index: the restore takes about 2 s and the model load about 7 s, and without this the
+    first `search` of every session pays both. Returns True when a search ran. It never
+    raises: a failure only means the first tool call does the work, as before.
+    """
+    from nexus_mcp.state import get_state
+
+    try:
+        if not restore_session():
+            return False
+        engine = get_state().vector_engine
+        if engine is None:
+            return False
+        engine.search("warm up", limit=1)
+        return True
+    except Exception as e:  # noqa: BLE001 - a warm-up must never stop the server
+        logger.warning("Warm-up failed: %s", e)
+        return False
+
+
 def _restore_locked(state, settings, roots) -> bool:
     """The body of `restore_session`. The caller holds `_restore_lock`."""
     global _pipeline
@@ -554,11 +577,19 @@ async def index(
 # The live benchmark measured a median 16,000 characters per `search` result, 62% of it
 # snippet text, and 18,500 per `graph` result. These limits and the compact shape cut that.
 DETAIL_LEVELS = ("compact", "full")
-COMPACT_SNIPPET_CHARS = 600  # the top COMPACT_TOP_RESULTS results
+# The top results carry the whole symbol in most cases (the 90th percentile chunk of a
+# large project is about 1,600 characters), so the agent does not need a file read after
+# the search. In the benchmark traces a read of the top hit followed 9 of 12 searches.
+COMPACT_SNIPPET_CHARS = 2000  # the top COMPACT_TOP_RESULTS results
 COMPACT_TAIL_SNIPPET_CHARS = 240  # the rest: enough for the signature
-COMPACT_TOP_RESULTS = 5
+COMPACT_TOP_RESULTS = 3
 FULL_SNIPPET_CHARS = 2000
 MAX_IMPACTED_LISTED = 40
+# Each engine returns this many times `limit`, so that enough source results are left
+# after test files move down (see `fusion.demote_test_files`). Fusion gets 2 x `limit`.
+SEARCH_OVERFETCH = 4
+MAX_REFERENCE_FILES = 40
+MAX_REFERENCE_LINES_PER_FILE = 8
 # Fields that help ranking or debugging but not an agent's answer. `signature` and
 # `docstring` are also the first lines of the chunk text, so the snippet carries them.
 _SEARCH_INTERNAL_FIELDS = (
@@ -609,7 +640,11 @@ def search(
     ``COMPACT_SNIPPET_CHARS``; ``detail="full"`` keeps scores, ids, absolute paths and
     snippets up to ``FULL_SNIPPET_CHARS``."""
     from nexus_mcp.config import get_settings
-    from nexus_mcp.engines.fusion import ReciprocalRankFusion, graph_relevance_search
+    from nexus_mcp.engines.fusion import (
+        ReciprocalRankFusion,
+        demote_test_files,
+        graph_relevance_search,
+    )
     from nexus_mcp.engines.reranker import FlashReranker
     from nexus_mcp.state import get_state
 
@@ -644,7 +679,7 @@ def search(
 
     engines_used = []
     ranked_lists: dict[str, list] = {}
-    overfetch = limit * 2
+    overfetch = limit * SEARCH_OVERFETCH
 
     if mode in ("hybrid", "vector"):
         try:
@@ -663,9 +698,11 @@ def search(
         except Exception as e:
             logger.warning("BM25 search failed: %s", e)
 
-    if mode == "hybrid" and state.graph_engine:
+    # The graph list is off by default (weight 0): on four eval suites it never raised
+    # hit@1 and it lowered it on three. A positive NEXUS_FUSION_WEIGHT_GRAPH turns it on.
+    if mode == "hybrid" and state.graph_engine and settings.fusion_weight_graph > 0:
         try:
-            graph_results = graph_relevance_search(state.graph_engine, query, limit=limit * 2)
+            graph_results = graph_relevance_search(state.graph_engine, query, limit=overfetch)
             if graph_results:
                 if language or symbol_type:
                     graph_results = [
@@ -679,6 +716,12 @@ def search(
                     engines_used.append("graph")
         except Exception as e:
             logger.warning("Graph relevance search failed: %s", e)
+
+    # Each list: source before tests, then the same length that fusion always got. A
+    # wider list into fusion lowered hit@1 in the eval; a list of tests only is worse.
+    ranked_lists = {
+        name: demote_test_files(query, found)[: limit * 2] for name, found in ranked_lists.items()
+    }
 
     if len(ranked_lists) > 1:
         fusion = ReciprocalRankFusion(
@@ -694,10 +737,12 @@ def search(
     else:
         results = []
 
+    # Source before tests, both before the cut to `limit` and after a reranker reorders.
+    results = demote_test_files(query, results)
     if rerank and results:
         if not hasattr(state, "_reranker") or state._reranker is None:
             state._reranker = FlashReranker(model_name=settings.reranker_model)
-        results = state._reranker.rerank(query, results, limit=limit)
+        results = demote_test_files(query, state._reranker.rerank(query, results, limit=limit))
     else:
         results = results[:limit]
 
@@ -787,9 +832,13 @@ def search(
         "results": results,
         "warning": search_warning,
         "hint": (
-            "Results include code_snippet — you can often answer "
-            "without needing to Read the file."
-            + (" Snippets are trimmed; use detail='full' or Read for the rest." if compact else "")
+            (
+                f"The first {COMPACT_TOP_RESULTS} results carry the whole symbol unless the "
+                "snippet ends with '(truncated)'; answer from them without a file read. "
+                "Test files rank after source files unless the query asks for tests."
+            )
+            if compact
+            else "Results include code_snippet — you can often answer without a file read."
         ),
     }
 
@@ -830,7 +879,7 @@ def _graph_immediate(
 ) -> dict[str, Any]:
     matches = _resolve_symbol(state.graph_engine, symbol_name, exact=True)
     if not matches:
-        return {"error": f"Symbol '{symbol_name}' not found."}
+        return _references_only(state, symbol_name, direction)
 
     get_related = (
         state.graph_engine.get_callers if direction == "callers" else state.graph_engine.get_callees
@@ -845,12 +894,64 @@ def _graph_immediate(
                 seen.add(related.id)
                 all_related.append(serialize(related, state.codebase_path))
 
-    return {
+    result = {
         "symbol": symbol_name,
         "direction": direction,
         "total": len(all_related),
         direction: all_related,
     }
+    if direction == "callers":
+        _add_references(result, state, symbol_name)
+    return result
+
+
+def _references_only(state, symbol_name: str, direction: str) -> dict[str, Any]:
+    """The `graph` answer for a name with no graph node: its text references, or an error.
+
+    A constant, a symbol in a language without graph support, or a name the parser missed
+    still has uses in the text. An error here would send the agent to grep.
+    """
+    not_found = {"error": f"Symbol '{symbol_name}' not found."}
+    if direction != "callers":
+        return not_found
+    result: dict[str, Any] = {
+        "symbol": symbol_name, "direction": direction, "total": 0, direction: [],
+    }
+    _add_references(result, state, symbol_name)
+    if not result.get("references", {}).get("total_lines"):
+        return not_found
+    result["note"] = (
+        "No graph node has this name, so there are no call edges. `references` lists "
+        "every line where the name appears as a whole word (file -> line numbers)."
+    )
+    return result
+
+
+def _add_references(result: dict[str, Any], state, symbol_name: str) -> None:
+    """Add every whole-word text use of the symbol name to a `graph` callers result.
+
+    Call edges are a lower bound. In the benchmark traces the agent ran its own grep
+    after `graph` in 5 of 6 impact tasks to check them; this list makes that unnecessary.
+    """
+    from nexus_mcp.engines.live_grep import LiveGrepEngine
+
+    try:
+        refs = LiveGrepEngine(str(state.codebase_path)).references(
+            symbol_name,
+            max_files=MAX_REFERENCE_FILES,
+            max_lines_per_file=MAX_REFERENCE_LINES_PER_FILE,
+        )
+    except Exception as e:  # noqa: BLE001 - references are an addition, never a failure
+        logger.warning("Reference search failed: %s", e)
+        return
+    if refs is None:
+        return
+    result["references"] = refs
+    result["note"] = (
+        "`references` lists every line where the name appears as a whole word (file -> "
+        "line numbers, the definition included), so a separate grep is not needed. "
+        "The caller list holds only the calls that static analysis resolved."
+    )
 
 
 def _graph_transitive_impact(
@@ -860,7 +961,7 @@ def _graph_transitive_impact(
 
     matches = _resolve_symbol(state.graph_engine, symbol_name, exact=True)
     if not matches:
-        return {"error": f"Symbol '{symbol_name}' not found."}
+        return _references_only(state, symbol_name, "callers")
 
     compact = detail == "compact"
     serialize = _serialize_node_compact if compact else _serialize_node
@@ -889,6 +990,7 @@ def _graph_transitive_impact(
     if compact and len(all_impacted) > MAX_IMPACTED_LISTED:
         result["impacted_symbols"] = all_impacted[:MAX_IMPACTED_LISTED]
         result["truncated"] = True
+    _add_references(result, state, symbol_name)
     return result
 
 

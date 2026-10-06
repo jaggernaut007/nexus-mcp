@@ -39,10 +39,33 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **Fewer model turns in a session.** The benchmark traces showed that a nexus run took 5
+  turns against 3 for grep and read, and that every turn costs the whole cached prompt again.
+  Four changes remove the extra turns. They are measured offline; a live rerun is still to do.
+  - The server `instructions`, the `status` description and the skill no longer ask for a
+    `status` call first. Every benchmark run spent one turn on it.
+  - Compact `search` gives the whole symbol for the top 3 results (up to 2,000 characters) and
+    about 240 characters for the rest. A file read of the top hit followed 9 of 12 searches.
+  - A `graph` callers result has a new `references` field: every file and line where the name
+    appears as a whole word (ripgrep, or grep when ripgrep is missing). The agent ran its own
+    grep after `graph` in 5 of 6 impact tasks, because call edges are a lower bound. On django,
+    `MaxLengthValidator` has 1 call edge and 18 reference lines in 10 files. A name with no
+    graph node now returns its references and not an error.
+  - The server attaches the index and loads the embedding model in a background thread at
+    start (`NEXUS_WARM_START`, default on). The first `search` of a session waited about 7 s
+    for the model; later searches take about 0.1 s. The model memory is then in use from the
+    start of each session.
+- **`search` ranks source files before test files**, unless the query asks for tests. No
+  result is removed. On a 45,744-chunk index of django (70% of the chunks are tests), hit@1 on
+  the 12 benchmark task queries went from 6 to 8 and test files in the top 5 from 14 of 60 to 0.
+- **The graph list is no longer part of hybrid search by default**
+  (`NEXUS_FUSION_WEIGHT_GRAPH` is now `0`, was `0.2`). It raised hit@1 on none of the four
+  eval suites and lowered it on three. Hybrid hit@1 without it: `flask` 0.50 to 0.59,
+  `nexus_mcp` 0.60 to 0.72, `shop_repo` 0.25 to 0.38, `jobscout` 0.70 unchanged. Set the
+  variable above 0 to turn it on again.
 - **`search` and `graph` return a compact result by default** (new `detail` parameter,
   `"compact"` or `"full"`). The first live benchmark measured a median 16,000-character `search`
-  result and a 46,000-character `graph` result. Compact `search` trims the snippets (about 600
-  characters for the top 5 results, about 240 for the rest), and leaves out `id`, `score`,
+  result and a 46,000-character `graph` result. Compact `search` trims the snippets (see above), and leaves out `id`, `score`,
   `rrf_score`, `_fusion_sources`, `absolute_path` and the fields that repeat the snippet. Compact
   `graph` returns name, type, file and lines, and `transitive=True` lists at most 40 symbols
   (`truncated: true` when there are more; `impacted_files` always names all of them). On a

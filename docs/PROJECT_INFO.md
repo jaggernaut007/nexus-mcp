@@ -40,7 +40,7 @@ Into a **single, memory-efficient MCP server** (about 90MB idle and 460MB with t
 ├─────────────────────────────────────────────────┤
 │  Response Formatter (token budget optimization)  │
 │  FlashRank Re-ranker (two-stage retrieval)       │
-│  Reciprocal Rank Fusion (0.5/0.3/0.2 weights)   │
+│  Reciprocal Rank Fusion (0.5/0.3/0 weights)     │
 ├─────────────────────────────────────────────────┤
 │  Three Search Engines (parallel)                 │
 │  ┌─────────┐ ┌──────────┐ ┌──────────────┐     │
@@ -184,6 +184,7 @@ All settings via environment variables with `NEXUS_` prefix:
 | `NEXUS_EMBEDDING_BATCH_SIZE` | `32` | Embedding batch size |
 | `NEXUS_AUTO_WATCH` | `true` | Auto-reindex on file change |
 | `NEXUS_AUTO_RESTORE` | `true` | Reattach to the stored index when a new process starts |
+| `NEXUS_WARM_START` | `true` | Load the index and the embedding model in the background at server start |
 
 The [README](../README.md#configuration) lists every variable.
 

@@ -1,6 +1,6 @@
 ---
 name: nexus-mcp
-description: Answer questions about how a codebase works with the nexus-mcp tools instead of reading files one by one. Use when asked where something is, how it works, who calls a function, what breaks if it changes, how the project is laid out, which code is complex or dead, or to keep and recall a project decision across sessions. Start with the status tool.
+description: Answer questions about how a codebase works with the nexus-mcp tools instead of reading files one by one. Use when asked where something is, how it works, who calls a function, what breaks if it changes, how the project is laid out, which code is complex or dead, or to keep and recall a project decision across sessions. No setup call is needed.
 ---
 
 # Using nexus-mcp
@@ -9,9 +9,15 @@ Tool names below are bare. Your client may add a prefix.
 
 ## Start
 
-1. Call `status`. If `indexed` is false, call `index` once with the absolute project path.
-2. After that the index keeps itself fresh. A `stale` flag or a `warning` field means a
-   background reindex is running; the next call or two may lag the latest edit.
+1. Go straight to the tool for the question. The index of an earlier session is attached
+   when the server starts. Do not call `status` first.
+2. Only if a tool answers "No codebase indexed": call `index` once with the absolute
+   project path.
+3. The index keeps itself fresh. A `warning` field means a background reindex is running;
+   the next call or two may lag the latest edit.
+4. Answer from the result. `search` returns the whole code of its top three results, and
+   `graph` returns every text reference of the name. Read a file or grep only for what
+   the result does not show.
 
 ## Pick a tool by question
 
@@ -34,6 +40,6 @@ Tool names below are bare. Your client may add a prefix.
 ## Limits
 
 - Call edges are static and name-based. Callbacks, reflection and dynamic dispatch do not
-  appear, and a name shared by several definitions gets no edge. Treat `graph` results as a
-  lower bound and use `search` for the call sites it cannot see. No result does not mean unused.
+  appear, and a name shared by several definitions gets no edge. Treat the caller list as a
+  lower bound. The `references` list in the same result shows every line with the name.
 - `analyze` complexity is approximate, and dead-code entries only mean "no static caller".

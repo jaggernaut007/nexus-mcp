@@ -131,13 +131,17 @@ class TestSearchDetail:
         result = _search(long_function_codebase, tmp_path, detail="full")
         big = next(r for r in result["results"] if r["symbol_name"] == "big_function")
         assert INTERNAL_FIELDS <= set(big)
-        assert len(big["code_snippet"]) > core_api.COMPACT_SNIPPET_CHARS + 20
+        # Since 2026-10-06 the top compact results carry the whole symbol too (so that no
+        # file read follows), so the full snippet is no longer the longer one.
+        assert len(big["code_snippet"]) > core_api.COMPACT_TAIL_SNIPPET_CHARS + 20
         assert len(big["code_snippet"]) <= core_api.FULL_SNIPPET_CHARS + 20
 
     def test_compact_result_is_smaller_than_full(self, long_function_codebase, tmp_path):
+        # Only three results here, all in the whole-symbol tier: the saving is the dropped
+        # fields. `test_compact_snippets_below_the_top_results_are_shorter` tests the tail.
         compact = json.dumps(_search(long_function_codebase, tmp_path))
         full = json.dumps(_search(long_function_codebase, tmp_path, detail="full"))
-        assert len(compact) < 0.6 * len(full), (len(compact), len(full))
+        assert len(compact) < 0.8 * len(full), (len(compact), len(full))
 
     def test_search_rejects_an_unknown_detail(self, long_function_codebase, tmp_path):
         async def run():

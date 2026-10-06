@@ -55,7 +55,7 @@ claude mcp add nexus-mcp -- nexus-mcp-ci
 
 The server sends its own usage instructions when it connects, so Claude knows which tool
 answers which question without any extra setup. Ask something like "where do we retry
-failed payments?" and it will call `status`, `index` (once) and `search`.
+failed payments?" and it will call `search` (and `index` once, the first time in a project).
 
 ### Claude Code plugin (recommended)
 
@@ -80,7 +80,7 @@ If you want the rules in your own project file, a short block is enough:
 ## Code Navigation
 
 The nexus-mcp server is connected. For questions about how this codebase works:
-- Call `status` first; run `index` if the project is not indexed.
+- No setup call is needed; run `index` only if a tool says the project is not indexed.
 - Use `search` to find code, `find_symbol` or `explain` for one symbol, `map` for structure.
 - Use `graph` with `transitive=true` before you change a shared function. The call graph
   is static, so also use `search` for dynamic call sites.
@@ -327,7 +327,7 @@ claude mcp add nexus-mcp -- /path/to/.venv/bin/nexus-mcp-ci
 ```markdown
 ## Code Intelligence — nexus-mcp
 
-1. **Session start**: `status` → if not indexed, `index`
+1. **Session start**: no setup call. Run `index` only if a tool says "No codebase indexed"
 2. **To find code you cannot name**: `search`, before reading files one by one
 3. **To understand one symbol**: `explain`
 4. **Before refactoring**: `graph` with `transitive=true` to assess blast radius. The call graph is static (no dynamic dispatch), so also use `search` to find call sites.
@@ -385,6 +385,7 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_STORAGE_DIR` | `.nexus` | Index storage directory |
 | `NEXUS_AUTO_WATCH` | `true` | Auto-reindex on file change via a debounced watcher, started after `index()` |
 | `NEXUS_AUTO_RESTORE` | `true` | A new server process reattaches to the stored index, so `status` is already `indexed: true` |
+| `NEXUS_WARM_START` | `true` | Attach the index and load the embedding model in the background while the server starts, so the first `search` does not wait about 7 s. The model then uses its memory (about 370 MB) from the start of each session |
 | `NEXUS_STALENESS_CHECK_INTERVAL` | `15` | Seconds between `status()`/`search()` staleness checks (throttled, not per-call) |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max chars per code chunk |
@@ -396,7 +397,7 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_SEARCH_MODE` | `hybrid` | `hybrid`, `vector`, or `bm25` |
 | `NEXUS_FUSION_WEIGHT_VECTOR` | `0.5` | Vector score weight in RRF |
 | `NEXUS_FUSION_WEIGHT_BM25` | `0.3` | BM25 score weight in RRF |
-| `NEXUS_FUSION_WEIGHT_GRAPH` | `0.2` | Graph score weight in RRF |
+| `NEXUS_FUSION_WEIGHT_GRAPH` | `0` | Graph score weight in RRF. `0` leaves the graph list out of hybrid search (it did not raise hit@1 on any eval suite) |
 | `NEXUS_PERMISSION_LEVEL` | `full` | `full`, `read`, or `restricted` |
 | `NEXUS_RATE_LIMIT_ENABLED` | `false` | Enable per-tool token-bucket rate limiting |
 | `NEXUS_AUDIT_ENABLED` | `true` | Structured audit logging with correlation IDs |

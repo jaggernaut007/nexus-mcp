@@ -65,7 +65,7 @@ claude mcp add nexus-mcp -- nexus-mcp-ci
 
 The server sends its own usage instructions when it connects, so Claude knows which tool
 answers which question without any extra setup. Ask something like "where do we retry
-failed payments?" and it will call `status`, `index` (once) and `search`.
+failed payments?" and it will call `search` (and `index` once, the first time in a project).
 
 ### Claude Code plugin (recommended)
 
@@ -90,7 +90,7 @@ If you want the rules in your own project file, a short block is enough:
 ## Code Navigation
 
 The nexus-mcp server is connected. For questions about how this codebase works:
-- Call `status` first; run `index` if the project is not indexed.
+- No setup call is needed; run `index` only if a tool says the project is not indexed.
 - Use `search` to find code, `find_symbol` or `explain` for one symbol, `map` for structure.
 - Use `graph` with `transitive=true` before you change a shared function. The call graph
   is static, so also use `search` for dynamic call sites.
@@ -337,7 +337,7 @@ claude mcp add nexus-mcp -- /path/to/.venv/bin/nexus-mcp-ci
 ```markdown
 ## Code Intelligence — nexus-mcp
 
-1. **Session start**: `status` → if not indexed, `index`
+1. **Session start**: no setup call. Run `index` only if a tool says "No codebase indexed"
 2. **To find code you cannot name**: `search`, before reading files one by one
 3. **To understand one symbol**: `explain`
 4. **Before refactoring**: `graph` with `transitive=true` to assess blast radius. The call graph is static (no dynamic dispatch), so also use `search` to find call sites.
@@ -395,6 +395,7 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_STORAGE_DIR` | `.nexus` | Index storage directory |
 | `NEXUS_AUTO_WATCH` | `true` | Auto-reindex on file change via a debounced watcher, started after `index()` |
 | `NEXUS_AUTO_RESTORE` | `true` | A new server process reattaches to the stored index, so `status` is already `indexed: true` |
+| `NEXUS_WARM_START` | `true` | Attach the index and load the embedding model in the background while the server starts, so the first `search` does not wait about 7 s. The model then uses its memory (about 370 MB) from the start of each session |
 | `NEXUS_STALENESS_CHECK_INTERVAL` | `15` | Seconds between `status()`/`search()` staleness checks (throttled, not per-call) |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max chars per code chunk |
@@ -406,7 +407,7 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_SEARCH_MODE` | `hybrid` | `hybrid`, `vector`, or `bm25` |
 | `NEXUS_FUSION_WEIGHT_VECTOR` | `0.5` | Vector score weight in RRF |
 | `NEXUS_FUSION_WEIGHT_BM25` | `0.3` | BM25 score weight in RRF |
-| `NEXUS_FUSION_WEIGHT_GRAPH` | `0.2` | Graph score weight in RRF |
+| `NEXUS_FUSION_WEIGHT_GRAPH` | `0` | Graph score weight in RRF. `0` leaves the graph list out of hybrid search (it did not raise hit@1 on any eval suite) |
 | `NEXUS_PERMISSION_LEVEL` | `full` | `full`, `read`, or `restricted` |
 | `NEXUS_RATE_LIMIT_ENABLED` | `false` | Enable per-tool token-bucket rate limiting |
 | `NEXUS_AUDIT_ENABLED` | `true` | Structured audit logging with correlation IDs |
@@ -1235,7 +1236,9 @@ Parameters:
 - `live_grep` — Force the live-grep fallback (`rg`, then `grep`) (default False)
 - `detail` — "compact" (default) or "full"
 
-Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `line_start`/`line_end`, and a `hint` field. With `detail="compact"` the snippet of each of the top 5 results is trimmed to about 600 characters at a line boundary, and the other results get about 240. The `# path:line` header line, the fields that repeat the snippet (`signature`, `docstring`), the internal fields (`id`, `score`, `rrf_score`, `_fusion_sources`, `absolute_path`) and empty values are left out. Measured on a 460-file project, a compact result is about 40% of the size of a full one, for the same files in the same order. With `detail="full"` the snippet is up to 2000 characters and those fields are present. Raw embedding vectors are always stripped. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a non-null `warning`. A background reindex starts, and the results still return at once.
+Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `line_start`/`line_end`, and a `hint` field. With `detail="compact"` each of the top 3 results carries its whole symbol, up to 2000 characters (cut at a line boundary and marked `(truncated)` when longer), so the agent can answer without a file read. The other results get about 240 characters. The `# path:line` header line, the fields that repeat the snippet (`signature`, `docstring`), the internal fields (`id`, `score`, `rrf_score`, `_fusion_sources`, `absolute_path`) and empty values are left out. Measured on a 460-file project, a compact result is about 7,000 characters, 40% of a full one.
+
+Results in test files come after results in source files, unless the query itself asks for tests (a word such as "test", "fixture" or "mock", or a name such as `test_login`). No result is removed. On a 45,000-chunk index of django, where 70% of the chunks are tests, this raised hit@1 from 6 of 12 to 8 of 12 task queries. Hybrid mode fuses vector and keyword results; the graph list is off by default (`NEXUS_FUSION_WEIGHT_GRAPH=0`). With `detail="full"` the snippet is up to 2000 characters and those fields are present. Raw embedding vectors are always stripped. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a non-null `warning`. A background reindex starts, and the results still return at once.
 
 ### Graph Analysis
 
@@ -1266,6 +1269,15 @@ Parameters:
 - `detail` — "compact" (default): name, type, file and lines for each symbol. "full": adds docstring, complexity, signature types and the node id.
 
 With `transitive=True` and `detail="compact"`, `impacted_symbols` lists at most 40 symbols and sets `truncated: true` when there are more. A compact result is about 20% of the size of a full one. `total_impacted` is the true count, and `impacted_files` always names every impacted symbol.
+
+A callers result (immediate or transitive) also has `references`: every line where the name appears as a whole word, from a live text search of the project.
+
+```
+"references": {"total_files": 3, "total_lines": 6, "truncated": false,
+               "files": {"src/agents/budget.py": [12], "src/agents/runtime.py": [4, 88]}}
+```
+
+The caller list holds only the calls that static analysis resolved, so it is a lower bound. `references` is the complete text answer, with source files before test files, so a separate grep is not needed. It lists at most 40 files and 8 lines per file; `truncated` says when the caps cut it, and the totals always count everything. A name with no graph node (a constant, or a language without graph support) returns its `references` with an empty caller list instead of an error.
 
 > **Limit:** call edges are static and name-based. Dynamic dispatch, callbacks and reflection are invisible, and a name shared by several definitions gets no edge. Treat results as a lower bound and use `search` for other call sites. See [Known Limitations](../README.md#known-limitations).
 
@@ -1334,7 +1346,8 @@ export NEXUS_EMBEDDING_DEVICE=auto               # auto (CUDA > MPS > CPU), cuda
 export NEXUS_SEARCH_MODE=hybrid          # hybrid, vector, or bm25
 export NEXUS_FUSION_WEIGHT_VECTOR=0.5    # Vector weight in RRF
 export NEXUS_FUSION_WEIGHT_BM25=0.3      # BM25 weight in RRF
-export NEXUS_FUSION_WEIGHT_GRAPH=0.2     # Graph weight in RRF
+export NEXUS_FUSION_WEIGHT_GRAPH=0       # Graph weight in RRF. 0 (default) = graph list off
+export NEXUS_WARM_START=true             # Load the index and the model while the server starts
 
 # Resource limits
 export NEXUS_MAX_FILE_SIZE_MB=10         # Skip files larger than this
@@ -1509,7 +1522,7 @@ Incremental reindexing uses mtime-based change detection: only new/modified file
 
 **Graph Engine** (`engines/graph_engine.py`) — rustworkx (Rust-backed) directed graph. Stores nodes (functions, classes) and edges. The engine supports `CALLS` traversal for callers, callees and transitive impact analysis. `CALLS` edges come from `indexing/call_resolver.py`, which rebuilds them after every index or reindex.
 
-**Fusion** (`engines/fusion.py`) — Reciprocal Rank Fusion combines results from vector, BM25, and graph engines with configurable weights (default: 0.5/0.3/0.2).
+**Fusion** (`engines/fusion.py`) — Reciprocal Rank Fusion combines results from the vector and BM25 engines with configurable weights (default: 0.5/0.3). The graph list has weight 0 by default, so it is not used; set `NEXUS_FUSION_WEIGHT_GRAPH` above 0 to add it. Before fusion, results in test files move after results in source files unless the query asks for tests (`demote_test_files`).
 
 **Reranker** (`engines/reranker.py`) — Optional FlashRank two-stage reranker. Gracefully degrades to passthrough if not installed.
 

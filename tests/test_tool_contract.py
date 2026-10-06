@@ -58,9 +58,12 @@ class TestInstructions:
         assert named <= set(tools), named - set(tools)
 
     def test_instructions_name_every_tool_that_an_agent_should_choose(self, mcp, tools):
+        # `status` is left out on purpose since 2026-10-06: the index attaches at server
+        # start, and a `status` call first cost one model turn in every benchmark run.
         named = set(re.findall(r"`([a-z_]+)`", mcp.instructions))
-        assert {"status", "index", "search", "find_symbol", "explain", "graph", "map",
+        assert {"index", "search", "find_symbol", "explain", "graph", "map",
                 "analyze", "memory"} <= named
+        assert "status" not in named
 
     def test_instructions_tell_the_agent_when_not_to_use_the_server(self, mcp):
         assert "built-in grep" in mcp.instructions

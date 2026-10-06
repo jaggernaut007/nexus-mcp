@@ -115,6 +115,35 @@ The peak RSS is one process per model that indexed both suites. One query is wor
 4. **`jina-code` was dropped.** Its first run on these suites was still indexing after more than
    90 minutes and hit the time limit. It is deprecated (see ADR-004, amendment).
 
+## Third round, 2026-10-06: ranking changes, not models
+
+Run with `python -m evals.retrieval.run --candidates bge-small-en
+--suites jobscout,flask,nexus_mcp,shop_repo --label source-first`. The new mode
+`hybrid-source-first` is what `core_api.search` does now: no graph list, and test files after
+source files in each engine list before fusion. `hybrid` is the earlier production order.
+
+| Suite | vector hit@1 | hybrid (earlier) hit@1 | hybrid-source-first (now) hit@1 |
+|---|---|---|---|
+| jobscout | 0.63 | 0.70 | 0.70 |
+| flask | 0.64 | 0.50 | 0.59 |
+| nexus_mcp | 0.72 | 0.60 | 0.72 |
+| shop_repo | 0.75 | 0.25 | 0.38 |
+
+1. **The graph list is dropped from the default fusion.** The whole gain in this table comes
+   from that: `hybrid-no-graph` gives the same numbers. It raised hit@1 on no suite.
+2. **Source before tests does not show in these suites**, because they index source folders
+   only. It was measured on the stored django index (45,744 chunks, 70% in test files) with the
+   12 benchmark task prompts as queries: hit@1 6 to 8 of 12, hit@3 10 to 11, and test files in
+   the top 5 from 14 of 60 to 0.
+3. **A wider list into fusion is worse.** A first design gave fusion 4 times `limit` results
+   for each engine; `nexus_mcp` hit@1 fell from 0.60 to 0.56 and `flask` hit@5 from 0.91 to
+   0.86. The final design fetches 4 times `limit`, moves tests down, then gives fusion the
+   same 2 times `limit` as before.
+4. **Hybrid still does not beat vector on three of four suites.** bm25 costs hit@1 on prose
+   queries. The weights 0.5 and 0.3 are the next thing to tune.
+5. **The reranker was never measured.** `flashrank` is an optional extra and is not installed
+   in the eval environment, so `rerank=True` did nothing in every benchmark run.
+
 ## Next steps
 
 1. Measure idle and indexing memory for the default model in separate runs. Done: `docs/MEMORY.md`.

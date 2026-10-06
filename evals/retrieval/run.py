@@ -37,7 +37,7 @@ WORK_DIR = EVAL_DIR / ".claude-eval" / "retrieval"
 RESULTS_DIR = EVAL_DIR / "results"
 SOURCE_FIRST_OVERFETCH = 4  # the same factor as core_api.SEARCH_OVERFETCH
 GRAPH_REFERENCE_WEIGHT = 0.2  # the production weight of the graph list before 2026-10-06
-MODES = ("bm25", "vector", "hybrid", "hybrid-no-graph", "hybrid-source-first")
+MODES = ("bm25", "vector", "hybrid", "hybrid-no-graph", "hybrid-source-first", "hybrid-rerank")
 
 
 LOCAL_QUERIES_PATH = QUERIES_PATH.with_name("queries.local.yaml")
@@ -101,10 +101,11 @@ def rank_files(pipeline, settings, root: Path, query: str, mode: str, limit: int
     # `hybrid-source-first` is what `core_api.search` does since 2026-10-06: no graph
     # list, a wider fetch, and test files after source files in each list. `hybrid` is
     # the earlier production order (with the graph list), kept as the reference.
-    source_first = mode == "hybrid-source-first"
+    # `hybrid-rerank` adds the FlashRank reranker on top, as `core_api.search(rerank=True)`.
+    source_first = mode in ("hybrid-source-first", "hybrid-rerank")
     overfetch = limit * (SOURCE_FIRST_OVERFETCH if source_first else 2)
     ranked: Dict[str, list] = {}
-    fused_modes = ("hybrid", "hybrid-no-graph", "hybrid-source-first")
+    fused_modes = ("hybrid", "hybrid-no-graph", "hybrid-source-first", "hybrid-rerank")
     if mode == "vector" or mode in fused_modes:
         ranked["vector"] = pipeline.vector_engine.search(query, limit=overfetch)
     if mode == "bm25" or mode in fused_modes:
@@ -130,7 +131,22 @@ def rank_files(pipeline, settings, root: Path, query: str, mode: str, limit: int
         results = next(iter(ranked.values()), [])
     if source_first:
         results = demote_test_files(query, results)
+    if mode == "hybrid-rerank":
+        results = demote_test_files(query, _reranker(settings).rerank(query, results, limit=limit))
     return to_relative_files(results, root)
+
+
+_RERANKERS: Dict[str, Any] = {}
+
+
+def _reranker(settings):
+    """One loaded reranker per model name for the whole run."""
+    from nexus_mcp.engines.reranker import FlashReranker
+
+    name = settings.reranker_model
+    if name not in _RERANKERS:
+        _RERANKERS[name] = FlashReranker(model_name=name)
+    return _RERANKERS[name]
 
 
 def run_candidate(name: str, suite_names: List[str], work_dir: Path = WORK_DIR) -> Dict[str, Any]:

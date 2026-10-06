@@ -8,7 +8,7 @@
 # Install from PyPI
 pip install nexus-mcp-ci
 
-# Optional: with FlashRank reranker for better search quality
+# Optional: the FlashRank reranker, used only when a search passes rerank=True
 pip install nexus-mcp-ci[reranker]
 
 # Optional: with GPU (CUDA) support
@@ -135,24 +135,24 @@ Parameters:
 - `language` — Filter by language (e.g., "python", "javascript")
 - `symbol_type` — Filter by type (e.g., "function", "class")
 - `mode` — "hybrid" (default), "vector", or "bm25"
-- `rerank` — Enable FlashRank reranking (default True)
+- `rerank` — Enable FlashRank reranking (default False; needs the `reranker` extra). In the retrieval eval it lowered hit@1 on two of four suites and added 0.1 to 3 s to each query, so it is opt-in
 - `live_grep` — Force the live-grep fallback (`rg`, then `grep`) (default False)
 - `detail` — "compact" (default) or "full"
 
-Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `line_start`/`line_end`, and a `hint` field. With `detail="compact"` each of the top 3 results carries its whole symbol, up to 2000 characters (cut at a line boundary and marked `(truncated)` when longer), so the agent can answer without a file read. The other results get about 240 characters. The `# path:line` header line, the fields that repeat the snippet (`signature`, `docstring`), the internal fields (`id`, `score`, `rrf_score`, `_fusion_sources`, `absolute_path`) and empty values are left out. Measured on a 460-file project, a compact result is about 7,000 characters, 40% of a full one.
+Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `line_start`/`line_end`, and a `hint` field. With `detail="compact"` each of the top 3 results carries its whole symbol, up to 2000 characters (cut at a line boundary and marked `(truncated)` when longer), so the agent can answer without a file read. The other results get about 160 characters, enough for the signature. The snippet is the code only: the stored chunk text also has a `# path:line` line, a `type: name` line, a copy of the signature and docstring, and `Imports:` and `Calls:` lines, and compact mode leaves those out. The fields that repeat the snippet (`signature`, `docstring`, `parent`), the internal fields (`id`, `score`, `rrf_score`, `rerank_score`, `_fusion_sources`, `absolute_path`) and empty values are also left out. Measured on a 460-file project, a compact result is about 7,000 characters, 40% of a full one.
 
 Results in test files come after results in source files, unless the query itself asks for tests (a word such as "test", "fixture" or "mock", or a name such as `test_login`). No result is removed. On a 45,000-chunk index of django, where 70% of the chunks are tests, this raised hit@1 from 6 of 12 to 8 of 12 task queries. Hybrid mode fuses vector and keyword results; the graph list is off by default (`NEXUS_FUSION_WEIGHT_GRAPH=0`). With `detail="full"` the snippet is up to 2000 characters and those fields are present. Raw embedding vectors are always stripped. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a non-null `warning`. A background reindex starts, and the results still return at once.
 
 ### Graph Analysis
 
 #### `find_symbol`
-Finds a symbol definition by name. Returns file path, line numbers, docstring, type and the graph relationships of the symbol.
+Finds a symbol definition by name. Returns file path, line numbers, docstring, type, and the callers and callees of the symbol.
 
 ```
 find_symbol(symbol_name="UserService", exact=True)
 ```
 
-Use `exact=False` for fuzzy substring matching.
+Use `exact=False` for fuzzy substring matching. With `detail="compact"` (default) the callers and callees are given by name as `file -> ["name:line"]`, at most 20 each (`callers_total` or `callees_total` gives the true count when there are more). With `detail="full"` each symbol has every node field and the raw relationship records with node ids. A compact result is about a third of the size of a full one.
 
 #### `graph`
 Trace the call graph of a symbol. This tool replaces `find_callers`, `find_callees` and `impact`.
@@ -169,9 +169,9 @@ Parameters:
 - `direction` — "callers" (default) or "callees"
 - `transitive` — `True` returns the full transitive change impact. It works only with `direction="callers"`. Run it before you refactor a shared symbol.
 - `max_depth` — Maximum traversal depth for `transitive=True` (default 10)
-- `detail` — "compact" (default): name, type, file and lines for each symbol. "full": adds docstring, complexity, signature types and the node id.
+- `detail` — "compact" (default): callers or callees as `file -> ["name:line"]`, source files before test files. "full": one record for each symbol with docstring, complexity, signature types and the node id.
 
-With `transitive=True` and `detail="compact"`, `impacted_symbols` lists at most 40 symbols and sets `truncated: true` when there are more. A compact result is about 20% of the size of a full one. `total_impacted` is the true count, and `impacted_files` always names every impacted symbol.
+With `transitive=True` and `detail="compact"`, the result has `total_impacted` and `impacted_files` (`file -> [names]`, every impacted symbol). The `impacted_symbols` list of records is only in `detail="full"`. A compact result is about 10% of the size of a full one.
 
 A callers result (immediate or transitive) also has `references`: every line where the name appears as a whole word, from a live text search of the project.
 

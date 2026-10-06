@@ -207,7 +207,7 @@ class _State:
 
 def test_references_only_for_a_name_without_graph_node(ref_repo):
     out = core_api._references_only(_State(ref_repo), "CHECK", "callers")
-    assert out["total"] == 0 and out["callers"] == []
+    assert out["total"] == 0 and out["callers"] == {}
     assert out["references"]["files"] == {"src/runtime.py": [3]}
     assert "No graph node" in out["note"]
 
@@ -255,6 +255,96 @@ def test_warm_up_runs_one_search(monkeypatch):
     monkeypatch.setattr(get_state(), "vector_engine", _Engine())
     assert core_api.warm_up() is True
     assert calls == [("warm up", 1)]
+
+
+CHUNK = (
+    "# /repo/src/pricing.py:1\n"
+    "function: price_order\n\n"
+    "def price_order(order):\n\n"
+    "Price an order with its discount.\n\n"
+    'def price_order(order):\n    """Price an order with its discount."""\n'
+    "    return order.total - order.discount\n\n"
+    "Imports: decimal\n"
+    "Calls: round"
+)
+
+
+def test_chunk_code_keeps_only_the_code():
+    code = core_api._chunk_code(
+        CHUNK, "def price_order(order):", "Price an order with its discount."
+    )
+    assert code == (
+        'def price_order(order):\n    """Price an order with its discount."""\n'
+        "    return order.total - order.discount"
+    )
+
+
+def test_chunk_code_without_signature_and_docstring_fields():
+    assert core_api._chunk_code("# /r/a.py:3\nvariable: LIMIT\n\nLIMIT = 10") == "LIMIT = 10"
+
+
+def test_chunk_code_falls_back_when_there_is_no_code_part():
+    text = "# /r/a.py:3\nfunction: f\n\ndef f():\n\nDoc."
+    assert core_api._chunk_code(text, "def f():", "Doc.") == "function: f\n\ndef f():\n\nDoc."
+
+
+def test_chunk_code_keeps_text_that_is_not_a_chunk():
+    text = "return x\nCalls: y is not a tail here\nz"
+    assert core_api._chunk_code(text) == text
+
+
+def test_compact_search_result_accepts_array_like_values():
+    # A numpy score from the reranker made `v not in ("", None, [], {})` raise.
+    class _ArrayLike:
+        def __eq__(self, other):
+            raise ValueError("ambiguous truth value")
+
+    out = core_api._compact_search_result({"filepath": "a.py", "weight": _ArrayLike(), "x": ""})
+    assert set(out) == {"filepath", "weight"}
+
+
+def test_reranker_scores_are_plain_floats():
+    import json
+
+    from nexus_mcp.engines.reranker import FlashReranker
+
+    ranker = FlashReranker()
+    if not ranker.available:
+        pytest.skip("flashrank is not installed")
+    out = ranker.rerank(
+        "price an order",
+        [{"id": "1", "text": "def price_order(order): ..."}, {"id": "2", "text": "import os"}],
+    )
+    assert all(type(r["score"]) is float and type(r["rerank_score"]) is float for r in out)
+    json.dumps(out)
+
+
+def test_find_symbol_compact_names_callers_and_callees(priced_repo, tmp_path):
+    import asyncio
+
+    from tests.conftest import _call_tool, _setup_indexed
+
+    (priced_repo / "src" / "checkout.py").write_text(
+        "from pricing import price_order\n\n\ndef checkout(order):\n    return price_order(order)\n"
+    )
+
+    async def run():
+        mcp, _, _ = await _setup_indexed(priced_repo, tmp_path / ".nexus")
+        compact = await _call_tool(mcp, "find_symbol", {"symbol_name": "price_order"})
+        full = await _call_tool(
+            mcp, "find_symbol", {"symbol_name": "price_order", "detail": "full"}
+        )
+        return compact, full, core_api.find_symbol("price_order", detail="verbose")
+
+    compact, full, bad = asyncio.run(run())
+    symbol = compact["symbols"][0]
+    assert (symbol["name"], symbol["file"], symbol["start_line"]) == (
+        "price_order", "src/pricing.py", 1,
+    )
+    assert symbol["callers"]["src/checkout.py"] == ["checkout:4"]
+    assert "relationships_in" not in symbol and "id" not in symbol
+    assert "relationships_in" in full["symbols"][0]
+    assert "error" in bad
 
 
 def test_instructions_do_not_ask_for_a_status_call_first():

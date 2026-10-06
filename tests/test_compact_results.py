@@ -181,14 +181,15 @@ def _graph_with_callers(codebase_path, n_callers):
 
 
 class TestGraphDetail:
-    def test_graph_default_returns_compact_nodes(self, tmp_path):
+    def test_graph_default_groups_callers_by_file(self, tmp_path):
+        # Since 2026-10-06 compact callers are `file -> ["name:line"]`: the same facts as a
+        # list of dicts, in about a third of the characters.
         _graph_with_callers(tmp_path, 3)
         result = core_api.graph("target", direction="callers")
         assert result["total"] == 3
-        for node in result["callers"]:
-            assert set(node) == {"name", "type", "file", "start_line", "end_line"}
-            assert node["file"] == f"src/{node['name']}.py"
-            assert (node["start_line"], node["end_line"]) == (3, 9)
+        assert result["callers"] == {
+            f"src/caller_{i:03d}.py": [f"caller_{i:03d}:3"] for i in range(3)
+        }
 
     def test_graph_full_keeps_docstring_and_id(self, tmp_path):
         _graph_with_callers(tmp_path, 3)
@@ -201,29 +202,21 @@ class TestGraphDetail:
         _graph_with_callers(tmp_path, 1)
         assert "error" in core_api.graph("target", detail="verbose")
 
-    def test_transitive_result_is_capped_but_keeps_every_file(self, tmp_path):
-        n = core_api.MAX_IMPACTED_LISTED + 50
+    def test_transitive_compact_names_every_symbol_once(self, tmp_path):
+        # `impacted_files` names every symbol, so the compact result has no second list.
+        n = 90
         _graph_with_callers(tmp_path, n)
         result = core_api.graph("target", direction="callers", transitive=True)
         assert result["total_impacted"] == n
-        assert len(result["impacted_symbols"]) == core_api.MAX_IMPACTED_LISTED
-        assert result["truncated"] is True
-        assert len(result["impacted_files"]) == n  # the blast radius is still complete
-        assert set(result["impacted_symbols"][0]) == {
-            "name", "type", "file", "start_line", "end_line"
-        }
+        assert "impacted_symbols" not in result
+        assert len(result["impacted_files"]) == n  # the blast radius is complete
+        assert result["impacted_files"]["src/caller_007.py"] == ["caller_007"]
 
-    def test_transitive_full_is_not_capped(self, tmp_path):
-        n = core_api.MAX_IMPACTED_LISTED + 5
+    def test_transitive_full_lists_every_symbol(self, tmp_path):
+        n = 45
         _graph_with_callers(tmp_path, n)
         result = core_api.graph("target", transitive=True, detail="full")
         assert len(result["impacted_symbols"]) == n
-        assert "truncated" not in result
-
-    def test_transitive_below_the_cap_is_not_marked_truncated(self, tmp_path):
-        _graph_with_callers(tmp_path, 5)
-        result = core_api.graph("target", transitive=True)
-        assert len(result["impacted_symbols"]) == 5
         assert "truncated" not in result
 
     def test_compact_graph_result_is_much_smaller_than_full(self, tmp_path):

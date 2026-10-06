@@ -376,6 +376,43 @@ def _serialize_node_compact(
     }
 
 
+def _group_by_file(
+    nodes: List[UniversalNode], codebase_path: Optional[Path] = None
+) -> dict[str, list[str]]:
+    """Symbols as `file -> ["name:line", ...]`, source files before test files.
+
+    A list of one dict for each symbol repeats the file path and the key names for every
+    symbol. This shape holds the same facts in about a third of the characters.
+    """
+    from nexus_mcp.engines.fusion import is_test_path
+
+    grouped: dict[str, list[str]] = {}
+    for node in nodes:
+        short = _serialize_node_compact(node, codebase_path)
+        grouped.setdefault(short["file"], []).append(f"{short['name']}:{short['start_line']}")
+    return {f: grouped[f] for f in sorted(grouped, key=lambda f: (is_test_path(f), f))}
+
+
+def _symbol_compact(node: UniversalNode, state) -> dict[str, Any]:
+    """One `find_symbol` entry: where the symbol is, and its callers and callees by name."""
+    entry: dict[str, Any] = _serialize_node_compact(node, state.codebase_path)
+    full = _serialize_node(node, state.codebase_path)
+    if full.get("docstring"):
+        entry["docstring"] = _trim_snippet(full["docstring"], 300)
+    if full.get("complexity"):
+        entry["complexity"] = full["complexity"]
+    for key, related in (
+        ("callers", state.graph_engine.get_callers(node.id)),
+        ("callees", state.graph_engine.get_callees(node.id)),
+    ):
+        if not related:
+            continue
+        entry[key] = _group_by_file(related[:MAX_SYMBOL_RELATIONS], state.codebase_path)
+        if len(related) > MAX_SYMBOL_RELATIONS:
+            entry[f"{key}_total"] = len(related)
+    return entry
+
+
 def _serialize_relationship(rel: UniversalRelationship) -> dict[str, Any]:
     """Convert a UniversalRelationship to a JSON-serializable dict."""
     return {
@@ -581,10 +618,9 @@ DETAIL_LEVELS = ("compact", "full")
 # large project is about 1,600 characters), so the agent does not need a file read after
 # the search. In the benchmark traces a read of the top hit followed 9 of 12 searches.
 COMPACT_SNIPPET_CHARS = 2000  # the top COMPACT_TOP_RESULTS results
-COMPACT_TAIL_SNIPPET_CHARS = 240  # the rest: enough for the signature
+COMPACT_TAIL_SNIPPET_CHARS = 160  # the rest: enough for the signature
 COMPACT_TOP_RESULTS = 3
 FULL_SNIPPET_CHARS = 2000
-MAX_IMPACTED_LISTED = 40
 # Each engine returns this many times `limit`, so that enough source results are left
 # after test files move down (see `fusion.demote_test_files`). Fusion gets 2 x `limit`.
 SEARCH_OVERFETCH = 4
@@ -592,9 +628,36 @@ MAX_REFERENCE_FILES = 40
 MAX_REFERENCE_LINES_PER_FILE = 8
 # Fields that help ranking or debugging but not an agent's answer. `signature` and
 # `docstring` are also the first lines of the chunk text, so the snippet carries them.
+# `parent` is part of the qualified `symbol_name`.
 _SEARCH_INTERNAL_FIELDS = (
-    "id", "score", "rrf_score", "_fusion_sources", "absolute_path", "signature", "docstring",
+    "id", "score", "rrf_score", "rerank_score", "_fusion_sources", "absolute_path",
+    "signature", "docstring", "parent",
 )
+MAX_SYMBOL_RELATIONS = 20
+
+
+def _chunk_code(text: str, signature: str = "", docstring: str = "") -> str:
+    """The code of a chunk text, without the parts that repeat it.
+
+    A chunk text is built for the embedding model: a `# path:line` line, a
+    `type: name` line, the signature, the docstring, the code, then `Imports:` and
+    `Calls:` lines. The code already starts with the signature and the docstring, so
+    an agent that gets the whole text reads them twice. Returns the text without its
+    header when no code part is found.
+    """
+    without_header = _strip_chunk_header(text)
+    rest = without_header
+    first, sep, tail = rest.partition("\n\n")
+    if sep and "\n" not in first and ": " in first:
+        rest = tail
+    for lead in (signature or "", (docstring or "")[:500]):
+        if lead and rest.startswith(lead):
+            rest = rest[len(lead):].lstrip("\n")
+    lines = rest.rstrip().split("\n")
+    while lines and lines[-1].startswith(("Imports: ", "Calls: ")):
+        lines.pop()
+    code = "\n".join(lines).rstrip()
+    return code or without_header
 
 
 def _strip_chunk_header(code: str) -> str:
@@ -619,7 +682,9 @@ def _compact_search_result(r: dict[str, Any]) -> dict[str, Any]:
     return {
         k: v
         for k, v in r.items()
-        if k not in _SEARCH_INTERNAL_FIELDS and v not in ("", None, [], {})
+        if k not in _SEARCH_INTERNAL_FIELDS
+        and v is not None
+        and not (isinstance(v, (str, list, dict)) and not v)
     }
 
 
@@ -629,7 +694,7 @@ def search(
     language: str = "",
     symbol_type: str = "",
     mode: str = "hybrid",
-    rerank: bool = True,
+    rerank: bool = False,
     live_grep: bool = False,
     detail: str = "compact",
 ) -> dict[str, Any]:
@@ -738,6 +803,8 @@ def search(
         results = []
 
     # Source before tests, both before the cut to `limit` and after a reranker reorders.
+    # `rerank` is off by default: measured on four suites with two FlashRank models, it
+    # lowered hit@1 on two suites (0.72 to 0.44 on one) and added 0.1 to 3 s to a query.
     results = demote_test_files(query, results)
     if rerank and results:
         if not hasattr(state, "_reranker") or state._reranker is None:
@@ -798,7 +865,7 @@ def search(
         if "text" in r:
             code = r.pop("text")
             if compact:
-                code = _strip_chunk_header(code)
+                code = _chunk_code(code, r.get("signature") or "", r.get("docstring") or "")
             r["code_snippet"] = _trim_snippet(code, snippet_limit)
         elif compact and r.get("code_snippet"):
             r["code_snippet"] = _trim_snippet(r["code_snippet"], snippet_limit)
@@ -833,9 +900,8 @@ def search(
         "warning": search_warning,
         "hint": (
             (
-                f"The first {COMPACT_TOP_RESULTS} results carry the whole symbol unless the "
-                "snippet ends with '(truncated)'; answer from them without a file read. "
-                "Test files rank after source files unless the query asks for tests."
+                f"The first {COMPACT_TOP_RESULTS} results hold the whole symbol unless marked "
+                "(truncated); answer from them without a file read."
             )
             if compact
             else "Results include code_snippet — you can often answer without a file read."
@@ -845,11 +911,17 @@ def search(
 
 # --- Graph analysis -----------------------------------------------------------
 
-def find_symbol(symbol_name: str, exact: bool = True) -> dict[str, Any]:
-    """Look up a symbol by name, with its call-graph relationships."""
+def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -> dict[str, Any]:
+    """Look up a symbol by name, with its call-graph relationships.
+
+    ``detail="compact"`` (default) gives file, lines, docstring and the callers and
+    callees by name (`file -> ["name:line"]`, at most ``MAX_SYMBOL_RELATIONS`` each).
+    ``detail="full"`` gives every node field and the raw relationship records."""
     err = validate_symbol_name(symbol_name)
     if err:
         return err
+    if detail not in DETAIL_LEVELS:
+        return {"error": f"Invalid detail: {detail}. Must be one of {list(DETAIL_LEVELS)}"}
 
     state, err = require_indexed()
     if err:
@@ -861,6 +933,9 @@ def find_symbol(symbol_name: str, exact: bool = True) -> dict[str, Any]:
         if exact:
             msg += " Try exact=False for fuzzy matching."
         return {"error": msg}
+
+    if detail == "compact":
+        return {"total": len(matches), "symbols": [_symbol_compact(n, state) for n in matches]}
 
     symbols = []
     for node in matches:
@@ -884,21 +959,23 @@ def _graph_immediate(
     get_related = (
         state.graph_engine.get_callers if direction == "callers" else state.graph_engine.get_callees
     )
-    serialize = _serialize_node_compact if detail == "compact" else _serialize_node
-
-    all_related = []
+    related_nodes = []
     seen: set[str] = set()
     for node in matches:
         for related in get_related(node.id):
             if related.id not in seen:
                 seen.add(related.id)
-                all_related.append(serialize(related, state.codebase_path))
+                related_nodes.append(related)
 
     result = {
         "symbol": symbol_name,
         "direction": direction,
-        "total": len(all_related),
-        direction: all_related,
+        "total": len(related_nodes),
+        direction: (
+            _group_by_file(related_nodes, state.codebase_path)
+            if detail == "compact"
+            else [_serialize_node(n, state.codebase_path) for n in related_nodes]
+        ),
     }
     if direction == "callers":
         _add_references(result, state, symbol_name)
@@ -915,7 +992,7 @@ def _references_only(state, symbol_name: str, direction: str) -> dict[str, Any]:
     if direction != "callers":
         return not_found
     result: dict[str, Any] = {
-        "symbol": symbol_name, "direction": direction, "total": 0, direction: [],
+        "symbol": symbol_name, "direction": direction, "total": 0, direction: {},
     }
     _add_references(result, state, symbol_name)
     if not result.get("references", {}).get("total_lines"):
@@ -948,9 +1025,8 @@ def _add_references(result: dict[str, Any], state, symbol_name: str) -> None:
         return
     result["references"] = refs
     result["note"] = (
-        "`references` lists every line where the name appears as a whole word (file -> "
-        "line numbers, the definition included), so a separate grep is not needed. "
-        "The caller list holds only the calls that static analysis resolved."
+        "references: every whole-word use of the name (file -> lines), so no grep is "
+        "needed. Callers are the statically resolved calls only."
     )
 
 
@@ -985,11 +1061,10 @@ def _graph_transitive_impact(
         "impacted_symbols": all_impacted,
         "impacted_files": by_file,
     }
-    # `impacted_files` already names every symbol, so a long list can be cut without
-    # losing the blast radius. A 46,000-character result was measured on a widely used symbol.
-    if compact and len(all_impacted) > MAX_IMPACTED_LISTED:
-        result["impacted_symbols"] = all_impacted[:MAX_IMPACTED_LISTED]
-        result["truncated"] = True
+    # `impacted_files` already names every symbol, so the compact result leaves the
+    # per-symbol list out. A 46,000-character result was measured on a widely used symbol.
+    if compact:
+        del result["impacted_symbols"]
     _add_references(result, state, symbol_name)
     return result
 

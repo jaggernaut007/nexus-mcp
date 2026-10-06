@@ -55,6 +55,18 @@ All notable changes to this project will be documented in this file.
     start (`NEXUS_WARM_START`, default on). The first `search` of a session waited about 7 s
     for the model; later searches take about 0.1 s. The model memory is then in use from the
     start of each session.
+- **Smaller results, same ranking.** Measured on a 460-file project:
+  - `find_symbol` has a `detail` parameter. Compact (default) gives the callers and callees by
+    name as `file -> ["name:line"]`, not raw relationship records with node ids: 8,400 to
+    2,800 characters for a symbol with many callers.
+  - Compact `graph` groups callers and callees by file (9,600 to 3,700 characters), and the
+    transitive result names each impacted symbol once, in `impacted_files` (12,200 to 6,000).
+  - A compact `search` snippet is the code only. The stored chunk text also holds a copy of
+    the signature and the docstring and `Imports:` and `Calls:` lines; they are left out, with
+    `parent` and `rerank_score`. The tail results get 160 characters, not 240.
+- **`search(rerank=...)` is now `False` by default.** With `flashrank` installed, both
+  FlashRank models lowered hit@1 on two of four eval suites (`nexus_mcp` 0.72 to 0.44,
+  `jobscout` 0.70 to 0.59) and added 0.1 to 3 s to a query. Pass `rerank=True` to use it.
 - **`search` ranks source files before test files**, unless the query asks for tests. No
   result is removed. On a 45,744-chunk index of django (70% of the chunks are tests), hit@1 on
   the 12 benchmark task queries went from 6 to 8 and test files in the top 5 from 14 of 60 to 0.
@@ -105,6 +117,11 @@ All notable changes to this project will be documented in this file.
 - `find_symbol`'s keyword parameter was renamed from `name` to `symbol_name`, to
   match `graph()` and `explain()`. Callers that pass `find_symbol(name=...)` must
   switch to `find_symbol(symbol_name=...)`.
+
+### Fixed
+
+- With `flashrank` installed, the default `search` raised `ValueError` (and the result was not
+  JSON-serializable): the reranker returned numpy scores. The scores are plain floats now.
 
 ### Deprecated
 

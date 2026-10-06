@@ -14,6 +14,9 @@ from nexus_mcp.engines.graph_engine import RustworkxCodeGraph
 from nexus_mcp.state import get_state
 from tests.conftest import _call_tool
 
+# The default result is compact since 2026-10-06. These tests check the full shape.
+FULL = {"detail": "full"}
+
 
 def _setup_deep_call_chain(state, codebase_path):
     """Set up a graph with a deep call chain for impact testing.
@@ -74,7 +77,8 @@ class TestImpact:
         _setup_deep_call_chain(state, tmp_path)
 
         # d is at the top of the chain, nobody calls d
-        result = asyncio.run(_call_tool(mcp, "graph", {"symbol_name": "d", "transitive": True}))
+        args = {"symbol_name": "d", "transitive": True, **FULL}
+        result = asyncio.run(_call_tool(mcp, "graph", args))
         assert "error" not in result
         assert result["total_impacted"] == 0
         assert result["impacted_symbols"] == []
@@ -85,7 +89,8 @@ class TestImpact:
         _setup_deep_call_chain(state, tmp_path)
 
         # a is called by b, c (via b), d (via c->b), and e
-        result = asyncio.run(_call_tool(mcp, "graph", {"symbol_name": "a", "transitive": True}))
+        args = {"symbol_name": "a", "transitive": True, **FULL}
+        result = asyncio.run(_call_tool(mcp, "graph", args))
         assert "error" not in result
         assert result["symbol"] == "a"
         assert result["total_impacted"] >= 4
@@ -102,7 +107,9 @@ class TestImpact:
 
         # With max_depth=1, only direct callers of a: b and e
         result = asyncio.run(
-            _call_tool(mcp, "graph", {"symbol_name": "a", "max_depth": 1, "transitive": True})
+            _call_tool(
+                mcp, "graph", {"symbol_name": "a", "max_depth": 1, "transitive": True, **FULL}
+            )
         )
         assert "error" not in result
         assert result["max_depth"] == 1

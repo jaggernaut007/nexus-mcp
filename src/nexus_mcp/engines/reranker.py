@@ -87,8 +87,9 @@ class FlashReranker:
         for item in reranked[:limit]:
             result = item.get("meta", item)
             result = dict(result)  # Copy to avoid mutating originals
-            result["rerank_score"] = item.get("score", 0.0)
-            result["score"] = item.get("score", result.get("score", 0.0))
+            # FlashRank returns numpy float32, which is not JSON-serializable.
+            result["rerank_score"] = float(item.get("score", 0.0))
+            result["score"] = float(item.get("score", result.get("score", 0.0)))
             output.append(result)
 
         return output

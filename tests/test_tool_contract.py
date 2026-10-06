@@ -22,6 +22,7 @@ ENUMS = {
     ("graph", "direction"): ["callers", "callees"],
     ("search", "detail"): ["compact", "full"],
     ("graph", "detail"): ["compact", "full"],
+    ("find_symbol", "detail"): ["compact", "full"],
     ("explain", "verbosity"): ["summary", "detailed", "full"],
     ("map", "detail"): ["summary", "architecture", "full"],
     ("memory", "action"): ["store", "search", "delete"],

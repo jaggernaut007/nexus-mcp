@@ -40,7 +40,7 @@ Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexe
 
 ## Key Technical Details
 
-- **Search pipeline**: query -> [vector, BM25] -> source files before test files -> RRF fusion (weights 0.5/0.3; the graph list is off by default) -> FlashRank re-rank (only if `flashrank` is installed) -> token budget truncation
+- **Search pipeline**: query -> [vector, BM25] -> source files before test files -> RRF fusion (weights 0.5/0.3; the graph list is off by default) -> FlashRank re-rank (only with `rerank=True`; off by default) -> token budget truncation
 - **Storage**: LanceDB (vectors + FTS, mmap disk-backed), SQLite (graph persistence), no ChromaDB
 - **Embedding**: bge-small-en-v1.5 default (384d); jina-code is deprecated
 - **Graph**: rustworkx PyDiGraph — containment, import and static call edges; caller/callee and impact traversal

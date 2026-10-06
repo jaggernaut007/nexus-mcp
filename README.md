@@ -148,7 +148,7 @@ search("how does auth work")
                   │  Reciprocal Rank Fusion: score = Σ weight_i / (k + rank_i)
                   │  default weights: vector=0.5, bm25=0.3, graph=0.2
                   │
-                  ├─► reranker.rerank(top_20)   ← FlashRank (optional, 4MB ONNX model, <10ms)
+                  ├─► reranker.rerank(top_20)   ← FlashRank (only with rerank=True)
                   │
                   └─► token_budget.truncate()   ← summary / detailed / full
                            │
@@ -165,7 +165,7 @@ search("how does auth work")
 | **Symbol parser** | tree-sitter 0.21.3 | 25+ languages, incremental parsing, AST-level symbol extraction with metadata. Parallel via ThreadPool. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
 | **Graph parser** | ast-grep | Structural matching for containment and import edges (call edges are resolved after indexing; inheritance edges are not extracted yet). Sequential run for graph consistency. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
 | **Chunking** | Symbol-based | One chunk per function/class. Deterministic SHA256 IDs prevent duplicate inserts. ([ADR-008](docs/adr/ADR-008-code-chunk-strategy.md)) |
-| **Re-ranker** | FlashRank (optional) | 4 MB ONNX cross-encoder, <10 ms on CPU for top-20. Graceful passthrough if not installed. |
+| **Re-ranker** | FlashRank (optional, off by default) | ONNX cross-encoder, used when `search` gets `rerank=True`. Measured 2026-10-06: it lowered hit@1 on two of four eval suites and added 0.1 to 3 s to a query, so it is opt-in. Passthrough if not installed. |
 | **Persistence** | SQLite + LanceDB | Graph in SQLite (warm-start recovery), vectors+FTS in LanceDB, mtimes in JSON. Zero-config. |
 | **MCP framework** | FastMCP 2.0 | Stdio transport, automatic tool registration, schema generation. |
 
@@ -224,7 +224,7 @@ better under MCP Tool Search than many thin ones.
 
 | Tool | Use When |
 |------|----------|
-| `find_symbol(symbol_name, exact)` | Look up a specific symbol. `exact=False` for fuzzy matching. |
+| `find_symbol(symbol_name, exact, detail)` | Look up a specific symbol, with its callers and callees by name. `exact=False` for fuzzy matching. `detail`: `compact` (default) or `full`. |
 | `graph(symbol_name, direction, transitive, max_depth, detail)` | `detail`: `compact` (default: name, file, lines) or `full`. `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True`** (was `impact()`) gives the transitive change blast radius before a refactor (a lower bound: static edges only). It requires `direction="callers"`; `direction="callees"` with `transitive=True` returns an error. Call edges are static and name-based, so use `search` for call sites the graph cannot see (see [Known Limitations](#known-limitations)). |
 | `explain(symbol_name, verbosity)` | **Replaces `Read` for understanding code.** Graph relationships + semantic context + quality metrics in one call. |
 | `analyze(path)` | Code quality: cyclomatic complexity, cognitive complexity, code smells, dependency metrics. |
@@ -247,7 +247,7 @@ pip install nexus-mcp-ci
 # GPU (CUDA) support — adds ONNX CUDA execution provider
 pip install nexus-mcp-ci[gpu]
 
-# FlashRank reranker — adds ~4MB cross-encoder for better search quality
+# FlashRank reranker — used only when a search passes rerank=True (off by default)
 pip install nexus-mcp-ci[reranker]
 
 # Both

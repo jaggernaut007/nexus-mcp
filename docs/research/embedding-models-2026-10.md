@@ -141,8 +141,22 @@ source files in each engine list before fusion. `hybrid` is the earlier producti
    same 2 times `limit` as before.
 4. **Hybrid still does not beat vector on three of four suites.** bm25 costs hit@1 on prose
    queries. The weights 0.5 and 0.3 are the next thing to tune.
-5. **The reranker was never measured.** `flashrank` is an optional extra and is not installed
-   in the eval environment, so `rerank=True` did nothing in every benchmark run.
+5. **The reranker lowers accuracy, so it is now off by default.** `flashrank` was not
+   installed before, so `rerank=True` did nothing in every earlier run. Installed and measured
+   (mode `hybrid-rerank`, hit@1, against `hybrid-source-first`):
+
+   | Suite | no reranker | MiniLM-L-12 (the default model) | TinyBERT-L-2 |
+   |---|---|---|---|
+   | jobscout | 0.70 | 0.59 | 0.56 |
+   | flask | 0.59 | 0.64 | 0.64 |
+   | nexus_mcp | 0.72 | 0.44 | 0.52 |
+   | shop_repo | 0.38 | 0.50 | 0.38 |
+   | ms per query | 9 to 20 | 1,300 to 4,100 | 50 to 130 |
+
+   Both models are trained on web passages (MS MARCO), not code. hit@5 also fell on three
+   suites. `search(rerank=True)` still works for a caller that wants it.
+6. **A bug found on the way:** with `flashrank` installed, compact `search` raised on the
+   numpy score that the reranker returns. The scores are plain floats now.
 
 ## Next steps
 

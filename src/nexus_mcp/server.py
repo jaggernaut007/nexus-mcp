@@ -355,7 +355,7 @@ def create_server():
             Literal["hybrid", "vector", "bm25"],
             "'hybrid' (default), 'vector' (meaning only) or 'bm25' (keywords only)",
         ] = "hybrid",
-        rerank: Annotated[bool, "FlashRank reranking (default True)"] = True,
+        rerank: Annotated[bool, "FlashRank reranking (default False; it lowered accuracy)"] = False,
         live_grep: Annotated[bool, "Force live-grep fallback (rg/grep)"] = False,
         detail: Annotated[
             Literal["compact", "full"],
@@ -390,16 +390,20 @@ def create_server():
     def find_symbol(
         symbol_name: Annotated[str, "Symbol name (e.g. 'create_server', 'TokenBudget')"],
         exact: Annotated[bool, "True for exact match, False for fuzzy substring"] = True,
+        detail: Annotated[
+            Literal["compact", "full"],
+            "'compact' (default): place, docstring, callers and callees by name. 'full': all",
+        ] = "compact",
     ) -> dict[str, Any]:
         """Look up a function, class or method by name and get where it is defined: file,
-        line range, language, complexity, docstring and its direct relationships. Use it
+        line range, complexity, docstring and its direct callers and callees. Use it
         when you know the name ("show me create_order", "where is TokenBudget defined").
         Set exact=false to match part of a name when you are unsure of the spelling.
         For who calls it, use `graph`; for a full briefing, use `explain`."""
         guard_err = _guard("find_symbol")
         if guard_err:
             return guard_err
-        return core_api.find_symbol(symbol_name, exact=exact)
+        return core_api.find_symbol(symbol_name, exact=exact, detail=detail)
 
     @mcp.tool(annotations=READ_ONLY, title="Call graph")
     @_audited

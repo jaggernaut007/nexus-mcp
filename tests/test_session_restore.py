@@ -65,7 +65,7 @@ def test_status_in_a_new_process_reports_the_stored_index(indexed_storage, proje
 def test_graph_tools_work_in_a_new_process_without_calling_index(
     indexed_storage, restore_on
 ):
-    result = core_api.graph("helper", direction="callers")
+    result = core_api.graph("helper", direction="callers", detail="full")
     assert "error" not in result
     assert [c["name"] for c in result["callers"]] == ["run"]
 

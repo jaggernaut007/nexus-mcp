@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Benchmark scoring accepts a short path (`gateway/gateway.py` or `gateway.py`) as naming a
+  file, and a task can list more than one valid answer. `python -m benchmarks.rescore` rescores
+  recorded runs from their stored answers, with no Claude call. The first jobscout run went
+  from 33/36 to 36/36 correct: all three misses were scoring or ground-truth problems.
 - **`CALLS` edges.** `graph()` (callers, callees, `transitive=True`) and the
   `callers`/`callees` fields of `explain()` now return real results for Python,
   JavaScript, TypeScript, Go, Java and Rust. Edges are static and name-based, so

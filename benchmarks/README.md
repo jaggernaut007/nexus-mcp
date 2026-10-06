@@ -106,6 +106,14 @@ overview, needle-in-haystack symbol lookup. Each task specifies
 file-recall scoring, falls back to `relevant_files` when empty), and `facts`
 (groups of acceptable phrasings, at least one of which must appear).
 
+An answer names a file well enough when it writes the full path, a shorter path
+(`gateway/gateway.py`) or the bare file name (`gateway.py`) as a separate word. A generic
+name such as `__init__.py` needs its parent folder. When a question has two valid answers, put
+both paths in one inner list, for example
+`must_mention_files: [["src/a/one.py", "src/a/two.py"]]`: naming either one counts.
+After a change to the scoring rules, `python -m benchmarks.rescore --tasks <suite.yaml> --runs
+<runs.jsonl>` rescores recorded runs from their stored answers, without a Claude call.
+
 Full task-suite YAML schema:
 
 ```yaml

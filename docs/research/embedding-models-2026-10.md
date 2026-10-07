@@ -115,6 +115,25 @@ The peak RSS is one process per model that indexed both suites. One query is wor
 4. **`jina-code` was dropped.** Its first run on these suites was still indexing after more than
    90 minutes and hit the time limit. It is deprecated (see ADR-004, amendment).
 
+## Fourth round, 2026-10-07: module chunks
+
+One more chunk for each file that starts with a docstring or a comment block (ADR-008
+amendment). Same command as the third round, `bge-small-en`, mode `hybrid-source-first`
+(production):
+
+| Suite | hit@1 before | hit@1 with module chunks | vector hit@1 with module chunks |
+|---|---|---|---|
+| jobscout | 0.70 | 0.81 | 0.70 |
+| flask | 0.59 | 0.59 | 0.64 |
+| nexus_mcp | 0.72 | 0.80 | 0.72 |
+| shop_repo | 0.38 | 0.50 | 0.75 |
+
+On the three benchmark tasks that cost more than Grep and Read, for the query that the
+agent sent: `redaction.py` moved from outside the top 30 to rank 1, `cache.py` from rank 26
+to rank 6, and the `mail_triage.py` module text (the six steps in order) is now rank 1.
+Hybrid still loses to vector on `flask` and `shop_repo`. The reranker is still worse or
+equal on three of four suites.
+
 ## Third round, 2026-10-06: ranking changes, not models
 
 Run with `python -m evals.retrieval.run --candidates bge-small-en

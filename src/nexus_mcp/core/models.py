@@ -17,6 +17,7 @@ class SymbolType(Enum):
     CLASS = "class"
     METHOD = "method"
     VARIABLE = "variable"
+    MODULE = "module"  # one for each file that starts with a docstring or a comment
 
     def __str__(self) -> str:
         return self.value

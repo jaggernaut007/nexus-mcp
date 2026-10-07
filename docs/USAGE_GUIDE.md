@@ -133,7 +133,8 @@ Parameters:
 - `query` — Natural language or code query
 - `limit` — Max results (1-100, default 10)
 - `language` — Filter by language (e.g., "python", "javascript")
-- `symbol_type` — Filter by type (e.g., "function", "class")
+- `symbol_type` — Filter by type: "function", "class", "method", "variable" or "module"
+  (a module result is the docstring at the top of a file and the names it defines)
 - `mode` — "hybrid" (default), "vector", or "bm25"
 - `rerank` — Enable FlashRank reranking (default False; needs the `reranker` extra). In the retrieval eval it lowered hit@1 on two of four suites and added 0.1 to 3 s to each query, so it is opt-in
 - `live_grep` — Force the live-grep fallback (`rg`, then `grep`) (default False)

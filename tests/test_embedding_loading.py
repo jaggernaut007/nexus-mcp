@@ -157,6 +157,27 @@ def test_index_without_model_keys_is_accepted(codebase, tmp_path):
     assert _pipeline(tmp_path, "bge-small-en")._validate_index() is True
 
 
+def test_index_metadata_records_chunk_format(codebase, tmp_path):
+    from nexus_mcp.indexing.pipeline import CHUNK_FORMAT
+
+    pipeline = _pipeline(tmp_path, "bge-small-en")
+    pipeline.index(codebase)
+    assert pipeline._load_metadata_raw()["chunk_format"] == CHUNK_FORMAT
+
+
+def test_index_of_an_older_chunk_format_is_rebuilt(codebase, tmp_path):
+    """An index from before the module chunks has no `chunk_format` key."""
+    pipeline = _pipeline(tmp_path, "bge-small-en")
+    pipeline.index(codebase)
+    data = json.loads(pipeline._metadata_path.read_text())
+    data.pop("chunk_format")
+    pipeline._metadata_path.write_text(json.dumps(data))
+
+    second = _pipeline(tmp_path, "bge-small-en")
+    assert second._validate_index() is False
+    assert second.incremental_index(codebase).total_files == 2  # a full index ran
+
+
 def test_legacy_index_with_the_wrong_vector_width_is_rebuilt(codebase, tmp_path):
     """A 2.0.3 index has no model key. Opening it with a model of another width must
     rebuild, not fail on the first add (the Docker default moved from 768 to 384)."""

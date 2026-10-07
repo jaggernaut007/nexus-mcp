@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Module chunks.** A file that starts with a docstring (Python) or a comment block gets
+  one more chunk: that text and a `Defines:` line with its top-level classes and functions.
+  `search` returns it with `symbol_type: "module"`. Before, a file that only its top
+  docstring describes was not found by a search by concept. hit@1 in production mode:
+  `jobscout` 0.70 to 0.81, `nexus_mcp` 0.72 to 0.80, `shop_repo` 0.38 to 0.50, `flask`
+  0.59 (no change). A licence header and a text of less than 20 characters give no chunk.
+  The index records `chunk_format`; an index of an older version is rebuilt on the next
+  `index` call.
 - Benchmark scoring accepts a short path (`gateway/gateway.py` or `gateway.py`) as naming a
   file, and a task can list more than one valid answer. `python -m benchmarks.rescore` rescores
   recorded runs from their stored answers, with no Claude call. The first jobscout run went

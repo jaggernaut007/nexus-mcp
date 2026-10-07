@@ -350,7 +350,9 @@ def create_server():
         query: Annotated[str, "What to find, in plain words or code terms (e.g. 'retry logic')"],
         limit: Annotated[int, "Max results (default 10, max 100)"] = 10,
         language: Annotated[str, "Filter by language (e.g. 'python')"] = "",
-        symbol_type: Annotated[str, "Filter by type (e.g. 'function', 'class')"] = "",
+        symbol_type: Annotated[
+            str, "Filter by type: 'function', 'class', 'method', 'variable' or 'module'"
+        ] = "",
         mode: Annotated[
             Literal["hybrid", "vector", "bm25"],
             "'hybrid' (default), 'vector' (meaning only) or 'bm25' (keywords only)",

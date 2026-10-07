@@ -34,6 +34,11 @@ SKIP_DIRS: Set[str] = {
 }
 
 
+# Raise this when the set of chunks for a file changes, so that an index of an older
+# version is rebuilt. 2: one module chunk for a file that starts with a docstring.
+CHUNK_FORMAT = 2
+
+
 @dataclass
 class IndexResult:
     """Result of an indexing operation."""
@@ -313,7 +318,11 @@ class IndexingPipeline:
     def _embedding_metadata(self) -> Dict[str, Any]:
         """Model name and vector width, stored with the index to detect a model change."""
         model = self._settings.embedding_model
-        return {"embedding_model": model, "embedding_dimensions": model_dimensions(model)}
+        return {
+            "embedding_model": model,
+            "embedding_dimensions": model_dimensions(model),
+            "chunk_format": CHUNK_FORMAT,
+        }
 
     def _persist_graph(self) -> None:
         """Save the graph after a full build, so a restart can load it.
@@ -375,6 +384,14 @@ class IndexingPipeline:
                 logger.warning(
                     "Index was built with embedding model %r but %r is configured; "
                     "rebuilding the index.", stored, self._settings.embedding_model,
+                )
+                return False
+            # An index of an older chunk format has no module chunks: search by
+            # concept would miss files that only their top docstring describes.
+            if data.get("chunk_format", 1) != CHUNK_FORMAT:
+                logger.warning(
+                    "Index has chunk format %s but this version writes format %s; "
+                    "rebuilding the index.", data.get("chunk_format", 1), CHUNK_FORMAT,
                 )
                 return False
         except (json.JSONDecodeError, OSError):

@@ -47,7 +47,9 @@ All notable changes to this project will be documented in this file.
   - Compact `search` gives the whole symbol for the top 3 results (up to 2,000 characters) and
     about 240 characters for the rest. A file read of the top hit followed 9 of 12 searches.
   - A `graph` callers result has a new `references` field: every file and line where the name
-    appears as a whole word (ripgrep, or grep when ripgrep is missing). The agent ran its own
+    appears as a whole word, with the code of each source line, and a line count for each test
+    file. A test file with more than 3 callers shows 3 and `+N more` in the caller lists (a file
+    of 40 test functions took 40 entries before) (ripgrep, or grep when ripgrep is missing). The agent ran its own
     grep after `graph` in 5 of 6 impact tasks, because call edges are a lower bound. On django,
     `MaxLengthValidator` has 1 call edge and 18 reference lines in 10 files. A name with no
     graph node now returns its references and not an error.

@@ -428,8 +428,9 @@ def create_server():
         it calls (direction='callees'). With transitive=true it lists everything that
         depends on the symbol, directly or indirectly; use that before you change a
         signature or rename, move or delete a shared function ("what breaks if I
-        change X"). A callers result also has `references`: every file and line where
-        the name appears as a whole word, so you do not need a grep to check it. Edges
+        change X"). A callers result also has `references`: every use of the name as a
+        whole word (source lines with their code, test files as counts), so you do not
+        need a grep to check it. Edges
         are static, so calls through callbacks, reflection or dynamic dispatch are
         missing from the caller list; `references` still shows those lines."""
         guard_err = _guard("graph")

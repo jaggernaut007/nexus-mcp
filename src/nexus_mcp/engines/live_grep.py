@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 REFERENCES_TIMEOUT_S = 10
+REFERENCE_TEXT_CHARS = 110
 # ripgrep skips hidden and git-ignored paths by itself; plain grep needs the list.
 _GREP_SKIP_DIRS = (
     ".git", ".nexus*", ".venv", "venv", "node_modules", "__pycache__", "dist", "build",
@@ -50,17 +51,20 @@ class LiveGrepEngine:
         return []
 
     def references(
-        self, name: str, max_files: int = 40, max_lines_per_file: int = 8
+        self, name: str, max_lines: int = 60, max_lines_per_file: int = 8
     ) -> Optional[Dict[str, Any]]:
-        """Every line where ``name`` appears as a whole word, grouped by file.
+        """Every line where ``name`` appears as a whole word, as a short answer.
 
         This is the complete text answer to "where is this name used". Call edges in the
         graph are a lower bound (a name with several definitions gets no edge), so an
-        agent that only gets edges runs its own grep to check them. Returns None when
-        neither ripgrep nor grep is available or the search fails.
+        agent that only gets edges runs its own grep to check them, and then reads the
+        lines around each hit. Returns None when neither ripgrep nor grep is available or
+        the search fails.
 
-        Source files come before test files. ``truncated`` is True when the caps cut the
-        list; ``total_files`` and ``total_lines`` always count everything found.
+        Source files come first, each with the text of its lines (``"line: code"``).
+        Test files come as a count of lines for each file. A source file past the
+        ``max_lines`` budget comes as a count in ``more_files``. ``total_files`` and
+        ``total_lines`` always count everything found.
         """
         from nexus_mcp.engines.fusion import is_test_path
 
@@ -87,23 +91,43 @@ class LiveGrepEngine:
             logger.warning("Reference search failed: %s", e)
             return None
 
-        by_file: Dict[str, List[int]] = {}
+        by_file: Dict[str, List[tuple]] = {}
         for line in proc.stdout.splitlines():
             parts = line.split(":", 2)
             if len(parts) < 3 or not parts[1].isdigit():
                 continue
             path = parts[0][2:] if parts[0].startswith("./") else parts[0]
-            by_file.setdefault(path, []).append(int(parts[1]))
+            by_file.setdefault(path, []).append((int(parts[1]), parts[2].strip()))
 
-        ordered = sorted(by_file, key=lambda p: (is_test_path(p), p))
-        files = {p: by_file[p][:max_lines_per_file] for p in ordered[:max_files]}
-        return {
+        files: Dict[str, List[str]] = {}
+        more_files: Dict[str, int] = {}
+        test_files: Dict[str, int] = {}
+        budget = max_lines
+        truncated = False
+        for path in sorted(by_file, key=lambda p: (is_test_path(p), p)):
+            hits = by_file[path]
+            if is_test_path(path):
+                test_files[path] = len(hits)
+                continue
+            take = min(len(hits), max_lines_per_file, budget)
+            if take <= 0:
+                more_files[path] = len(hits)
+                truncated = True
+                continue
+            files[path] = [f"{n}: {text[:REFERENCE_TEXT_CHARS]}" for n, text in hits[:take]]
+            budget -= take
+            truncated = truncated or take < len(hits)
+        result: Dict[str, Any] = {
             "total_files": len(by_file),
             "total_lines": sum(len(v) for v in by_file.values()),
             "files": files,
-            "truncated": len(by_file) > max_files
-            or any(len(by_file[p]) > max_lines_per_file for p in files),
+            "truncated": truncated,
         }
+        if more_files:
+            result["more_files"] = more_files
+        if test_files:
+            result["test_files"] = test_files
+        return result
 
     def _search_rg(self, query: str, limit: int) -> List[Dict[str, Any]]:
         """Run ripgrep with JSON output."""

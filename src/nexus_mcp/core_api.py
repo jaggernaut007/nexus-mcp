@@ -382,15 +382,29 @@ def _group_by_file(
     """Symbols as `file -> ["name:line", ...]`, source files before test files.
 
     A list of one dict for each symbol repeats the file path and the key names for every
-    symbol. This shape holds the same facts in about a third of the characters.
+    symbol. This shape holds the same facts in about a third of the characters. A test
+    file keeps its first few symbols and a count of the rest: in the benchmark one file
+    held 40 test functions that call one symbol, and an agent needs the file, not the 40.
     """
-    from nexus_mcp.engines.fusion import is_test_path
-
     grouped: dict[str, list[str]] = {}
     for node in nodes:
         short = _serialize_node_compact(node, codebase_path)
         grouped.setdefault(short["file"], []).append(f"{short['name']}:{short['start_line']}")
-    return {f: grouped[f] for f in sorted(grouped, key=lambda f: (is_test_path(f), f))}
+    return _collapse_test_symbols(grouped)
+
+
+def _collapse_test_symbols(grouped: dict[str, list[str]]) -> dict[str, list[str]]:
+    """Source files first. A test file with many symbols keeps a few and a count."""
+    from nexus_mcp.engines.fusion import is_test_path
+
+    out = {}
+    for path in sorted(grouped, key=lambda f: (is_test_path(f), f)):
+        entries = grouped[path]
+        if is_test_path(path) and len(entries) > MAX_TEST_SYMBOLS_PER_FILE:
+            rest = len(entries) - MAX_TEST_SYMBOLS_PER_FILE
+            entries = entries[:MAX_TEST_SYMBOLS_PER_FILE] + [f"+{rest} more"]
+        out[path] = entries
+    return out
 
 
 def _symbol_compact(node: UniversalNode, state) -> dict[str, Any]:
@@ -624,8 +638,9 @@ FULL_SNIPPET_CHARS = 2000
 # Each engine returns this many times `limit`, so that enough source results are left
 # after test files move down (see `fusion.demote_test_files`). Fusion gets 2 x `limit`.
 SEARCH_OVERFETCH = 4
-MAX_REFERENCE_FILES = 40
+MAX_REFERENCE_LINES = 60  # source lines with their text; test files are counts only
 MAX_REFERENCE_LINES_PER_FILE = 8
+MAX_TEST_SYMBOLS_PER_FILE = 3  # a test file with more callers shows a count of the rest
 # Fields that help ranking or debugging but not an agent's answer. `signature` and
 # `docstring` are also the first lines of the chunk text, so the snippet carries them.
 # `parent` is part of the qualified `symbol_name`.
@@ -999,7 +1014,7 @@ def _references_only(state, symbol_name: str, direction: str) -> dict[str, Any]:
         return not_found
     result["note"] = (
         "No graph node has this name, so there are no call edges. `references` lists "
-        "every line where the name appears as a whole word (file -> line numbers)."
+        "every line where the name appears as a whole word (file -> `line: code`)."
     )
     return result
 
@@ -1015,7 +1030,7 @@ def _add_references(result: dict[str, Any], state, symbol_name: str) -> None:
     try:
         refs = LiveGrepEngine(str(state.codebase_path)).references(
             symbol_name,
-            max_files=MAX_REFERENCE_FILES,
+            max_lines=MAX_REFERENCE_LINES,
             max_lines_per_file=MAX_REFERENCE_LINES_PER_FILE,
         )
     except Exception as e:  # noqa: BLE001 - references are an addition, never a failure
@@ -1025,8 +1040,9 @@ def _add_references(result: dict[str, Any], state, symbol_name: str) -> None:
         return
     result["references"] = refs
     result["note"] = (
-        "references: every whole-word use of the name (file -> lines), so no grep is "
-        "needed. Callers are the statically resolved calls only."
+        "references: every whole-word use of the name. Source files show `line: code`; "
+        "test files show a line count. No grep is needed. Callers are the statically "
+        "resolved calls only."
     )
 
 
@@ -1065,6 +1081,7 @@ def _graph_transitive_impact(
     # per-symbol list out. A 46,000-character result was measured on a widely used symbol.
     if compact:
         del result["impacted_symbols"]
+        result["impacted_files"] = _collapse_test_symbols(by_file)
     _add_references(result, state, symbol_name)
     return result
 

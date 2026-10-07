@@ -1,11 +1,12 @@
 """Tests for the in-session changes: source before tests, text references, warm start."""
 
 import shutil
+from pathlib import Path
 
 import pytest
 
 from nexus_mcp import core_api
-from nexus_mcp.engines import fusion
+from nexus_mcp.engines import fusion, live_grep
 from nexus_mcp.engines.live_grep import LiveGrepEngine
 from nexus_mcp.server import SERVER_INSTRUCTIONS
 
@@ -94,29 +95,48 @@ def _engines(root):
     return engines
 
 
-def test_references_whole_word_grouped_source_first(ref_repo):
+def test_references_whole_word_source_text_then_test_counts(ref_repo):
     engines = _engines(ref_repo)
     assert engines, "ripgrep or grep must exist on the test machine"
     for engine in engines:
         refs = engine.references("ensure_budget")
-        assert list(refs["files"]) == ["src/budget.py", "src/runtime.py", "tests/test_budget.py"]
+        assert list(refs["files"]) == ["src/budget.py", "src/runtime.py"]
         # `ensure_budget_strict` on line 5 is another word and must not match.
-        assert refs["files"]["src/budget.py"] == [1]
-        assert refs["files"]["src/runtime.py"] == [1, 3, 4]
+        assert refs["files"]["src/budget.py"] == ["1: def ensure_budget(n):"]
+        assert refs["files"]["src/runtime.py"] == [
+            "1: from budget import ensure_budget",
+            "3: CHECK = ensure_budget",
+            "4: ensure_budget(1)",
+        ]
+        # Requirement change: an agent ran grep to see the code on each line, and ran it
+        # on test files it did not need. Source lines carry their text; tests are counts.
+        assert refs["test_files"] == {"tests/test_budget.py": 1}
         assert refs["total_files"] == 3
         assert refs["total_lines"] == 5
         assert refs["truncated"] is False
+        assert "more_files" not in refs
 
 
 def test_references_caps_and_reports_totals(ref_repo):
     for engine in _engines(ref_repo):
-        refs = engine.references("ensure_budget", max_files=1, max_lines_per_file=2)
+        refs = engine.references("ensure_budget", max_lines_per_file=2)
+        assert len(refs["files"]["src/runtime.py"]) == 2
+        assert refs["truncated"] is True
+        # The line budget runs out in the first file: the next source file is a count.
+        refs = engine.references("ensure_budget", max_lines=1, max_lines_per_file=2)
         assert list(refs["files"]) == ["src/budget.py"]
+        assert refs["more_files"] == {"src/runtime.py": 3}
         assert refs["total_files"] == 3
+        assert refs["total_lines"] == 5
         assert refs["truncated"] is True
-        refs = engine.references("ensure_budget", max_files=5, max_lines_per_file=2)
-        assert refs["files"]["src/runtime.py"] == [1, 3]
-        assert refs["truncated"] is True
+
+
+def test_references_text_is_cut_to_a_short_line(ref_repo):
+    (ref_repo / "src" / "long.py").write_text("ensure_budget(" + "x" * 400 + ")\n")
+    for engine in _engines(ref_repo):
+        line = engine.references("ensure_budget")["files"]["src/long.py"][0]
+        assert line.startswith("1: ensure_budget(xxx")
+        assert len(line) <= len("1: ") + live_grep.REFERENCE_TEXT_CHARS
 
 
 def test_references_qualified_name_and_option_like_name(ref_repo):
@@ -208,7 +228,7 @@ class _State:
 def test_references_only_for_a_name_without_graph_node(ref_repo):
     out = core_api._references_only(_State(ref_repo), "CHECK", "callers")
     assert out["total"] == 0 and out["callers"] == {}
-    assert out["references"]["files"] == {"src/runtime.py": [3]}
+    assert out["references"]["files"] == {"src/runtime.py": ["3: CHECK = ensure_budget"]}
     assert "No graph node" in out["note"]
 
 
@@ -352,3 +372,37 @@ def test_instructions_do_not_ask_for_a_status_call_first():
     assert "no setup call is needed" in text
     assert "call `status`" not in text
     assert len(SERVER_INSTRUCTIONS) <= 2048
+
+
+def test_group_by_file_collapses_a_long_list_of_test_callers():
+    from nexus_mcp.core.graph_models import NodeType, UniversalLocation, UniversalNode
+
+    def node(i, path):
+        return UniversalNode(
+            id=f"{path}:{i}", name=f"test_case_{i}" if "test" in path else f"fn_{i}",
+            node_type=NodeType.FUNCTION,
+            location=UniversalLocation(file_path=path, start_line=i, end_line=i + 1),
+            language="python",
+        )
+
+    nodes = [node(i, "/p/tests/test_a.py") for i in range(1, 41)]
+    nodes += [node(1, "/p/src/a.py"), node(2, "/p/src/a.py")]
+    out = core_api._group_by_file(nodes, Path("/p"))
+    assert list(out) == ["src/a.py", "tests/test_a.py"]  # source first
+    assert out["src/a.py"] == ["fn_1:1", "fn_2:2"]  # source files are never cut
+    tests = out["tests/test_a.py"]
+    assert len(tests) == core_api.MAX_TEST_SYMBOLS_PER_FILE + 1
+    assert tests[-1] == f"+{40 - core_api.MAX_TEST_SYMBOLS_PER_FILE} more"
+
+
+def test_collapse_test_symbols_keeps_every_source_symbol():
+    grouped = {
+        "tests/test_a.py": [f"t{i}" for i in range(10)],
+        "src/a.py": [f"f{i}" for i in range(10)],
+        "tests/test_b.py": ["t1", "t2"],
+    }
+    out = core_api._collapse_test_symbols(grouped)
+    assert list(out) == ["src/a.py", "tests/test_a.py", "tests/test_b.py"]
+    assert out["src/a.py"] == grouped["src/a.py"]
+    assert out["tests/test_a.py"] == ["t0", "t1", "t2", "+7 more"]
+    assert out["tests/test_b.py"] == ["t1", "t2"]  # below the limit: unchanged

@@ -177,10 +177,13 @@ A callers result (immediate or transitive) also has `references`: every line whe
 
 ```
 "references": {"total_files": 3, "total_lines": 6, "truncated": false,
-               "files": {"src/agents/budget.py": [12], "src/agents/runtime.py": [4, 88]}}
+               "files": {"src/agents/budget.py": ["12: def ensure_budget(n):"],
+                         "src/agents/runtime.py": ["4: from budget import ensure_budget",
+                                                   "88: ensure_budget(cost)"]},
+               "test_files": {"tests/test_budget.py": 3}}
 ```
 
-The caller list holds only the calls that static analysis resolved, so it is a lower bound. `references` is the complete text answer, with source files before test files, so a separate grep is not needed. It lists at most 40 files and 8 lines per file; `truncated` says when the caps cut it, and the totals always count everything. A name with no graph node (a constant, or a language without graph support) returns its `references` with an empty caller list instead of an error.
+The caller list holds only the calls that static analysis resolved, so it is a lower bound. `references` is the complete text answer, so a separate grep is not needed. Source files come first, each line with its code (at most 8 lines per file, 60 lines in all, 110 characters per line). A source file past the budget is a line count in `more_files`. Test files are a line count each in `test_files`. `truncated` says when a cap cut the list, and the totals always count everything. In the caller lists a test file with more than 3 symbols shows 3 and `+N more`. A name with no graph node (a constant, or a language without graph support) returns its `references` with an empty caller list instead of an error.
 
 > **Limit:** call edges are static and name-based. Dynamic dispatch, callbacks and reflection are invisible, and a name shared by several definitions gets no edge. Treat results as a lower bound and use `search` for other call sites. See [Known Limitations](../README.md#known-limitations).
 

@@ -14,8 +14,6 @@ source .venv/bin/activate
 # Install with dev dependencies
 pip install -e ".[dev]"
 
-# Optional: install reranker for full feature set
-pip install -e ".[reranker]"
 
 # Verify installation
 pytest -v
@@ -34,7 +32,7 @@ Nexus-MCP/
 │   ├── state.py            # Session state singleton
 │   ├── core/               # Data models, interfaces, exceptions
 │   ├── parsing/            # tree-sitter + ast-grep parsers
-│   ├── engines/            # Vector, BM25, graph, fusion, reranker
+│   ├── engines/            # Vector, BM25, graph, fusion
 │   ├── analysis/           # Code complexity and quality analysis
 │   ├── memory/             # Semantic memory store
 │   ├── indexing/           # Pipeline, embedding service, chunker
@@ -81,7 +79,7 @@ pytest --cov=nexus_mcp --cov-report=term-missing
 | `test_analyze_tool.py` | 6 | `analyze` tool |
 | `test_impact_tool.py` | 6 | `graph(transitive=True)` change-impact analysis |
 | `test_explain_tool.py` | 5 | `explain` tool with verbosity levels |
-| `test_hybrid_search.py` | 8 | Hybrid search, fusion, reranking |
+| `test_hybrid_search.py` | 8 | Hybrid search, fusion |
 | `test_live_grep.py` | 4 | rg/grep fallback |
 | `test_permissions.py` | 20 | READ/MUTATE/WRITE categories, action-aware `memory` |
 | `test_rate_limiter.py` | 11 | Token-bucket rate limiter |
@@ -194,13 +192,13 @@ All significant design decisions are documented in `docs/adr/`. When making a ke
 `state.py` uses a module-level singleton. Always access via `get_state()`. Reset with `reset_state()` in tests.
 
 ### Lazy Loading
-Engines are `None` until indexing runs. The embedding model is loaded during indexing and unloaded afterward to free RAM. FlashRank loads on first rerank call.
+Engines are `None` until indexing runs. The embedding model is loaded during indexing and unloaded afterward to free RAM.
 
 ### Defensive Validation
 All tool inputs are validated at entry (null bytes, length limits, path traversal). SQL filter values are escaped. This happens in `core_api.py` (the `validate_*` helpers) before any business logic.
 
 ### Graceful Degradation
-If FlashRank isn't installed, reranking falls through to passthrough. If BM25 fails, hybrid search continues with remaining engines. Each engine failure is logged but doesn't crash the server.
+If BM25 fails, hybrid search continues with remaining engines. Each engine failure is logged but doesn't crash the server.
 
 ## Debugging
 
@@ -242,7 +240,7 @@ Nexus-MCP was built by consolidating two earlier projects. Each source file that
 | File watcher | code-graph-mcp | `parsing/file_watcher.py` |
 | Language registry | Both (merged) | `parsing/language_registry.py` |
 
-Everything else (vector engine, BM25, fusion, reranker, memory store, pipeline, formatting, persistence, server, all hardening) was written fresh for Nexus-MCP.
+Everything else (vector engine, BM25, fusion, memory store, pipeline, formatting, persistence, server, all hardening) was written fresh for Nexus-MCP.
 
 ## Release Process
 

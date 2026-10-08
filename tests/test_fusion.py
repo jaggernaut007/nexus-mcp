@@ -9,7 +9,7 @@ from nexus_mcp.core.graph_models import (
     UniversalNode,
     UniversalRelationship,
 )
-from nexus_mcp.engines.fusion import ReciprocalRankFusion, graph_relevance_search
+from nexus_mcp.engines.fusion import ReciprocalRankFusion
 from nexus_mcp.engines.graph_engine import RustworkxCodeGraph
 
 
@@ -54,74 +54,6 @@ def graph_with_calls():
     g.add_relationship(_make_rel(nodes["parse"].id, nodes["log"].id))
 
     return g, nodes
-
-
-class TestGraphRelevance:
-    def test_basic_search(self, graph_with_calls):
-        g, _ = graph_with_calls
-        results = graph_relevance_search(g, "parse")
-        assert len(results) >= 1
-        assert results[0]["symbol_name"] == "parse"
-        assert results[0]["score"] > 0
-
-    def test_parse_has_highest_centrality(self, graph_with_calls):
-        """parse has 2 in-edges + 2 out-edges = highest centrality."""
-        g, _ = graph_with_calls
-        results = graph_relevance_search(g, "parse main validate analyze log", limit=5)
-        # parse: in_degree=2, out_degree=2 → score = 2*2+2 = 6
-        parse_result = next(r for r in results if r["symbol_name"] == "parse")
-        assert parse_result["score"] == 1.0  # Normalized max
-
-    def test_empty_query(self, graph_with_calls):
-        g, _ = graph_with_calls
-        results = graph_relevance_search(g, "")
-        assert results == []
-
-    def test_no_matches(self, graph_with_calls):
-        g, _ = graph_with_calls
-        results = graph_relevance_search(g, "nonexistent_symbol")
-        assert results == []
-
-    def test_limit_respected(self, graph_with_calls):
-        g, _ = graph_with_calls
-        results = graph_relevance_search(g, "parse main validate", limit=2)
-        assert len(results) <= 2
-
-    def test_result_has_chunk_id(self, graph_with_calls):
-        g, _ = graph_with_calls
-        results = graph_relevance_search(g, "parse")
-        assert results[0]["id"]  # Non-empty chunk ID
-        assert len(results[0]["id"]) == 16  # SHA256[:16]
-
-
-class TestGraphRelevanceWholeWords:
-    def _graph(self, *names):
-        g = RustworkxCodeGraph()
-        for i, name in enumerate(names):
-            g.add_node(_make_node(name, line=i * 10 + 1))
-        return g
-
-    def test_short_query_words_do_not_match_inside_other_names(self):
-        g = self._graph("token_budget", "store_memory", "into_parts")
-        assert graph_relevance_search(g, "how to go into it") == []
-
-    def test_stop_words_are_ignored(self):
-        g = self._graph("get_value", "use_cache")
-        assert graph_relevance_search(g, "what does the get use") == []
-
-    def test_matches_a_word_of_a_snake_case_name(self):
-        g = self._graph("create_order", "cancel_order", "send_email")
-        names = {r["symbol_name"] for r in graph_relevance_search(g, "where is the order created")}
-        assert names == {"create_order", "cancel_order"}
-
-    def test_matches_a_word_of_a_camel_case_name(self):
-        g = self._graph("TokenBudget", "RateLimiter")
-        names = {r["symbol_name"] for r in graph_relevance_search(g, "token usage")}
-        assert names == {"TokenBudget"}
-
-    def test_plural_query_word_matches_singular_name_word(self):
-        g = self._graph("send_email")
-        assert len(graph_relevance_search(g, "emails")) == 1
 
 
 class TestRRFAlgorithm:

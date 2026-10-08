@@ -87,7 +87,6 @@ src/nexus_mcp/
 │   ├── vector_engine.py   # LanceDB vector search (IEngine) + validate()
 │   ├── bm25_engine.py     # LanceDB native FTS
 │   ├── fusion.py          # Reciprocal Rank Fusion
-│   └── reranker.py        # FlashRank (optional)
 ├── analysis/
 │   └── code_analyzer.py   # Complexity, smells, deps
 ├── memory/

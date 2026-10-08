@@ -646,7 +646,7 @@ MAX_TEST_SYMBOLS_PER_FILE = 3  # a test file with more callers shows a count of 
 # `parent` is part of the qualified `symbol_name`. The extension of `filepath` says the
 # `language`.
 _SEARCH_INTERNAL_FIELDS = (
-    "id", "score", "rrf_score", "rerank_score", "_fusion_sources", "absolute_path",
+    "id", "score", "rrf_score", "_fusion_sources", "absolute_path",
     "signature", "docstring", "parent", "language",
 )
 MAX_SYMBOL_RELATIONS = 20
@@ -736,12 +736,11 @@ def search(
     language: str = "",
     symbol_type: str = "",
     mode: str = "hybrid",
-    rerank: bool = False,
     live_grep: bool = False,
     detail: str = "compact",
 ) -> dict[str, Any]:
-    """Primary code discovery: hybrid vector+BM25+graph search with RRF fusion,
-    optional reranking, and an automatic live-grep fallback when results are sparse.
+    """Primary code discovery: hybrid vector + BM25 search with RRF fusion, exact names
+    first, and an automatic live-grep fallback when results are sparse.
 
     ``detail="compact"`` (default) drops internal fields, gives the whole symbol (up to
     ``COMPACT_SNIPPET_CHARS``) for the first ``COMPACT_TOP_RESULTS`` results and the
@@ -753,10 +752,8 @@ def search(
         ReciprocalRankFusion,
         demote_test_files,
         exact_names_first,
-        graph_relevance_search,
         query_identifiers,
     )
-    from nexus_mcp.engines.reranker import FlashReranker
     from nexus_mcp.state import get_state
 
     err = validate_query(query)
@@ -809,25 +806,6 @@ def search(
         except Exception as e:
             logger.warning("BM25 search failed: %s", e)
 
-    # The graph list is off by default (weight 0): on four eval suites it never raised
-    # hit@1 and it lowered it on three. A positive NEXUS_FUSION_WEIGHT_GRAPH turns it on.
-    if mode == "hybrid" and state.graph_engine and settings.fusion_weight_graph > 0:
-        try:
-            graph_results = graph_relevance_search(state.graph_engine, query, limit=overfetch)
-            if graph_results:
-                if language or symbol_type:
-                    graph_results = [
-                        r
-                        for r in graph_results
-                        if (not language or r.get("language") == language)
-                        and (not symbol_type or r.get("symbol_type") == symbol_type)
-                    ]
-                if graph_results:
-                    ranked_lists["graph"] = graph_results
-                    engines_used.append("graph")
-        except Exception as e:
-            logger.warning("Graph relevance search failed: %s", e)
-
     # Each list: source before tests, then the same length that fusion always got. A
     # wider list into fusion lowered hit@1 in the eval; a list of tests only is worse.
     ranked_lists = {
@@ -839,7 +817,6 @@ def search(
             weights={
                 "vector": settings.fusion_weight_vector,
                 "bm25": settings.fusion_weight_bm25,
-                "graph": settings.fusion_weight_graph,
             }
         )
         results = fusion.fuse(ranked_lists)
@@ -848,32 +825,27 @@ def search(
     else:
         results = []
 
-    # Source before tests, both before the cut to `limit` and after a reranker reorders.
-    # `rerank` is off by default: measured on four suites with two FlashRank models, it
-    # lowered hit@1 on two suites (0.72 to 0.44 on one) and added 0.1 to 3 s to a query.
+    # Source before tests, before the cut to `limit`. There is no reranker: with two
+    # FlashRank models it lowered hit@1 on two of four suites (`nexus_mcp` 0.76 to 0.52) and
+    # added 0.1 to 7 s to a query, so it was removed on 2026-10-08.
     results = demote_test_files(query, results)
-    if rerank and results:
-        if not hasattr(state, "_reranker") or state._reranker is None:
-            state._reranker = FlashReranker(model_name=settings.reranker_model)
-        results = demote_test_files(query, state._reranker.rerank(query, results, limit=limit))
-    else:
-        # A name in the query (`parse_config`, `RetryPolicy`) is a request for its
-        # definition. In the live benchmark the agent sent such names to grep.
-        names = query_identifiers(query) if mode == "hybrid" else []
-        if names:
-            try:
-                definitions = [
-                    d
-                    for d in state.vector_engine.find_by_symbol_names(names)
-                    if (not language or d.get("language") == language)
-                    and (not symbol_type or d.get("symbol_type") == symbol_type)
-                ]
-                if definitions:
-                    results = exact_names_first(query, results, definitions)
-                    engines_used.append("exact_name")
-            except Exception as e:  # noqa: BLE001 - an addition, never a failure
-                logger.debug("Exact name lookup failed: %s", e)
-        results = results[:limit]
+    # A name in the query (`parse_config`, `RetryPolicy`) is a request for its definition.
+    # In the live benchmark the agent sent such names to grep.
+    names = query_identifiers(query) if mode == "hybrid" else []
+    if names:
+        try:
+            definitions = [
+                d
+                for d in state.vector_engine.find_by_symbol_names(names)
+                if (not language or d.get("language") == language)
+                and (not symbol_type or d.get("symbol_type") == symbol_type)
+            ]
+            if definitions:
+                results = exact_names_first(query, results, definitions)
+                engines_used.append("exact_name")
+        except Exception as e:  # noqa: BLE001 - an addition, never a failure
+            logger.debug("Exact name lookup failed: %s", e)
+    results = results[:limit]
 
     if not symbol_type and (live_grep or (mode == "hybrid" and len(results) < limit)):
         try:

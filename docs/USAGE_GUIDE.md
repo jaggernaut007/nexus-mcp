@@ -8,9 +8,6 @@
 # Install from PyPI
 pip install nexus-mcp-ci
 
-# Optional: the FlashRank reranker, used only when a search passes rerank=True
-pip install nexus-mcp-ci[reranker]
-
 # Optional: with GPU (CUDA) support
 pip install nexus-mcp-ci[gpu]
 ```
@@ -128,9 +125,9 @@ Parameters:
 
 The schema that the model sees holds only these two. The Python API (`nexus_mcp.core_api.search`) also takes `language`, `symbol_type` ("function", "class", "method", "variable" or "module"), `mode` ("hybrid", "vector" or "bm25"), `live_grep` and `detail` ("compact" or "full"). Agents used none of them in 49 calls, and each parameter costs prompt tokens on every turn.
 
-Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `symbol_type`, `line_start`/`line_end`, and a `hint` field. A compact response has only `total`, `results`, `hint` and, when the index is stale, `warning`; `detail="full"` adds `query`, `search_mode`, `engines_used` and the `language` of each result. With `detail="compact"` each of the top 3 results carries its whole symbol, up to 2000 characters (cut at a line boundary and marked `(truncated)` when longer), so the agent can answer without a file read. The other results show the signature and the first docstring line (160 characters at most, with no `(truncated)` mark). The snippet is the code only: the stored chunk text also has a `# path:line` line, a `type: name` line, a copy of the signature and docstring, and `Imports:` and `Calls:` lines, and compact mode leaves those out. The fields that repeat the snippet (`signature`, `docstring`, `parent`), the internal fields (`id`, `score`, `rrf_score`, `rerank_score`, `_fusion_sources`, `absolute_path`) and empty values are also left out. Measured on a 460-file project, a compact result is about 7,000 characters, 40% of a full one.
+Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `symbol_type`, `line_start`/`line_end`, and a `hint` field. A compact response has only `total`, `results`, `hint` and, when the index is stale, `warning`; `detail="full"` adds `query`, `search_mode`, `engines_used` and the `language` of each result. With `detail="compact"` each of the top 3 results carries its whole symbol, up to 2000 characters (cut at a line boundary and marked `(truncated)` when longer), so the agent can answer without a file read. The other results show the signature and the first docstring line (160 characters at most, with no `(truncated)` mark). The snippet is the code only: the stored chunk text also has a `# path:line` line, a `type: name` line, a copy of the signature and docstring, and `Imports:` and `Calls:` lines, and compact mode leaves those out. The fields that repeat the snippet (`signature`, `docstring`, `parent`), the internal fields (`id`, `score`, `rrf_score`, `_fusion_sources`, `absolute_path`) and empty values are also left out. Measured on a 460-file project, a compact result is about 7,000 characters, 40% of a full one.
 
-Results in test files come after results in source files, unless the query itself asks for tests (a word such as "test", "fixture" or "mock", or a name such as `test_login`). No result is removed. On a 45,000-chunk index of django, where 70% of the chunks are tests, this raised hit@1 from 6 of 12 to 8 of 12 task queries. A query can hold exact names written as `snake_case` or `CamelCase` (`"parse_config RetryPolicy"`): their definitions come first, and a file that defines more of the names comes before the others. Hybrid mode fuses vector and keyword results; the graph list is off by default (`NEXUS_FUSION_WEIGHT_GRAPH=0`). With `detail="full"` the snippet is up to 2000 characters and those fields are present. Raw embedding vectors are always stripped. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a `warning` (in full mode the field is always there and is null when the index is fresh). A background reindex starts, and the results still return at once.
+Results in test files come after results in source files, unless the query itself asks for tests (a word such as "test", "fixture" or "mock", or a name such as `test_login`). No result is removed. On a 45,000-chunk index of django, where 70% of the chunks are tests, this raised hit@1 from 6 of 12 to 8 of 12 task queries. A query can hold exact names written as `snake_case` or `CamelCase` (`"parse_config RetryPolicy"`): their definitions come first, and a file that defines more of the names comes before the others. Hybrid mode fuses vector and keyword results; With `detail="full"` the snippet is up to 2000 characters and those fields are present. Raw embedding vectors are always stripped. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a `warning` (in full mode the field is always there and is null when the index is fresh). A background reindex starts, and the results still return at once.
 
 ### Graph Analysis
 
@@ -232,7 +229,6 @@ export NEXUS_EMBEDDING_DEVICE=auto               # auto (CUDA > MPS > CPU), cuda
 export NEXUS_SEARCH_MODE=hybrid          # hybrid, vector, or bm25
 export NEXUS_FUSION_WEIGHT_VECTOR=0.5    # Vector weight in RRF
 export NEXUS_FUSION_WEIGHT_BM25=0.3      # BM25 weight in RRF
-export NEXUS_FUSION_WEIGHT_GRAPH=0       # Graph weight in RRF. 0 (default) = graph list off
 export NEXUS_WARM_START=true             # Load the index and the model while the server starts
 
 # Resource limits

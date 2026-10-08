@@ -134,12 +134,10 @@ search("how does auth work")
          ├─► graph_engine.boost(query, n=30)    ← structural relevance score
          │                                         hub symbols (high in/out degree) boosted
          │
-         └─► fusion.merge(v_results, b_results, g_results)
+         └─► fusion.merge(v_results, b_results)
                   │
                   │  Reciprocal Rank Fusion: score = Σ weight_i / (k + rank_i)
-                  │  default weights: vector=0.5, bm25=0.3, graph=0.2
-                  │
-                  ├─► reranker.rerank(top_20)   ← FlashRank (only with rerank=True)
+                  │  default weights: vector=0.5, bm25=0.3
                   │
                   └─► token_budget.truncate()   ← summary / detailed / full
                            │
@@ -156,7 +154,6 @@ search("how does auth work")
 | **Symbol parser** | tree-sitter 0.21.3 | 25+ languages, incremental parsing, AST-level symbol extraction with metadata. Parallel via ThreadPool. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
 | **Graph parser** | ast-grep | Structural matching for containment and import edges (call edges are resolved after indexing; inheritance edges are not extracted yet). Sequential run for graph consistency. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
 | **Chunking** | Symbol-based | One chunk per function/class. Deterministic SHA256 IDs prevent duplicate inserts. ([ADR-008](docs/adr/ADR-008-code-chunk-strategy.md)) |
-| **Re-ranker** | FlashRank (optional, off by default) | ONNX cross-encoder, used when `search` gets `rerank=True`. Measured 2026-10-06: it lowered hit@1 on two of four eval suites and added 0.1 to 3 s to a query, so it is opt-in. Passthrough if not installed. |
 | **Persistence** | SQLite + LanceDB | Graph in SQLite (warm-start recovery), vectors+FTS in LanceDB, mtimes in JSON. Zero-config. |
 | **MCP framework** | FastMCP 2.0 | Stdio transport, automatic tool registration, schema generation. |
 
@@ -232,11 +229,6 @@ pip install nexus-mcp-ci
 # GPU (CUDA) support — adds ONNX CUDA execution provider
 pip install nexus-mcp-ci[gpu]
 
-# FlashRank reranker — used only when a search passes rerank=True (off by default)
-pip install nexus-mcp-ci[reranker]
-
-# Both
-pip install nexus-mcp-ci[gpu,reranker]
 ```
 
 ### From Source
@@ -377,12 +369,10 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_EMBEDDING_BATCH_SIZE` | `32` | Chunks per embedding batch. Lower it to cut peak RAM while indexing |
 | `NEXUS_INDEX_FILE_BATCH_SIZE` | `50` | Files per streaming indexing batch |
 | `NEXUS_GRAPH_MAX_DEPTH` | `10` | Max depth for transitive graph queries |
-| `NEXUS_RERANKER_MODEL` | `ms-marco-MiniLM-L-12-v2` | FlashRank reranker model (optional) |
 | `NEXUS_MAX_MEMORY_MB` | `350` | Memory budget target |
 | `NEXUS_SEARCH_MODE` | `hybrid` | `hybrid`, `vector`, or `bm25` |
 | `NEXUS_FUSION_WEIGHT_VECTOR` | `0.5` | Vector score weight in RRF |
 | `NEXUS_FUSION_WEIGHT_BM25` | `0.3` | BM25 score weight in RRF |
-| `NEXUS_FUSION_WEIGHT_GRAPH` | `0` | Graph score weight in RRF. `0` leaves the graph list out of hybrid search (it did not raise hit@1 on any eval suite) |
 | `NEXUS_PERMISSION_LEVEL` | `full` | `full`, `read`, or `restricted` |
 | `NEXUS_RATE_LIMIT_ENABLED` | `false` | Enable per-tool token-bucket rate limiting |
 | `NEXUS_AUDIT_ENABLED` | `true` | Structured audit logging with correlation IDs |
@@ -414,7 +404,6 @@ The Python package defaults to `bge-small-en`. The `Dockerfile`, `smithery.yaml`
 | Keyword (BM25) search | ✅ | ✅ | — | ✅ | ❌ |
 | Hybrid fusion (RRF) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Code graph (call/import) | static: containment, imports, calls | ✅ SCIP | ❌ | ❌ | ❌ |
-| Re-ranking | ✅ FlashRank | ❌ | — | ❌ | ❌ |
 | Semantic memory (persistent) | ✅ 6 types | ❌ | ❌ | ❌ | ❌ |
 | Change impact analysis | static callers only | partial | ❌ | ❌ | ❌ |
 | Token-budgeted responses | ✅ 3 levels | ❌ | ❌ | ❌ | ❌ |
@@ -475,7 +464,6 @@ src/nexus_mcp/
 │   ├── graph_engine.py    # rustworkx PyDiGraph with RLock
 │   ├── live_grep.py       # rg/grep fallback for unindexed or sparse results
 │   ├── fusion.py          # Reciprocal Rank Fusion
-│   └── reranker.py        # FlashRank (optional, graceful degradation)
 ├── indexing/
 │   ├── pipeline.py        # 8-step indexing pipeline
 │   ├── embedding_service.py   # ONNX Runtime, GPU/MPS auto-detect

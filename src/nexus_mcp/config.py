@@ -32,12 +32,8 @@ class Settings:
 
     # Search
     search_mode: str = "hybrid"  # "hybrid", "vector", "bm25"
-    reranker_model: str = "ms-marco-MiniLM-L-12-v2"
     fusion_weight_vector: float = 0.5
     fusion_weight_bm25: float = 0.3
-    # 0 = the graph list is not used in hybrid search (the default since 2026-10-06: it
-    # lowered hit@1 on three of four eval suites and raised it on none). Was 0.2.
-    fusion_weight_graph: float = 0.0
 
     # Memory limits
     max_memory_mb: int = 350
@@ -81,10 +77,8 @@ class Settings:
             "NEXUS_INDEX_FILE_BATCH_SIZE": ("index_file_batch_size", int),
             "NEXUS_GRAPH_MAX_DEPTH": ("graph_max_depth", int),
             "NEXUS_SEARCH_MODE": ("search_mode", str),
-            "NEXUS_RERANKER_MODEL": ("reranker_model", str),
             "NEXUS_FUSION_WEIGHT_VECTOR": ("fusion_weight_vector", float),
             "NEXUS_FUSION_WEIGHT_BM25": ("fusion_weight_bm25", float),
-            "NEXUS_FUSION_WEIGHT_GRAPH": ("fusion_weight_graph", float),
             "NEXUS_MAX_MEMORY_MB": ("max_memory_mb", int),
             "NEXUS_AUTO_RESTORE": ("auto_restore", _bool),
             "NEXUS_WARM_START": ("warm_start", _bool),

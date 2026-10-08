@@ -40,7 +40,6 @@ flowchart TB
         Graph["graph_engine.py\nrustworkx PyDiGraph"]
         LiveGrep["live_grep.py\nrg/grep fallback"]
         Fusion["fusion.py\nReciprocal Rank Fusion"]
-        Rerank["reranker.py\nFlashRank (optional)"]
     end
 
     Analysis["analysis/code_analyzer.py\ncomplexity, smells, deps"]
@@ -60,9 +59,7 @@ flowchart TB
     LanceDB --> BM25
     Vector --> Fusion
     BM25 --> Fusion
-    Graph --> Fusion
-    Fusion --> Rerank
-    Rerank --> LiveGrep
+    Fusion --> LiveGrep
     Graph -.snapshot/restore.-> Persistence
     Core --> Formatting
     Formatting --> Tools
@@ -97,9 +94,7 @@ Incremental reindexing uses mtime-based change detection: only new/modified file
 
 **Graph Engine** (`engines/graph_engine.py`) — rustworkx (Rust-backed) directed graph. Stores nodes (functions, classes) and edges. The engine supports `CALLS` traversal for callers, callees and transitive impact analysis. `CALLS` edges come from `indexing/call_resolver.py`, which rebuilds them after every index or reindex.
 
-**Fusion** (`engines/fusion.py`) — Reciprocal Rank Fusion combines results from the vector and BM25 engines with configurable weights (default: 0.5/0.3). The graph list has weight 0 by default, so it is not used; set `NEXUS_FUSION_WEIGHT_GRAPH` above 0 to add it. Before fusion, results in test files move after results in source files unless the query asks for tests (`demote_test_files`).
-
-**Reranker** (`engines/reranker.py`) — Optional FlashRank two-stage reranker. Gracefully degrades to passthrough if not installed.
+**Fusion** (`engines/fusion.py`) — Reciprocal Rank Fusion combines results from the vector and BM25 engines with configurable weights (default: 0.5/0.3). Before fusion, results in test files move after results in source files unless the query asks for tests (`demote_test_files`).
 
 **Live Grep** (`engines/live_grep.py`) — Fallback using ripgrep (`rg`), falling back to standard `grep` if `rg` isn't installed. Covers unindexed or newly created files, and is used automatically when hybrid results are sparse.
 
@@ -152,8 +147,7 @@ Source files → ast-grep → UniversalGraph → rustworkx   embed (PyTorch / ON
 ### Hybrid Search
 ```
 Query → embed → Vector search (LanceDB)  ─┐
-Query →       → BM25 search (Tantivy)     ├→ RRF Fusion → FlashRank → Live Grep (fallback) → Results
-Query →       → Graph relevance search    ─┘
+Query →       → BM25 search (Tantivy)     ┴→ RRF Fusion → exact names first → Live Grep (fallback) → Results
 ```
 
 ## Memory Budget

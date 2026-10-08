@@ -66,9 +66,6 @@ gpu = [
     "sentence-transformers[onnx-gpu]>=3.0.0",
     "optimum[onnxruntime-gpu]>=1.19.0",
 ]
-reranker = [
-    "flashrank>=0.2.0",
-]
 onnx = [
     # optimum 2.x moved the ONNX Runtime code into optimum-onnx. Needed to load a model
     # with the ONNX backend (jina-code, or the candidates in evals/retrieval).

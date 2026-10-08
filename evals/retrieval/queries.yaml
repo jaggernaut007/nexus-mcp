@@ -22,7 +22,6 @@ suites:
       - {id: symbol-parse, query: "pull out symbols with their doc comments and signatures from source", relevant: [parsing/treesitter_parser.py]}
       - {id: quality-score, query: "measure how tangled a function is and flag long classes", relevant: [analysis/code_analyzer.py]}
       - {id: text-fallback, query: "scan files for a string when the index has too few answers", relevant: [engines/live_grep.py]}
-      - {id: second-pass, query: "re-score the top candidates with a small cross-encoder", relevant: [engines/reranker.py]}
       - {id: keyword-search, query: "keyword search over stored chunks with an inverted index", relevant: [engines/bm25_engine.py]}
       - {id: vector-store, query: "nearest neighbour lookup over stored embeddings with column filters", relevant: [engines/vector_engine.py]}
       - {id: size-limit, query: "estimate how many tokens a reply uses and cut it down to fit", relevant: [formatting/token_budget.py]}

@@ -61,11 +61,6 @@
         "description": "BM25 engine weight in RRF",
         "default": "0.3"
       },
-      "NEXUS_FUSION_WEIGHT_GRAPH": {
-        "type": "string",
-        "description": "Graph engine weight in RRF",
-        "default": "0.2"
-      },
       "NEXUS_FUSION_WEIGHT_VECTOR": {
         "type": "string",
         "description": "Vector engine weight in RRF",

@@ -158,6 +158,29 @@ All notable changes to this project will be documented in this file.
 - With `flashrank` installed, the default `search` raised `ValueError` (and the result was not
   JSON-serializable): the reranker returned numpy scores. The scores are plain floats now.
 
+### Removed
+
+Rule for every item below: a tool, a parameter or an engine stays only if tasks that use it end
+in fewer turns, or if grep cannot do the job. In 12 live tasks the output tokens for each turn
+were equal with and without nexus (259 and 266), so reasoning follows turns; and nexus added
+4,900 tokens to the prompt of each turn.
+
+- **The `explain` and `health` tools** (10 tools to 8). No agent called either in 64 recorded
+  runs. `find_symbol` returns the code of a symbol with its callers and callees. Both stay in the
+  Python API (`core_api.explain`, `core_api.health`). Breaking change for MCP clients that call them.
+- **Parameters that no agent used**, from the MCP schema (they stay in `core_api`): `search`
+  `language`, `symbol_type`, `mode`, `rerank`, `live_grep`, `detail`; `find_symbol` `detail`;
+  `graph` `max_depth`, `detail`; `memory` `memory_type`, `ttl`, `project`, `limit`. Tool
+  definitions went from 9,818 to 6,682 characters and the skill text from 2,574 to 1,550.
+- **The FlashRank reranker** (`rerank`, `engines/reranker.py`, the `reranker` extra, the
+  `--reranker` option of `setup.sh`, `NEXUS_RERANKER_MODEL`). hit@1 fell on `nexus_mcp` (0.76
+  to 0.52) and `jobscout` (0.81 to 0.78); a query took 2 to 7 s more.
+- **The graph list in fusion** (`graph_relevance_search`, `NEXUS_FUSION_WEIGHT_GRAPH`, the word
+  index of the graph engine). It never raised hit@1 and lowered it on three suites; it was off
+  since 2026-10-06.
+- README: the table of token savings was never measured. It is replaced by the 12-task
+  measurement, in which nexus cost 6% more than Grep and Read.
+
 ### Deprecated
 
 - **`jina-code` embedding model.** It still loads, with a warning, so an existing index keeps

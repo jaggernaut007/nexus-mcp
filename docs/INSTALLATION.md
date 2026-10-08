@@ -32,12 +32,6 @@ With optional extras:
 ```bash
 # With GPU (CUDA) support
 pip install nexus-mcp-ci[gpu]
-
-# With FlashRank reranker for better search quality
-pip install nexus-mcp-ci[reranker]
-
-# Both GPU and reranker
-pip install nexus-mcp-ci[gpu,reranker]
 ```
 
 After installing, the `nexus-mcp` command is available globally:
@@ -74,7 +68,6 @@ cd Nexus-MCP
 |------|-------------|
 | `--clean` | Remove existing venv before creating new |
 | `--prod` | Install production dependencies only (no dev) |
-| `--reranker` | Include optional FlashRank reranker |
 | `--no-verify` | Skip verification step |
 | `--help` | Show help message |
 
@@ -84,7 +77,6 @@ Examples:
 ./setup.sh                       # Dev install (pytest, ruff, mypy)
 ./setup.sh --clean               # Remove old venv, fresh install
 ./setup.sh --prod                # Production-only (no dev tools)
-./setup.sh --reranker            # Dev install + FlashRank reranker
 ./setup.sh --clean --prod        # Clean production install
 ```
 
@@ -105,9 +97,6 @@ pip install -e .
 
 # Option 2: With dev dependencies
 pip install -e ".[dev]"
-
-# Option 3: With dev + reranker
-pip install -e ".[dev,reranker]"
 
 # Option 4: With GPU (CUDA) support
 pip install -e ".[gpu]"

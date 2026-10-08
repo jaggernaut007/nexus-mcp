@@ -202,24 +202,6 @@ def test_search_keeps_engine_order_when_the_query_asks_for_tests(priced_repo, tm
     assert out["results"][0]["filepath"] == "tests/test_pricing.py"
 
 
-def test_search_does_not_use_the_graph_list_by_default(priced_repo, tmp_path, monkeypatch):
-    has_graph = []
-    out = _search_tool(priced_repo, tmp_path, "price_order", has_graph, detail="full")
-    assert has_graph == [True]
-    assert "graph" not in out["engines_used"]
-
-
-def test_search_uses_the_graph_list_when_its_weight_is_positive(
-    priced_repo, tmp_path, monkeypatch
-):
-    monkeypatch.setenv("NEXUS_FUSION_WEIGHT_GRAPH", "0.2")
-    from nexus_mcp.config import reset_settings
-
-    reset_settings()
-    out = _search_tool(priced_repo, tmp_path, "price_order", [], detail="full")
-    assert "graph" in out["engines_used"]
-
-
 class _State:
     def __init__(self, root):
         self.codebase_path = root
@@ -314,29 +296,13 @@ def test_chunk_code_keeps_text_that_is_not_a_chunk():
 
 
 def test_compact_search_result_accepts_array_like_values():
-    # A numpy score from the reranker made `v not in ("", None, [], {})` raise.
+    # A numpy score (from the old reranker) made `v not in ("", None, [], {})` raise.
     class _ArrayLike:
         def __eq__(self, other):
             raise ValueError("ambiguous truth value")
 
     out = core_api._compact_search_result({"filepath": "a.py", "weight": _ArrayLike(), "x": ""})
     assert set(out) == {"filepath", "weight"}
-
-
-def test_reranker_scores_are_plain_floats():
-    import json
-
-    from nexus_mcp.engines.reranker import FlashReranker
-
-    ranker = FlashReranker()
-    if not ranker.available:
-        pytest.skip("flashrank is not installed")
-    out = ranker.rerank(
-        "price an order",
-        [{"id": "1", "text": "def price_order(order): ..."}, {"id": "2", "text": "import os"}],
-    )
-    assert all(type(r["score"]) is float and type(r["rerank_score"]) is float for r in out)
-    json.dumps(out)
 
 
 def test_find_symbol_compact_names_callers_and_callees(priced_repo, tmp_path):

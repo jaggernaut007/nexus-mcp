@@ -144,12 +144,10 @@ search("how does auth work")
          ├─► graph_engine.boost(query, n=30)    ← structural relevance score
          │                                         hub symbols (high in/out degree) boosted
          │
-         └─► fusion.merge(v_results, b_results, g_results)
+         └─► fusion.merge(v_results, b_results)
                   │
                   │  Reciprocal Rank Fusion: score = Σ weight_i / (k + rank_i)
-                  │  default weights: vector=0.5, bm25=0.3, graph=0.2
-                  │
-                  ├─► reranker.rerank(top_20)   ← FlashRank (only with rerank=True)
+                  │  default weights: vector=0.5, bm25=0.3
                   │
                   └─► token_budget.truncate()   ← summary / detailed / full
                            │
@@ -166,7 +164,6 @@ search("how does auth work")
 | **Symbol parser** | tree-sitter 0.21.3 | 25+ languages, incremental parsing, AST-level symbol extraction with metadata. Parallel via ThreadPool. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
 | **Graph parser** | ast-grep | Structural matching for containment and import edges (call edges are resolved after indexing; inheritance edges are not extracted yet). Sequential run for graph consistency. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
 | **Chunking** | Symbol-based | One chunk per function/class. Deterministic SHA256 IDs prevent duplicate inserts. ([ADR-008](docs/adr/ADR-008-code-chunk-strategy.md)) |
-| **Re-ranker** | FlashRank (optional, off by default) | ONNX cross-encoder, used when `search` gets `rerank=True`. Measured 2026-10-06: it lowered hit@1 on two of four eval suites and added 0.1 to 3 s to a query, so it is opt-in. Passthrough if not installed. |
 | **Persistence** | SQLite + LanceDB | Graph in SQLite (warm-start recovery), vectors+FTS in LanceDB, mtimes in JSON. Zero-config. |
 | **MCP framework** | FastMCP 2.0 | Stdio transport, automatic tool registration, schema generation. |
 
@@ -242,11 +239,6 @@ pip install nexus-mcp-ci
 # GPU (CUDA) support — adds ONNX CUDA execution provider
 pip install nexus-mcp-ci[gpu]
 
-# FlashRank reranker — used only when a search passes rerank=True (off by default)
-pip install nexus-mcp-ci[reranker]
-
-# Both
-pip install nexus-mcp-ci[gpu,reranker]
 ```
 
 ### From Source
@@ -387,12 +379,10 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_EMBEDDING_BATCH_SIZE` | `32` | Chunks per embedding batch. Lower it to cut peak RAM while indexing |
 | `NEXUS_INDEX_FILE_BATCH_SIZE` | `50` | Files per streaming indexing batch |
 | `NEXUS_GRAPH_MAX_DEPTH` | `10` | Max depth for transitive graph queries |
-| `NEXUS_RERANKER_MODEL` | `ms-marco-MiniLM-L-12-v2` | FlashRank reranker model (optional) |
 | `NEXUS_MAX_MEMORY_MB` | `350` | Memory budget target |
 | `NEXUS_SEARCH_MODE` | `hybrid` | `hybrid`, `vector`, or `bm25` |
 | `NEXUS_FUSION_WEIGHT_VECTOR` | `0.5` | Vector score weight in RRF |
 | `NEXUS_FUSION_WEIGHT_BM25` | `0.3` | BM25 score weight in RRF |
-| `NEXUS_FUSION_WEIGHT_GRAPH` | `0` | Graph score weight in RRF. `0` leaves the graph list out of hybrid search (it did not raise hit@1 on any eval suite) |
 | `NEXUS_PERMISSION_LEVEL` | `full` | `full`, `read`, or `restricted` |
 | `NEXUS_RATE_LIMIT_ENABLED` | `false` | Enable per-tool token-bucket rate limiting |
 | `NEXUS_AUDIT_ENABLED` | `true` | Structured audit logging with correlation IDs |
@@ -424,7 +414,6 @@ The Python package defaults to `bge-small-en`. The `Dockerfile`, `smithery.yaml`
 | Keyword (BM25) search | ✅ | ✅ | — | ✅ | ❌ |
 | Hybrid fusion (RRF) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Code graph (call/import) | static: containment, imports, calls | ✅ SCIP | ❌ | ❌ | ❌ |
-| Re-ranking | ✅ FlashRank | ❌ | — | ❌ | ❌ |
 | Semantic memory (persistent) | ✅ 6 types | ❌ | ❌ | ❌ | ❌ |
 | Change impact analysis | static callers only | partial | ❌ | ❌ | ❌ |
 | Token-budgeted responses | ✅ 3 levels | ❌ | ❌ | ❌ | ❌ |
@@ -485,7 +474,6 @@ src/nexus_mcp/
 │   ├── graph_engine.py    # rustworkx PyDiGraph with RLock
 │   ├── live_grep.py       # rg/grep fallback for unindexed or sparse results
 │   ├── fusion.py          # Reciprocal Rank Fusion
-│   └── reranker.py        # FlashRank (optional, graceful degradation)
 ├── indexing/
 │   ├── pipeline.py        # 8-step indexing pipeline
 │   ├── embedding_service.py   # ONNX Runtime, GPU/MPS auto-detect
@@ -645,12 +633,6 @@ With optional extras:
 ```bash
 # With GPU (CUDA) support
 pip install nexus-mcp-ci[gpu]
-
-# With FlashRank reranker for better search quality
-pip install nexus-mcp-ci[reranker]
-
-# Both GPU and reranker
-pip install nexus-mcp-ci[gpu,reranker]
 ```
 
 After installing, the `nexus-mcp` command is available globally:
@@ -687,7 +669,6 @@ cd Nexus-MCP
 |------|-------------|
 | `--clean` | Remove existing venv before creating new |
 | `--prod` | Install production dependencies only (no dev) |
-| `--reranker` | Include optional FlashRank reranker |
 | `--no-verify` | Skip verification step |
 | `--help` | Show help message |
 
@@ -697,7 +678,6 @@ Examples:
 ./setup.sh                       # Dev install (pytest, ruff, mypy)
 ./setup.sh --clean               # Remove old venv, fresh install
 ./setup.sh --prod                # Production-only (no dev tools)
-./setup.sh --reranker            # Dev install + FlashRank reranker
 ./setup.sh --clean --prod        # Clean production install
 ```
 
@@ -718,9 +698,6 @@ pip install -e .
 
 # Option 2: With dev dependencies
 pip install -e ".[dev]"
-
-# Option 3: With dev + reranker
-pip install -e ".[dev,reranker]"
 
 # Option 4: With GPU (CUDA) support
 pip install -e ".[gpu]"
@@ -1090,9 +1067,6 @@ If `nexus-mcp` command is not found, ensure the install location is on your PATH
 # Install from PyPI
 pip install nexus-mcp-ci
 
-# Optional: the FlashRank reranker, used only when a search passes rerank=True
-pip install nexus-mcp-ci[reranker]
-
 # Optional: with GPU (CUDA) support
 pip install nexus-mcp-ci[gpu]
 ```
@@ -1210,9 +1184,9 @@ Parameters:
 
 The schema that the model sees holds only these two. The Python API (`nexus_mcp.core_api.search`) also takes `language`, `symbol_type` ("function", "class", "method", "variable" or "module"), `mode` ("hybrid", "vector" or "bm25"), `live_grep` and `detail` ("compact" or "full"). Agents used none of them in 49 calls, and each parameter costs prompt tokens on every turn.
 
-Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `symbol_type`, `line_start`/`line_end`, and a `hint` field. A compact response has only `total`, `results`, `hint` and, when the index is stale, `warning`; `detail="full"` adds `query`, `search_mode`, `engines_used` and the `language` of each result. With `detail="compact"` each of the top 3 results carries its whole symbol, up to 2000 characters (cut at a line boundary and marked `(truncated)` when longer), so the agent can answer without a file read. The other results show the signature and the first docstring line (160 characters at most, with no `(truncated)` mark). The snippet is the code only: the stored chunk text also has a `# path:line` line, a `type: name` line, a copy of the signature and docstring, and `Imports:` and `Calls:` lines, and compact mode leaves those out. The fields that repeat the snippet (`signature`, `docstring`, `parent`), the internal fields (`id`, `score`, `rrf_score`, `rerank_score`, `_fusion_sources`, `absolute_path`) and empty values are also left out. Measured on a 460-file project, a compact result is about 7,000 characters, 40% of a full one.
+Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `symbol_type`, `line_start`/`line_end`, and a `hint` field. A compact response has only `total`, `results`, `hint` and, when the index is stale, `warning`; `detail="full"` adds `query`, `search_mode`, `engines_used` and the `language` of each result. With `detail="compact"` each of the top 3 results carries its whole symbol, up to 2000 characters (cut at a line boundary and marked `(truncated)` when longer), so the agent can answer without a file read. The other results show the signature and the first docstring line (160 characters at most, with no `(truncated)` mark). The snippet is the code only: the stored chunk text also has a `# path:line` line, a `type: name` line, a copy of the signature and docstring, and `Imports:` and `Calls:` lines, and compact mode leaves those out. The fields that repeat the snippet (`signature`, `docstring`, `parent`), the internal fields (`id`, `score`, `rrf_score`, `_fusion_sources`, `absolute_path`) and empty values are also left out. Measured on a 460-file project, a compact result is about 7,000 characters, 40% of a full one.
 
-Results in test files come after results in source files, unless the query itself asks for tests (a word such as "test", "fixture" or "mock", or a name such as `test_login`). No result is removed. On a 45,000-chunk index of django, where 70% of the chunks are tests, this raised hit@1 from 6 of 12 to 8 of 12 task queries. A query can hold exact names written as `snake_case` or `CamelCase` (`"parse_config RetryPolicy"`): their definitions come first, and a file that defines more of the names comes before the others. Hybrid mode fuses vector and keyword results; the graph list is off by default (`NEXUS_FUSION_WEIGHT_GRAPH=0`). With `detail="full"` the snippet is up to 2000 characters and those fields are present. Raw embedding vectors are always stripped. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a `warning` (in full mode the field is always there and is null when the index is fresh). A background reindex starts, and the results still return at once.
+Results in test files come after results in source files, unless the query itself asks for tests (a word such as "test", "fixture" or "mock", or a name such as `test_login`). No result is removed. On a 45,000-chunk index of django, where 70% of the chunks are tests, this raised hit@1 from 6 of 12 to 8 of 12 task queries. A query can hold exact names written as `snake_case` or `CamelCase` (`"parse_config RetryPolicy"`): their definitions come first, and a file that defines more of the names comes before the others. Hybrid mode fuses vector and keyword results; With `detail="full"` the snippet is up to 2000 characters and those fields are present. Raw embedding vectors are always stripped. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a `warning` (in full mode the field is always there and is null when the index is fresh). A background reindex starts, and the results still return at once.
 
 ### Graph Analysis
 
@@ -1314,7 +1288,6 @@ export NEXUS_EMBEDDING_DEVICE=auto               # auto (CUDA > MPS > CPU), cuda
 export NEXUS_SEARCH_MODE=hybrid          # hybrid, vector, or bm25
 export NEXUS_FUSION_WEIGHT_VECTOR=0.5    # Vector weight in RRF
 export NEXUS_FUSION_WEIGHT_BM25=0.3      # BM25 weight in RRF
-export NEXUS_FUSION_WEIGHT_GRAPH=0       # Graph weight in RRF. 0 (default) = graph list off
 export NEXUS_WARM_START=true             # Load the index and the model while the server starts
 
 # Resource limits
@@ -1432,7 +1405,6 @@ flowchart TB
         Graph["graph_engine.py\nrustworkx PyDiGraph"]
         LiveGrep["live_grep.py\nrg/grep fallback"]
         Fusion["fusion.py\nReciprocal Rank Fusion"]
-        Rerank["reranker.py\nFlashRank (optional)"]
     end
 
     Analysis["analysis/code_analyzer.py\ncomplexity, smells, deps"]
@@ -1452,9 +1424,7 @@ flowchart TB
     LanceDB --> BM25
     Vector --> Fusion
     BM25 --> Fusion
-    Graph --> Fusion
-    Fusion --> Rerank
-    Rerank --> LiveGrep
+    Fusion --> LiveGrep
     Graph -.snapshot/restore.-> Persistence
     Core --> Formatting
     Formatting --> Tools
@@ -1489,9 +1459,7 @@ Incremental reindexing uses mtime-based change detection: only new/modified file
 
 **Graph Engine** (`engines/graph_engine.py`) — rustworkx (Rust-backed) directed graph. Stores nodes (functions, classes) and edges. The engine supports `CALLS` traversal for callers, callees and transitive impact analysis. `CALLS` edges come from `indexing/call_resolver.py`, which rebuilds them after every index or reindex.
 
-**Fusion** (`engines/fusion.py`) — Reciprocal Rank Fusion combines results from the vector and BM25 engines with configurable weights (default: 0.5/0.3). The graph list has weight 0 by default, so it is not used; set `NEXUS_FUSION_WEIGHT_GRAPH` above 0 to add it. Before fusion, results in test files move after results in source files unless the query asks for tests (`demote_test_files`).
-
-**Reranker** (`engines/reranker.py`) — Optional FlashRank two-stage reranker. Gracefully degrades to passthrough if not installed.
+**Fusion** (`engines/fusion.py`) — Reciprocal Rank Fusion combines results from the vector and BM25 engines with configurable weights (default: 0.5/0.3). Before fusion, results in test files move after results in source files unless the query asks for tests (`demote_test_files`).
 
 **Live Grep** (`engines/live_grep.py`) — Fallback using ripgrep (`rg`), falling back to standard `grep` if `rg` isn't installed. Covers unindexed or newly created files, and is used automatically when hybrid results are sparse.
 
@@ -1544,8 +1512,7 @@ Source files → ast-grep → UniversalGraph → rustworkx   embed (PyTorch / ON
 ### Hybrid Search
 ```
 Query → embed → Vector search (LanceDB)  ─┐
-Query →       → BM25 search (Tantivy)     ├→ RRF Fusion → FlashRank → Live Grep (fallback) → Results
-Query →       → Graph relevance search    ─┘
+Query →       → BM25 search (Tantivy)     ┴→ RRF Fusion → exact names first → Live Grep (fallback) → Results
 ```
 
 ## Memory Budget
@@ -1588,8 +1555,6 @@ source .venv/bin/activate
 # Install with dev dependencies
 pip install -e ".[dev]"
 
-# Optional: install reranker for full feature set
-pip install -e ".[reranker]"
 
 # Verify installation
 pytest -v
@@ -1608,7 +1573,7 @@ Nexus-MCP/
 │   ├── state.py            # Session state singleton
 │   ├── core/               # Data models, interfaces, exceptions
 │   ├── parsing/            # tree-sitter + ast-grep parsers
-│   ├── engines/            # Vector, BM25, graph, fusion, reranker
+│   ├── engines/            # Vector, BM25, graph, fusion
 │   ├── analysis/           # Code complexity and quality analysis
 │   ├── memory/             # Semantic memory store
 │   ├── indexing/           # Pipeline, embedding service, chunker
@@ -1655,7 +1620,7 @@ pytest --cov=nexus_mcp --cov-report=term-missing
 | `test_analyze_tool.py` | 6 | `analyze` tool |
 | `test_impact_tool.py` | 6 | `graph(transitive=True)` change-impact analysis |
 | `test_explain_tool.py` | 5 | `explain` tool with verbosity levels |
-| `test_hybrid_search.py` | 8 | Hybrid search, fusion, reranking |
+| `test_hybrid_search.py` | 8 | Hybrid search, fusion |
 | `test_live_grep.py` | 4 | rg/grep fallback |
 | `test_permissions.py` | 20 | READ/MUTATE/WRITE categories, action-aware `memory` |
 | `test_rate_limiter.py` | 11 | Token-bucket rate limiter |
@@ -1768,13 +1733,13 @@ All significant design decisions are documented in `docs/adr/`. When making a ke
 `state.py` uses a module-level singleton. Always access via `get_state()`. Reset with `reset_state()` in tests.
 
 ### Lazy Loading
-Engines are `None` until indexing runs. The embedding model is loaded during indexing and unloaded afterward to free RAM. FlashRank loads on first rerank call.
+Engines are `None` until indexing runs. The embedding model is loaded during indexing and unloaded afterward to free RAM.
 
 ### Defensive Validation
 All tool inputs are validated at entry (null bytes, length limits, path traversal). SQL filter values are escaped. This happens in `core_api.py` (the `validate_*` helpers) before any business logic.
 
 ### Graceful Degradation
-If FlashRank isn't installed, reranking falls through to passthrough. If BM25 fails, hybrid search continues with remaining engines. Each engine failure is logged but doesn't crash the server.
+If BM25 fails, hybrid search continues with remaining engines. Each engine failure is logged but doesn't crash the server.
 
 ## Debugging
 
@@ -1816,7 +1781,7 @@ Nexus-MCP was built by consolidating two earlier projects. Each source file that
 | File watcher | code-graph-mcp | `parsing/file_watcher.py` |
 | Language registry | Both (merged) | `parsing/language_registry.py` |
 
-Everything else (vector engine, BM25, fusion, reranker, memory store, pipeline, formatting, persistence, server, all hardening) was written fresh for Nexus-MCP.
+Everything else (vector engine, BM25, fusion, memory store, pipeline, formatting, persistence, server, all hardening) was written fresh for Nexus-MCP.
 
 ## Release Process
 

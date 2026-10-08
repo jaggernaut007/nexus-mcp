@@ -26,21 +26,6 @@ def identifier_words(name: str) -> tuple:
     return tuple(w.lower() for w in _WORD.findall(spaced))
 
 
-@lru_cache(maxsize=262144)
-def identifier_search_terms(name: str) -> frozenset:
-    """Words of an identifier plus each pair of neighbouring letter words joined.
-
-    The joins let the query `oauth` find `OAuth2Token`, which splits into o, auth, 2, token.
-    """
-    words = identifier_words(name)
-    terms = set(words)
-    for left, right in zip(words, words[1:]):
-        if left.isalpha() and right.isalpha() and len(left) + len(right) >= 4:
-            terms.add(left + right)
-    terms.add(name.lower())
-    return frozenset(terms)
-
-
 class CacheConfig:
     """Centralized cache size configuration."""
 

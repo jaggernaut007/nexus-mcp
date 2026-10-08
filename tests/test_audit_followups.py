@@ -1,6 +1,6 @@
 """Tests for the follow-up fixes after the pre-merge audit.
 
-Word index for graph relevance, safe memory migration, auditing of rejected calls,
+Safe memory migration, auditing of rejected calls,
 staleness on the graph tools, and a shared storage folder that holds another project.
 """
 
@@ -13,13 +13,11 @@ import pytest
 import nexus_mcp.core_api as core_api
 import nexus_mcp.server as server_module
 from nexus_mcp.config import reset_settings
-from nexus_mcp.core.graph_models import identifier_search_terms, identifier_words
-from nexus_mcp.engines.fusion import graph_relevance_search
+from nexus_mcp.core.graph_models import identifier_words
 from nexus_mcp.engines.graph_engine import RustworkxCodeGraph
 from nexus_mcp.state import get_state
 from tests.conftest import _call_tool
 from tests.test_embedding_loading import _memory_store, _note
-from tests.test_fusion import _make_node
 
 
 class TestIdentifierWords:
@@ -33,66 +31,6 @@ class TestIdentifierWords:
     ])
     def test_identifier_words(self, name, words):
         assert identifier_words(name) == words
-
-    def test_search_terms_join_neighbouring_letter_words(self):
-        assert "oauth" in identifier_search_terms("OAuth2Token")
-        assert "http" in identifier_search_terms("getHTTP2Client")
-        assert "oauth2token" in identifier_search_terms("OAuth2Token")  # the whole name
-
-    def test_search_terms_do_not_join_across_digits(self):
-        assert "auth2" not in identifier_search_terms("OAuth2Token")
-
-
-class TestWordIndex:
-    def _graph(self, *names):
-        g = RustworkxCodeGraph()
-        for i, name in enumerate(names):
-            g.add_node(_make_node(name, line=i * 10 + 1))
-        return g
-
-    def test_find_nodes_by_words_uses_whole_words(self):
-        g = self._graph("create_order", "reorder_items", "OrderBook")
-        assert {n.name for n in g.find_nodes_by_words({"order"})} == {"create_order", "OrderBook"}
-
-    def test_find_nodes_by_words_forgets_removed_files(self):
-        g = RustworkxCodeGraph()
-        node = _make_node("create_order")
-        g.add_node(node)
-        g.remove_file_nodes(node.location.file_path)
-        assert g.find_nodes_by_words({"order"}) == []
-
-    def test_find_nodes_by_words_after_clear_is_empty(self):
-        g = self._graph("create_order")
-        g.clear()
-        assert g.find_nodes_by_words({"order"}) == []
-
-    def test_graph_relevance_finds_oauth_in_a_camel_case_name_with_a_digit(self):
-        g = self._graph("OAuth2Token", "RateLimiter")
-        assert [r["symbol_name"] for r in graph_relevance_search(g, "oauth token")] == [
-            "OAuth2Token"
-        ]
-
-    def test_graph_relevance_finds_http_in_a_name_with_a_digit(self):
-        g = self._graph("getHTTP2Client", "send_email")
-        assert [r["symbol_name"] for r in graph_relevance_search(g, "http client")] == [
-            "getHTTP2Client"
-        ]
-
-    def test_graph_relevance_keeps_the_nodes_that_match_the_most_query_words(self, monkeypatch):
-        import nexus_mcp.engines.fusion as fusion
-
-        monkeypatch.setattr(fusion, "MAX_GRAPH_CANDIDATES", 2)
-        g = self._graph("parse_a", "parse_b", "order_x", "parse_order")
-        names = {r["symbol_name"] for r in graph_relevance_search(g, "parse order")}
-        assert "parse_order" in names  # two matches beat one, even with only two slots
-        assert len(names) == 2
-
-    def test_graph_relevance_order_is_stable_for_equal_scores(self):
-        g = self._graph("parse_a", "parse_b", "parse_c", "parse_d")
-        first = [r["symbol_name"] for r in graph_relevance_search(g, "parse", limit=4)]
-        for _ in range(5):
-            assert [r["symbol_name"] for r in graph_relevance_search(g, "parse", limit=4)] == first
-        assert first == sorted(first)
 
 
 class TestMemoryMigrationIsSafe:

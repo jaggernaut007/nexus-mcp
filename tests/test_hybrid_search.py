@@ -1,4 +1,4 @@
-"""Integration tests for hybrid search (vector + BM25 + graph + fusion + rerank)."""
+"""Integration tests for hybrid search (vector + BM25 + fusion)."""
 
 import asyncio
 

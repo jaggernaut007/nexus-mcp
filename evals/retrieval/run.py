@@ -6,10 +6,11 @@ Usage:
     python -m evals.retrieval.run --single bge-small-en   # one model, JSON on stdout
 
 Each candidate runs in its own process, so peak memory is that model's own. For each
-suite the eval indexes the code once, then ranks files for every query in three modes:
-`bm25` (no model, the reference), `vector` (the model alone), `hybrid` (vector, bm25
-and graph fused as in production, without the reranker and without live grep) and
-`hybrid-no-graph` (the same without the graph list, to measure what the graph adds).
+suite the eval indexes the code once, then ranks files for every query in four modes:
+`bm25` (no model, the reference), `vector` (the model alone), `hybrid-source-first`
+(vector and bm25 fused, test files after source files) and `hybrid-exact` (the same, with
+the definitions of the names in the query first: what `core_api.search` does, without live
+grep). The graph list and the reranker were removed on 2026-10-08 (they lowered hit@1).
 
 The eval never changes the shipped model registry. Candidates are added to the
 in-memory registry of the child process only (see candidates.py).
@@ -36,11 +37,7 @@ QUERIES_PATH = Path(__file__).resolve().parent / "queries.yaml"
 WORK_DIR = EVAL_DIR / ".claude-eval" / "retrieval"
 RESULTS_DIR = EVAL_DIR / "results"
 SOURCE_FIRST_OVERFETCH = 4  # the same factor as core_api.SEARCH_OVERFETCH
-GRAPH_REFERENCE_WEIGHT = 0.2  # the production weight of the graph list before 2026-10-06
-MODES = (
-    "bm25", "vector", "hybrid", "hybrid-no-graph", "hybrid-source-first", "hybrid-rerank",
-    "hybrid-exact",
-)
+MODES = ("bm25", "vector", "hybrid-source-first", "hybrid-exact")
 
 
 LOCAL_QUERIES_PATH = QUERIES_PATH.with_name("queries.local.yaml")
@@ -94,51 +91,39 @@ def to_relative_files(results: List[Dict[str, Any]], root: Path) -> List[str]:
 
 
 def rank_files(pipeline, settings, root: Path, query: str, mode: str, limit: int = 10) -> List[str]:
-    """Ranked files for one query. Mirrors core_api.search, minus rerank and live grep."""
+    """Ranked files for one query. Mirrors core_api.search, minus live grep."""
     from nexus_mcp.engines.fusion import (
         ReciprocalRankFusion,
         demote_test_files,
         exact_names_first,
-        graph_relevance_search,
         query_identifiers,
     )
 
-    # `hybrid-source-first` is what `core_api.search` does since 2026-10-06: no graph
-    # list, a wider fetch, and test files after source files in each list. `hybrid` is
-    # the earlier production order (with the graph list), kept as the reference.
-    # `hybrid-rerank` adds the FlashRank reranker on top, as `core_api.search(rerank=True)`.
-    # `hybrid-exact` is what `core_api.search` does since 2026-10-08: `hybrid-source-first`
-    # with the definitions of the names in the query first.
-    source_first = mode in ("hybrid-source-first", "hybrid-rerank", "hybrid-exact")
-    overfetch = limit * (SOURCE_FIRST_OVERFETCH if source_first else 2)
+    # `hybrid-source-first` is what `core_api.search` did from 2026-10-06: a wider fetch and
+    # test files after source files in each list. `hybrid-exact` is what it does since
+    # 2026-10-08: the same, with the definitions of the names in the query first.
+    fused = mode in ("hybrid-source-first", "hybrid-exact")
+    overfetch = limit * (SOURCE_FIRST_OVERFETCH if fused else 2)
     ranked: Dict[str, list] = {}
-    fused_modes = (
-        "hybrid", "hybrid-no-graph", "hybrid-source-first", "hybrid-rerank", "hybrid-exact",
-    )
-    if mode == "vector" or mode in fused_modes:
+    if mode == "vector" or fused:
         ranked["vector"] = pipeline.vector_engine.search(query, limit=overfetch)
-    if mode == "bm25" or mode in fused_modes:
+    if mode == "bm25" or fused:
         found = pipeline.bm25_engine.search(query, limit=overfetch)
         if found:
             ranked["bm25"] = found
-    if mode == "hybrid":
-        graph = graph_relevance_search(pipeline.graph_engine, query, limit=overfetch)
-        if graph:
-            ranked["graph"] = graph
-    if source_first:
+    if fused:
         ranked = {k: demote_test_files(query, v)[: limit * 2] for k, v in ranked.items()}
     if len(ranked) > 1:
         fusion = ReciprocalRankFusion(
             weights={
                 "vector": settings.fusion_weight_vector,
                 "bm25": settings.fusion_weight_bm25,
-                "graph": GRAPH_REFERENCE_WEIGHT,
             }
         )
         results = fusion.fuse(ranked)
     else:
         results = next(iter(ranked.values()), [])
-    if source_first:
+    if fused:
         results = demote_test_files(query, results)
     if mode == "hybrid-exact":
         names = query_identifiers(query)
@@ -146,22 +131,7 @@ def rank_files(pipeline, settings, root: Path, query: str, mode: str, limit: int
             results = exact_names_first(
                 query, results, pipeline.vector_engine.find_by_symbol_names(names)
             )
-    if mode == "hybrid-rerank":
-        results = demote_test_files(query, _reranker(settings).rerank(query, results, limit=limit))
     return to_relative_files(results, root)
-
-
-_RERANKERS: Dict[str, Any] = {}
-
-
-def _reranker(settings):
-    """One loaded reranker per model name for the whole run."""
-    from nexus_mcp.engines.reranker import FlashReranker
-
-    name = settings.reranker_model
-    if name not in _RERANKERS:
-        _RERANKERS[name] = FlashReranker(model_name=name)
-    return _RERANKERS[name]
 
 
 def run_candidate(name: str, suite_names: List[str], work_dir: Path = WORK_DIR) -> Dict[str, Any]:

@@ -54,7 +54,7 @@ def run_phase(phase: str, project: Path) -> dict:
         detail = f"indexed={status['indexed']}, graph nodes={nodes}"
         detail += f", graph query ok={'error' not in graph}"
     elif phase == "search":
-        result = core_api.search("where is the configuration read", limit=3, rerank=False)
+        result = core_api.search("where is the configuration read", limit=3)
         detail = f"{len(result.get('results', []))} results"
     return {"phase": phase, "peak_rss_mb": round(peak_rss_mb()), "detail": detail}
 

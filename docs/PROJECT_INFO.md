@@ -39,8 +39,7 @@ Into a **single, memory-efficient MCP server** (about 90MB idle and 460MB with t
 │  core_api.py (transport-agnostic tool logic)     │
 ├─────────────────────────────────────────────────┤
 │  Response Formatter (token budget optimization)  │
-│  FlashRank Re-ranker (two-stage retrieval)       │
-│  Reciprocal Rank Fusion (0.5/0.3/0 weights)     │
+│  Reciprocal Rank Fusion (0.5/0.3 weights)       │
 ├─────────────────────────────────────────────────┤
 │  Three Search Engines (parallel)                 │
 │  ┌─────────┐ ┌──────────┐ ┌──────────────┐     │
@@ -73,7 +72,6 @@ Into a **single, memory-efficient MCP server** (about 90MB idle and 460MB with t
 | Symbol Parsing | tree-sitter 0.21.3 | Extract code symbols for embeddings |
 | Structural Analysis | ast-grep-py ≥0.28 | Build the containment and import graph (plus callee names, resolved into call edges after indexing) |
 | Graph Engine | rustworkx ≥0.15 | In-memory directed graph, Rust-backed |
-| Re-ranking | FlashRank ≥0.2 | ONNX-based two-stage re-ranking |
 | Live Grep | ripgrep (rg) / grep | 100% coverage fallback for unindexed files |
 | File Watching | watchdog ≥3.0 | Debounced file change detection |
 
@@ -110,7 +108,7 @@ The v2.0.0 release merged 15 tools into 10 ([ADR-017](adr/ADR-017-tool-consolida
 ### Search & Navigation
 | Tool | Description | Engine |
 |------|-------------|--------|
-| `search` | Hybrid search with re-ranking and live-grep fallback | Vector + BM25 + Graph + FlashRank + rg/grep |
+| `search` | Hybrid search with live-grep fallback | Vector + BM25 + exact names + rg/grep |
 | `find_symbol` | Find definition and relationships | Graph |
 | `graph` | Callers or callees of a symbol; `transitive=True` returns change impact | Graph (predecessors/successors) |
 

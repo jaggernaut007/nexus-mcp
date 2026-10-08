@@ -19,7 +19,7 @@ from nexus_mcp.core.graph_models import (
 )
 from nexus_mcp.engines.graph_engine import RustworkxCodeGraph
 from nexus_mcp.state import get_state
-from tests.conftest import _call_tool, _setup_indexed
+from tests.conftest import _call_api, _setup_indexed
 
 INTERNAL_FIELDS = {"id", "score", "rrf_score", "_fusion_sources", "absolute_path"}
 
@@ -40,7 +40,7 @@ def long_function_codebase(tmp_path):
 def _search(codebase, tmp_path, **args):
     async def run():
         mcp, _, _ = await _setup_indexed(codebase, tmp_path / ".nexus")
-        return await _call_tool(mcp, "search", {"query": "big_function seventy steps", **args})
+        return await _call_api("search", {"query": "big_function seventy steps", **args})
 
     return asyncio.run(run())
 

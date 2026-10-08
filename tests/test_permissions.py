@@ -29,7 +29,7 @@ def test_tool_categories_defined():
     """All tools should be registered."""
     expected_tools = {
         "status", "search", "find_symbol",
-        "explain", "health", "graph", "map",
+        "graph", "map",
         "index", "analyze",
         "memory",
     }
@@ -38,8 +38,7 @@ def test_tool_categories_defined():
 
 def test_read_tools_classified():
     """Read-only tools are classified as READ."""
-    read_tools = ["status", "search", "find_symbol",
-                  "explain", "health", "graph", "map"]
+    read_tools = ["status", "search", "find_symbol", "graph", "map"]
     for tool in read_tools:
         assert TOOL_PERMISSIONS[tool] == ToolCategory.READ, f"{tool} should be READ"
 

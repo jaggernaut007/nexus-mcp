@@ -16,17 +16,19 @@ import nexus_mcp.server as server_module
 ROOT = Path(__file__).resolve().parent.parent
 CLAUDE_CODE_TEXT_LIMIT = 2048  # Claude Code cuts each description and the instructions here
 CODEX_OPENING_LIMIT = 512  # Codex reads the first 512 characters of the instructions first
-READ_TOOLS = {"status", "health", "search", "find_symbol", "graph", "analyze", "explain", "map"}
+READ_TOOLS = {"status", "search", "find_symbol", "graph", "analyze", "map"}
 ENUMS = {
-    ("search", "mode"): ["hybrid", "vector", "bm25"],
     ("graph", "direction"): ["callers", "callees"],
-    ("search", "detail"): ["compact", "full"],
-    ("graph", "detail"): ["compact", "full"],
-    ("find_symbol", "detail"): ["compact", "full"],
-    ("explain", "verbosity"): ["summary", "detailed", "full"],
     ("map", "detail"): ["summary", "architecture", "full"],
     ("memory", "action"): ["store", "search", "delete"],
-    ("memory", "ttl"): ["permanent", "month", "week", "day", "session"],
+}
+# The schema holds only what agents used in 64 live runs. The other options stay in
+# `core_api` (the Python API) and are not sent to the model on each turn.
+SCHEMA_PARAMETERS = {
+    "search": {"query", "limit"},
+    "find_symbol": {"symbol_name", "exact"},
+    "graph": {"symbol_name", "direction", "transitive"},
+    "memory": {"action", "content", "query", "tags", "memory_id"},
 }
 
 
@@ -55,15 +57,16 @@ class TestInstructions:
         assert "codebase" in opening and "where something is" in opening
 
     def test_instructions_only_name_tools_that_exist(self, mcp, tools):
-        named = set(re.findall(r"`([a-z_]+)`", mcp.instructions)) - {"indexed"}
+        named = set(re.findall(r"`([a-z_]+)`", mcp.instructions)) - {"indexed", "parse_config"}
         assert named <= set(tools), named - set(tools)
 
     def test_instructions_name_every_tool_that_an_agent_should_choose(self, mcp, tools):
         # `status` is left out on purpose since 2026-10-06: the index attaches at server
         # start, and a `status` call first cost one model turn in every benchmark run.
         named = set(re.findall(r"`([a-z_]+)`", mcp.instructions))
-        assert {"index", "search", "find_symbol", "explain", "graph", "map",
+        assert {"index", "search", "find_symbol", "graph", "map",
                 "analyze", "memory"} <= named
+        assert not {"explain", "health"} & named
         assert "status" not in named
 
     def test_instructions_tell_the_agent_when_not_to_use_the_server(self, mcp):
@@ -97,7 +100,6 @@ class TestDescriptions:
         ("memory", ["remember that", "what did we decide"]),
         ("analyze", ["dead code", "most complex"]),
         ("find_symbol", ["by name"]),
-        ("explain", ["briefing", "who calls"]),
     ])
     def test_description_contains_the_words_users_say(self, tools, name, phrases):
         text = tools[name].description.lower()
@@ -106,6 +108,15 @@ class TestDescriptions:
 
 
 class TestSchema:
+    @pytest.mark.parametrize("name,expected", list(SCHEMA_PARAMETERS.items()))
+    def test_the_schema_holds_only_the_parameters_that_agents_use(self, tools, name, expected):
+        assert set(tools[name].parameters["properties"]) == expected
+
+    def test_the_tool_list_has_no_explain_and_no_health(self, tools):
+        assert set(tools) == {
+            "index", "status", "search", "find_symbol", "graph", "analyze", "map", "memory",
+        }
+
     @pytest.mark.parametrize("key,values", list(ENUMS.items()))
     def test_choice_parameters_are_enums(self, tools, key, values):
         tool, param = key
@@ -154,15 +165,13 @@ class TestDocsMatchRegisteredTools:
         listed = set(re.findall(r"^#### `([a-z_]+)`", text, flags=re.M))
         assert listed == set(tools), listed ^ set(tools)
 
-    def test_skill_routes_to_registered_tools_only(self, tools):
+    def test_skill_names_registered_tools_only(self, tools):
         text = (ROOT / "plugin" / "skills" / "nexus-mcp" / "SKILL.md").read_text()
-        rows = re.findall(r"^\| .*? \| (.*?) \|$", text, flags=re.M)
-        named = {n for row in rows for n in re.findall(r"`([a-z_]+)`", row)}
-        routing = {"search", "find_symbol", "explain", "graph", "map", "analyze", "memory"}
-        assert routing <= named
-        known_args = {"direction", "callers", "callees", "transitive", "detail", "summary",
-                      "architecture", "full", "path", "action", "store", "delete"}
-        assert named - set(tools) - known_args == set(), named - set(tools) - known_args
+        named = set(re.findall(r"`([a-z_]+)`", text))
+        tool_like = {"status", "index", "health", "explain", "find_symbol", "search", "graph",
+                     "map", "analyze", "memory", "find_callers", "recall", "remember"}
+        assert (named & tool_like) <= set(tools), (named & tool_like) - set(tools)
+        assert "find_symbol" in named
 
     def test_plugin_version_matches_the_package(self):
         import json

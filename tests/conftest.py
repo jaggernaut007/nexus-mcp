@@ -93,6 +93,15 @@ def _mock_embedding_service():
     return svc
 
 
+async def _call_api(name, args=None):
+    """Call the Python API (`core_api`) of a tool, for a tool or a parameter that the MCP
+    schema does not have (the schema holds only what agents use)."""
+    from nexus_mcp import core_api
+
+    fn = getattr(core_api, "map_" if name == "map" else name)
+    return fn(**(args or {}))
+
+
 async def _call_tool(mcp, name, args=None):
     """Call an MCP tool and return the structured result."""
     result = await mcp.call_tool(name, args or {})

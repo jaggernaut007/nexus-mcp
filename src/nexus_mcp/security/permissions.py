@@ -23,8 +23,6 @@ TOOL_PERMISSIONS: dict[str, ToolCategory] = {
     "status": ToolCategory.READ,
     "search": ToolCategory.READ,
     "find_symbol": ToolCategory.READ,
-    "explain": ToolCategory.READ,
-    "health": ToolCategory.READ,
     # graph() replaces find_callers/find_callees (READ) and impact (was MUTATE).
     # None of the three ever mutate persisted state — impact's old MUTATE tag
     # reflected computational cost, not data safety, so READ is the correct

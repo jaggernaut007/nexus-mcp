@@ -5,34 +5,14 @@ description: Answer questions about how a codebase works with the nexus-mcp tool
 
 # Using nexus-mcp
 
-Tool names below are bare. Your client may add a prefix.
+Tool names below are bare. Your client may add a prefix. The server instructions say which
+tool answers which question; this page adds only what they do not.
 
-## Start
-
-1. Go straight to the tool for the question. The index of an earlier session is attached
-   when the server starts. Do not call `status` first.
-2. Only if a tool answers "No codebase indexed": call `index` once with the absolute
-   project path.
-3. The index keeps itself fresh. A `warning` field means a background reindex is running;
-   the next call or two may lag the latest edit.
-4. Answer from the result. `search` returns the whole code of its top three results,
-   `find_symbol` returns the whole code of each name, and `graph` returns every text
-   reference of the name.
-5. Use few calls: each call costs one more read of the whole prompt. When you need the
-   code of other names (a function that is cut, a constant, a class), call `find_symbol`
-   once with all the names. Do not grep for a name and do not read a file to see a symbol.
-
-## Pick a tool by question
-
-| The question | The tool |
-|---|---|
-| Where is... / how does... / find the code that... | `search` |
-| Functions, classes or constants I can name | `find_symbol` with all the names in one call; it returns their code. `explain` adds related code |
-| Who calls X / what does X call | `graph` (`direction` callers or callees) |
-| What breaks if I change X | `graph` with `transitive=true`, before the edit |
-| Overview / where do I start | `map` (`detail` summary, architecture or full) |
-| Most complex code / dead code / quality | `analyze` (optional `path`) |
-| Keep or recall a decision | `memory` (`action` store, search or delete) |
+- The index of an earlier session is attached when the server starts. Do not call `status`
+  first. If a tool answers "No codebase indexed", call `index` once with the absolute
+  project path. A `warning` field means a background reindex is running.
+- Each call costs one more read of the whole conversation. Prefer one `find_symbol` call
+  with all the names to a grep or a file read for each name.
 
 ## When not to use it
 

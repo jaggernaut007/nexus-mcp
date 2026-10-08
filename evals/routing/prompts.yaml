@@ -22,12 +22,12 @@ prompts:
   - id: search-retry
     category: search
     prompt: Where in this codebase do we retry failed payment calls?
-    expected_any_of: [search, find_symbol, explain]
+    expected_any_of: [search, find_symbol]
 
   - id: search-discount
     category: search
     prompt: How does the discount code logic work?
-    expected_any_of: [search, find_symbol, explain]
+    expected_any_of: [search, find_symbol]
 
   - id: search-webhook
     category: search
@@ -37,17 +37,17 @@ prompts:
   - id: search-ratelimit
     category: search
     prompt: Which part of the code limits how often the API can be called?
-    expected_any_of: [search, find_symbol, explain]
+    expected_any_of: [search, find_symbol]
 
   - id: search-email
     category: search
     prompt: How do customers get their order confirmation email?
-    expected_any_of: [search, explain, graph]
+    expected_any_of: [search, graph]
 
   - id: symbol-charge
     category: symbol
     prompt: Show me the definition of PaymentGateway.charge.
-    expected_any_of: [find_symbol, search, explain]
+    expected_any_of: [find_symbol, search]
 
   - id: symbol-reserve
     category: symbol
@@ -57,12 +57,12 @@ prompts:
   - id: symbol-cancel
     category: symbol
     prompt: Explain what cancel_order does and how it fits into the order flow.
-    expected_any_of: [explain, find_symbol, graph]
+    expected_any_of: [find_symbol, graph]
 
   - id: symbol-ttlcache
     category: symbol
     prompt: What is the TTLCache class and where is it used?
-    expected_any_of: [find_symbol, explain, search, graph]
+    expected_any_of: [find_symbol, search, graph]
 
   - id: graph-callers
     category: graph

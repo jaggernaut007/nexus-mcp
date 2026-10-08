@@ -30,23 +30,14 @@ claude mcp add nexus-mcp -- nexus-mcp-ci
 
 ## The Problem It Solves
 
-AI coding agents are token-inefficient by default. An agent trying to understand `verify_credentials()` typically:
+An agent that explores a codebase with Grep and Read pays for every call: each call is one more
+turn, and each turn reads the whole conversation again. Nexus-MCP answers a question about code
+in fewer calls. `search` returns the whole code of its top results, `find_symbol` returns the
+code of several names in one call, and `graph` returns every text reference beside the call
+edges.
 
-1. `Glob("src/**/*.py")` → 120 files returned, agent reads the most likely 8 → **~12,000 tokens**
-2. `Grep("verify_credentials")` → 3 matches, agent reads surrounding context → **~4,000 tokens**
-3. `Read("auth/middleware.py")` → full 400-line file to understand callers → **~3,000 tokens**
-
-**Total: ~19,000 tokens, 3+ tool calls, no graph relationships.**
-
-With Nexus-MCP:
-
-1. `explain("verify_credentials")` → symbol definition + related code + quality metrics (plus callers and callees) → **~1,500 tokens, 1 tool call**
-
-Or for discovery:
-
-1. `search("credential verification flow")` → top-10 semantically relevant chunks across the codebase → **~2,000 tokens, 1 tool call**
-
-**Estimated savings: 30–60% token reduction per coding session.** The exact numbers depend on codebase size and task type — see the [benchmarks table](#token-efficiency) below.
+The north star of the project is lower token use with the same accuracy. It is measured, not
+estimated: see [Token efficiency](#token-efficiency) and `benchmarks/`.
 
 ---
 
@@ -91,7 +82,7 @@ If you want the rules in your own project file, a short block is enough:
 
 The nexus-mcp server is connected. For questions about how this codebase works:
 - No setup call is needed; run `index` only if a tool says the project is not indexed.
-- Use `search` to find code, `find_symbol` or `explain` for one symbol, `map` for structure.
+- Use `search` to find code, `find_symbol` or `find_symbol` for symbols, `map` for structure.
 - Use `graph` with `transitive=true` before you change a shared function. The call graph
   is static, so also use `search` for dynamic call sites.
 - Use plain grep or read when you already know the file or the exact string.
@@ -183,31 +174,27 @@ search("how does auth work")
 
 ## Token Efficiency
 
-Measured against equivalent agentic file-browsing workflows on a ~10,000-line Python codebase:
+Measured on 12 questions about a private 460-file Python project, with Claude Sonnet and the
+prompt cache warm for both conditions (a live run, 2026-10-07; the traces are in
+`benchmarks/results/raw/`):
 
-| Task | Without Nexus-MCP | With Nexus-MCP | Reduction |
-|------|:-----------------:|:--------------:|:---------:|
-| Find relevant code (agent reads 5–10 files) | 5,000–15,000 tokens | 500–2,000 tokens | **70–90%** |
-| Understand a symbol (grep + read + trace callers) | 3,000–8,000 tokens, 3–5 calls | 800–2,000 tokens, 1 call | **60–75%** |
-| Assess change impact (manual transitive trace) | 10,000–20,000 tokens | 1,000–3,000 tokens | **80–85%** |
-| Tool descriptions in context (2 MCP servers) | ~1,700 tokens (17 tools) | ~700 tokens (10 tools) | **~60%** |
-| Search precision (keyword-only needs retries) | 2–3 searches × 2,000 tokens | 1 hybrid search × 1,500 tokens | **60–75%** |
+| | Grep and Read | Nexus-MCP |
+|---|---:|---:|
+| Tool result characters | 174,400 | 135,900 |
+| Turns | 42 | 47 |
+| Prompt read on each turn | 13,900 tokens | 19,700 tokens |
+| Cost | $0.553 | $0.587 |
 
-**Typical session savings: 15,000–40,000 tokens (30–60%)** compared to file-browsing agents.
-
-### Three Verbosity Levels
-
-`explain` takes a `verbosity` parameter — agents request exactly the detail they need. The other tools return token-budgeted responses (`formatting/token_budget.py`):
-
-| Level | Token Budget | What's Included |
-|-------|:-----------:|-----------------|
-| `summary` | ~500 tokens | Place, callers and callees by name, quality score |
-| `detailed` | ~2,000 tokens | Adds the code of the symbol and related symbols by name |
-| `full` | ~4,000 tokens | All fields of the symbol and of up to 25 callers and callees |
+The results were smaller, but the session cost 6% more: the tool definitions add tokens to
+every turn, and some questions still needed a grep or a read after the search. Output tokens
+for each turn were the same with and without nexus, so a tool saves tokens only by saving
+turns. Later changes target that: exact names in `search`, code in `find_symbol`, and a
+smaller tool list. Their effect is recorded in `CHANGELOG.md` and `docs/EVALS.md` when a live
+run has measured it.
 
 ---
 
-## The 10 Tools
+## The 8 Tools
 
 **v2.0.0 breaking change:** `find_callers`/`find_callees`/`impact` merged into
 `graph`, `overview`/`architecture` merged into `map`, and `remember`/`recall`/`forget`
@@ -221,29 +208,27 @@ better under MCP Tool Search than many thin ones.
 |------|----------|
 | `index(path)` | First action in any session. Supports comma-separated multi-folder paths. Incremental by default, reports progress as it runs, and starts a debounced auto-reindex watcher (`NEXUS_AUTO_WATCH`) when it finishes. |
 | `status()` | Check index health: symbol count, chunk count, memory usage, engine availability, and a `stale`/`staleness_warning` pair if files changed since the last index. |
-| `health()` | Liveness probe — uptime, which engines are ready. |
 | `map(detail)` | **Replaces `ls` + manual browsing.** `detail="summary"` (files/languages/quality/top-modules, was `overview()`), `"architecture"` (layers/dependencies/classes/entry points/hub symbols, was `architecture()`), or `"full"` for both. |
 
 ### Search
 
 | Tool | Use When |
 |------|----------|
-| `search(query, limit, language, symbol_type, mode, rerank, live_grep, detail)` | Primary code discovery. `mode`: `hybrid` (default), `vector`, or `bm25`. `detail`: `compact` (default, short snippets) or `full`. Falls back to live grep if results are sparse. Returns a non-null `warning` if the index looked stale (a background reindex is triggered automatically; results still return immediately). |
+| `search(query, limit)` | Primary code discovery. A query can hold exact names (`parse_config RetryPolicy`): their definitions come first. The top 3 results carry the whole symbol; the others show the signature. Falls back to live grep if results are sparse. Returns a `warning` if the index looked stale (a background reindex starts). |
 
 ### Graph Analysis
 
 | Tool | Use When |
 |------|----------|
-| `find_symbol(symbol_name, exact, detail)` | Look up one or more symbols by name (several names in one call): the code of each, with its callers and callees by name. `exact=False` for fuzzy matching. `detail`: `compact` (default) or `full`. |
-| `graph(symbol_name, direction, transitive, max_depth, detail)` | `detail`: `compact` (default: name, file, lines) or `full`. `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True`** (was `impact()`) gives the transitive change blast radius before a refactor (a lower bound: static edges only). It requires `direction="callers"`; `direction="callees"` with `transitive=True` returns an error. Call edges are static and name-based, so use `search` for call sites the graph cannot see (see [Known Limitations](#known-limitations)). |
-| `explain(symbol_name, verbosity)` | **Replaces `Read` for understanding code.** The code of the symbol, its callers and callees and related code in one call. |
+| `find_symbol(symbol_name, exact)` | Look up one or more symbols by name (several names in one call): the code of each, with its callers and callees by name. `exact=False` for fuzzy matching. |
+| `graph(symbol_name, direction, transitive)` | `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True`** (was `impact()`) gives the transitive change blast radius before a refactor (a lower bound: static edges only). It requires `direction="callers"`; `direction="callees"` with `transitive=True` returns an error. Call edges are static and name-based, so use `search` for call sites the graph cannot see (see [Known Limitations](#known-limitations)). |
 | `analyze(path)` | Code quality: cyclomatic complexity, cognitive complexity, code smells, dependency metrics. |
 
 ### Memory
 
 | Tool | Use When |
 |------|----------|
-| `memory(action, ...)` | `action="store"` (was `remember`) to persist a decision/note across sessions (types: `note`, `decision`, `conversation`, `status`, `preference`, `doc`; TTL: `permanent`, `month`, `week`, `day`, `session`); `"search"` (was `recall`) for semantic retrieval; `"delete"` (was `forget`) to remove by ID, tag, or type. |
+| `memory(action, content, query, tags, memory_id)` | `action="store"` to persist a decision or note across sessions; `"search"` for semantic retrieval; `"delete"` to remove by ID or tag. With `NEXUS_PERMISSION_LEVEL=read` only `search` is allowed. |
 
 ---
 
@@ -339,7 +324,7 @@ claude mcp add nexus-mcp -- /path/to/.venv/bin/nexus-mcp-ci
 
 1. **Session start**: no setup call. Run `index` only if a tool says "No codebase indexed"
 2. **To find code you cannot name**: `search`, before reading files one by one
-3. **To understand one symbol**: `explain`
+3. **To see symbols you can name**: `find_symbol`, with all the names in one call
 4. **Before refactoring**: `graph` with `transitive=true` to assess blast radius. The call graph is static (no dynamic dispatch), so also use `search` to find call sites.
 5. **For project orientation**: `map` with `detail="summary"` or `detail="architecture"`
 6. **When you know the exact file or string**: plain grep or read is fine
@@ -352,14 +337,14 @@ claude mcp add nexus-mcp -- /path/to/.venv/bin/nexus-mcp-ci
 status()               → "indexed: True, 8,412 chunks, 1,203 symbols, 87 MB"
 
 # Code discovery
-search("JWT token validation", mode="hybrid", limit=10)
+search("JWT token validation", limit=10)
   → auth/jwt.py:42  validate_token()         score=0.94
   → auth/middleware.py:18  require_auth()    score=0.87
   → tests/test_auth.py:91  test_valid_jwt()  score=0.81
 
-# Deep symbol understanding
-explain("validate_token")
-  → definition, location, related code
+# Symbols you can name
+find_symbol("validate_token, require_auth")
+  → the code of each, file and lines
   → callers: [post_order, ...], callees: [...]
 
 # Pre-refactor safety check
@@ -521,7 +506,7 @@ src/nexus_mcp/
 └── middleware/
     └── audit.py           # Structured audit logs, correlation IDs, field redaction
 benchmarks/                # Token-efficiency benchmark harness (ADR-018)
-self_test/                 # End-to-end demo of all 10 tools
+self_test/                 # End-to-end demo of the 8 tools and the Python API
 plugin/                    # Claude Code plugin: registers the server + routing skill
 ```
 
@@ -544,14 +529,14 @@ plugin/                    # Claude Code plugin: registers the server + routing 
 
 ## Self-Test
 
-Verify your installation exercises all 10 tools end-to-end:
+Verify your installation exercises the 8 tools and the Python API end-to-end:
 
 ```bash
 python self_test/demo_mcp.py                   # built-in sample project
 python self_test/demo_mcp.py /path/to/project  # your own codebase
 ```
 
-Expected output: all 10 tools exercised with pass/fail per tool and a summary.
+Expected output: the 8 tools and the Python API exercised with pass/fail per tool and a summary.
 
 ---
 
@@ -562,7 +547,7 @@ Expected output: all 10 tools exercised with pass/fail per tool and a summary.
 - **No incremental graph updates**: Graph is rebuilt in full on incremental reindex (only vector/BM25 are incremental at the chunk level).
 - **No SSE transport**: Only stdio transport is currently supported.
 - **Language coverage**: 25+ languages get tree-sitter symbol extraction. ast-grep structure (functions, classes, imports) covers Python, JavaScript, TypeScript, Go, Java, and Rust; other languages have no graph structure.
-- **Call edges are static and name-based.** `graph()` and the `callers`/`callees` fields of `explain()` come from parsing, not runtime tracing. Edges exist for Python, JavaScript, TypeScript, Go, Java and Rust. A call resolves only when the callee is in the same file, in an imported file, or has a unique name in the index. A name shared by several definitions gets no edge, so results are a lower bound. Dynamic dispatch, monkey-patching, callbacks and reflection do not show up, so treat `graph(transitive=True)` as a lower bound on blast radius.
+- **Call edges are static and name-based.** `graph()` and the `callers`/`callees` fields of `find_symbol()` come from parsing, not runtime tracing. Edges exist for Python, JavaScript, TypeScript, Go, Java and Rust. A call resolves only when the callee is in the same file, in an imported file, or has a unique name in the index. A name shared by several definitions gets no edge, so results are a lower bound. Dynamic dispatch, monkey-patching, callbacks and reflection do not show up, so treat `graph(transitive=True)` as a lower bound on blast radius.
 - **Complexity is approximate**: cyclomatic complexity counts branch points per function. Only Python counts `and`/`or`, and only Python functions get docstrings on graph nodes.
 - **Auto-reindex has a detection lag**: with the file watcher enabled (default), edits are picked up after a short debounce, and `status()`/`search()` run a throttled staleness check as a backstop — not an instant, per-call guarantee of freshness.
 
@@ -752,7 +737,7 @@ python3 -c "import nexus_mcp; print('OK')"
 # Check the CLI is available
 nexus-mcp --help
 
-# Run the self-test demo (exercises all 10 tools)
+# Run the self-test demo (exercises the 8 tools and the Python API)
 python self_test/demo_mcp.py
 ```
 
@@ -1169,7 +1154,7 @@ Nexus-MCP exposes 10 tools. The v2.0.0 release merged the old 15 tools; see the 
 ### Discovery & Indexing
 
 #### `index`
-Index a codebase directory. Call it before any other tool except `status` and `health`.
+Index a codebase directory. Call it before any other tool except `status`.
 
 ```
 # Single directory
@@ -1199,13 +1184,6 @@ status()
 
 Returns version, indexing state, chunk counts, graph stats, peak RSS memory and a `hint` field. If files changed since the last index, the result includes `stale` and `staleness_warning`, and the server starts a background reindex. The staleness check runs at most once every `NEXUS_STALENESS_CHECK_INTERVAL` seconds (default 15).
 
-#### `health`
-Liveness and readiness probe: uptime and which engines are up. Use `status` to check index freshness.
-
-```
-health()
-```
-
 #### `map`
 Project overview: files, languages, modules and structure. Use it before you list directories or open files one by one.
 
@@ -1223,19 +1201,14 @@ map(detail="full")           # both
 Finds code by meaning or keyword: semantic + keyword + graph search, with code snippets.
 
 ```
-search(query="authentication middleware", limit=10, language="python", mode="hybrid")
+search(query="authentication middleware", limit=10)
 ```
 
 Parameters:
-- `query` — Natural language or code query
+- `query` — Natural language or code query. Exact names (`parse_config`) bring their definitions first.
 - `limit` — Max results (1-100, default 10)
-- `language` — Filter by language (e.g., "python", "javascript")
-- `symbol_type` — Filter by type: "function", "class", "method", "variable" or "module"
-  (a module result is the docstring at the top of a file and the names it defines)
-- `mode` — "hybrid" (default), "vector", or "bm25"
-- `rerank` — Enable FlashRank reranking (default False; needs the `reranker` extra). In the retrieval eval it lowered hit@1 on two of four suites and added 0.1 to 3 s to each query, so it is opt-in
-- `live_grep` — Force the live-grep fallback (`rg`, then `grep`) (default False)
-- `detail` — "compact" (default) or "full"
+
+The schema that the model sees holds only these two. The Python API (`nexus_mcp.core_api.search`) also takes `language`, `symbol_type` ("function", "class", "method", "variable" or "module"), `mode` ("hybrid", "vector" or "bm25"), `live_grep` and `detail` ("compact" or "full"). Agents used none of them in 49 calls, and each parameter costs prompt tokens on every turn.
 
 Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `symbol_type`, `line_start`/`line_end`, and a `hint` field. A compact response has only `total`, `results`, `hint` and, when the index is stale, `warning`; `detail="full"` adds `query`, `search_mode`, `engines_used` and the `language` of each result. With `detail="compact"` each of the top 3 results carries its whole symbol, up to 2000 characters (cut at a line boundary and marked `(truncated)` when longer), so the agent can answer without a file read. The other results show the signature and the first docstring line (160 characters at most, with no `(truncated)` mark). The snippet is the code only: the stored chunk text also has a `# path:line` line, a `type: name` line, a copy of the signature and docstring, and `Imports:` and `Calls:` lines, and compact mode leaves those out. The fields that repeat the snippet (`signature`, `docstring`, `parent`), the internal fields (`id`, `score`, `rrf_score`, `rerank_score`, `_fusion_sources`, `absolute_path`) and empty values are also left out. Measured on a 460-file project, a compact result is about 7,000 characters, 40% of a full one.
 
@@ -1262,15 +1235,14 @@ Trace the call graph of a symbol. This tool replaces `find_callers`, `find_calle
 graph(symbol_name="authenticate", direction="callers")        # who calls this
 graph(symbol_name="process_request", direction="callees")     # what this calls
 graph(symbol_name="DatabaseConnection", direction="callers",
-      transitive=True, max_depth=5)                            # change blast radius
+      transitive=True)                                         # change blast radius
 ```
 
 Parameters:
 - `symbol_name` — Name of the function or symbol
 - `direction` — "callers" (default) or "callees"
 - `transitive` — `True` returns the full transitive change impact. It works only with `direction="callers"`. Run it before you refactor a shared symbol.
-- `max_depth` — Maximum traversal depth for `transitive=True` (default 10)
-- `detail` — "compact" (default): callers or callees as `file -> ["name:line"]`, source files before test files. "full": one record for each symbol with docstring, complexity, signature types and the node id.
+- The Python API also takes `max_depth` and `detail` ("compact", or "full" with 25 symbols at most). Compact: callers or callees as `file -> ["name:line"]`, source files before test files. "full": one record for each symbol with docstring, complexity, signature types and the node id.
 
 With `transitive=True` and `detail="compact"`, the result has `total_impacted` and `impacted_files` (`file -> [names]`, every impacted symbol). The `impacted_symbols` list of records is only in `detail="full"`. A compact result is about 10% of the size of a full one.
 
@@ -1287,15 +1259,6 @@ A callers result (immediate or transitive) also has `references`: every line whe
 The caller list holds only the calls that static analysis resolved, so it is a lower bound. `references` is the complete text answer, so a separate grep is not needed. Source files come first, each line with its code (at most 8 lines per file, 60 lines in all, 110 characters per line). A source file past the budget is a line count in `more_files`. Test files are a line count each in `test_files`. `truncated` says when a cap cut the list, and the totals always count everything. In the caller lists a test file with more than 3 symbols shows 3 and `+N more`. A name with no graph node (a constant, or a language without graph support) returns its `references` with an empty caller list instead of an error.
 
 > **Limit:** call edges are static and name-based. Dynamic dispatch, callbacks and reflection are invisible, and a name shared by several definitions gets no edge. Treat results as a lower bound and use `search` for other call sites. See [Known Limitations](../README.md#known-limitations).
-
-#### `explain`
-Preferred over Read for understanding a symbol. Gives the code of the symbol, its callers and callees by name, and related code found by meaning.
-
-```
-explain(symbol_name="Router", verbosity="detailed")
-```
-
-Verbosity levels: "summary" (place, callers and callees, the project quality score), "detailed" (default: adds the code, 6,000 characters at most, and 5 related symbols by name) and "full" (all fields of the symbol and of 25 callers and callees at most, and 10 related symbols with a snippet). Since 2026-10-08 the result has no complexity report of the whole project and no raw relationship records; a result for a busy symbol was 73,000 characters with them.
 
 #### `analyze`
 Run code analysis on the indexed codebase: complexity metrics, dependency analysis, code smells and quality scores.
@@ -1315,14 +1278,13 @@ Persist and retrieve project context across sessions. This tool replaces `rememb
 # Store
 memory(action="store",
        content="The auth service uses JWT tokens with 24h expiry",
-       memory_type="decision", tags="auth,jwt", ttl="permanent")
+       tags="auth,jwt")
 
 # Search
-memory(action="search", query="how does authentication work?", limit=5, tags="auth")
+memory(action="search", query="how does authentication work?", tags="auth")
 
 # Delete
 memory(action="delete", tags="temporary")
-memory(action="delete", memory_type="session")
 memory(action="delete", memory_id="abc-123")
 ```
 
@@ -1330,10 +1292,9 @@ Parameters:
 - `action` — "store", "search" or "delete"
 - `content` — Text to store (`action="store"`)
 - `query` — Natural language query (`action="search"`)
-- `memory_id`, `memory_type`, `tags` — Filters for search and delete. `memory_type` and `tags` also set the type and tags when you store.
-- `ttl` — "permanent" (default), "month", "week", "day" or "session"
-- `project` — Project name for scoping (`action="store"`, default "default")
-- `limit` — Maximum results (`action="search"`, default 5)
+- `tags` — Comma-separated; they set the tags when you store and filter when you search or delete
+- `memory_id` — The note to delete (`action="delete"`)
+- The Python API also takes `memory_type`, `ttl`, `project` and `limit`.
 
 Memory types: note (default), decision, conversation, status, preference, doc.
 
@@ -1408,7 +1369,6 @@ GPU/MPS auto-detection (`NEXUS_EMBEDDING_DEVICE=auto`) tries CUDA first, then Ap
 
 2. **Use filters to narrow results** — The `language` and `symbol_type` filters are applied before search, making results more relevant and queries faster.
 
-3. **Adjust verbosity for context** — When using `explain`, start with "summary" for quick overviews and "detailed" for investigation.
 
 ### Memory
 
@@ -1447,7 +1407,7 @@ flowchart TB
     Client["MCP Client (Claude Code / IDE)"]
 
     subgraph Server["server.py — FastMCP"]
-        Tools["10 tools: index, status, health, search,\nfind_symbol, graph, explain, analyze, map, memory"]
+        Tools["8 tools: index, status, search,\nfind_symbol, graph, analyze, map, memory"]
         Guard["permission guard + rate limiter\n(security/permissions.py, security/rate_limiter.py)"]
         Audit["@_audited → middleware/audit.py"]
     end

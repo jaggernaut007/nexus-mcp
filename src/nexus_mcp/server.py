@@ -32,26 +32,27 @@ what breaks if a symbol changes, how the project is laid out, and what was decid
 earlier. One call here replaces several greps and file reads.
 
 No setup call is needed: the index of an earlier session is attached when the server \
-starts and keeps itself fresh. Go straight to the tool that answers the question. Only \
-if a tool answers "No codebase indexed", call `index` once with the absolute project path.
+starts and keeps itself fresh. Only if a tool answers "No codebase indexed", call \
+`index` once with the absolute project path.
 
 Which tool answers which question:
-- "where is...", "how does...", "find the code that..." -> `search`
+- "where is...", "how does...", "find the code that..." -> `search` (a name in the \
+query, such as `parse_config`, brings its definition first)
 - functions, classes or constants you can name -> `find_symbol` (several names in one \
-call; it returns their code); for a briefing with related code -> `explain`
-- "who calls X", "what does X call", "what breaks if I change X" -> `graph` \
-(use transitive=true before a rename, signature change or delete)
-- "give me an overview", "where do I start", "how is this structured" -> `map`
+call; it returns their code)
+- "who calls X", "what breaks if I change X" -> `graph` (use transitive=true before a \
+rename, signature change or delete)
+- "give me an overview", "where do I start" -> `map`
 - "most complex code", "dead code", "review quality" -> `analyze`
-- a decision, preference or note to keep across sessions -> `memory`
+- a decision or note to keep across sessions -> `memory`
 
-`search` returns the whole code of its top results, `find_symbol` returns the whole \
-code of each name, and `graph` returns every text reference beside the call edges. \
-So do not follow a nexus call with a file read or a grep for a name: call \
-`find_symbol` with all the names at once. \
-Use your built-in grep or file read when you already know the exact file or string. \
-Call edges are static: calls through callbacks, reflection or dynamic dispatch are not \
-visible, so read the references list of `graph` before you delete code.
+`search` returns the whole code of its top results, `find_symbol` the whole code of each \
+name, and `graph` every text reference beside the call edges. Each call costs one more \
+read of the whole conversation, so do not follow a nexus call with a grep or a file read \
+for a name: call `find_symbol` with all the names at once. Use your built-in grep or file \
+read when you already know the exact file or string. Call edges are static: calls through \
+callbacks, reflection or dynamic dispatch are not visible, so read the references list \
+of `graph` before you delete code.
 """
 
 
@@ -288,17 +289,6 @@ def create_server():
             await core_api._ensure_file_watcher(get_state(), _settings.auto_watch_enabled)
         return result
 
-    @mcp.tool(annotations=READ_ONLY, title="Server health")
-    @_audited
-    def health() -> dict[str, Any]:
-        """Liveness check for the server process: uptime and which engines are up.
-        It does not say whether the index is complete or fresh; use `status` for that.
-        Needed only for monitoring, not for normal code work."""
-        guard_err = _guard("health")
-        if guard_err:
-            return guard_err
-        return core_api.health()
-
     @mcp.tool(annotations=INDEXING, title="Index a project")
     @_audited
     async def index(
@@ -350,46 +340,23 @@ def create_server():
     @mcp.tool(annotations=READ_ONLY, title="Search code")
     @_audited
     def search(
-        query: Annotated[str, "What to find, in plain words or code terms (e.g. 'retry logic')"],
-        limit: Annotated[int, "Max results (default 10, max 100)"] = 10,
-        language: Annotated[str, "Filter by language (e.g. 'python')"] = "",
-        symbol_type: Annotated[
-            str, "Filter by type: 'function', 'class', 'method', 'variable' or 'module'"
-        ] = "",
-        mode: Annotated[
-            Literal["hybrid", "vector", "bm25"],
-            "'hybrid' (default), 'vector' (meaning only) or 'bm25' (keywords only)",
-        ] = "hybrid",
-        rerank: Annotated[bool, "FlashRank reranking (default False; it lowered accuracy)"] = False,
-        live_grep: Annotated[bool, "Force live-grep fallback (rg/grep)"] = False,
-        detail: Annotated[
-            Literal["compact", "full"],
-            "'compact' (default): short snippets, no scores or ids. 'full': long snippets, scores",
-        ] = "compact",
+        query: Annotated[
+            str, "What to find, in plain words or code terms. Exact names (parse_config) first"
+        ],
+        limit: Annotated[int, "Max results (default 10)"] = 10,
     ) -> dict[str, Any]:
         """Find code by meaning or by keyword: "where is...", "how does... work",
         "find the code that...", "what handles...". Returns ranked results with file
         path and line range. The first three carry the whole function or class, so you
-        can answer without opening the file. Source files rank before test files unless
-        the query asks for tests. It combines semantic and keyword search, and falls
-        back to live text search when results are few. A query can also hold exact
-        names (`parse_config RetryPolicy`): their definitions come first. For the
-        whole code of a result that is cut, call `find_symbol` with its name. For an
-        exact string or a file you already know, your built-in grep or read is just as
-        good. A `warning` means the index was slightly stale; results still return."""
+        can answer without opening the file. A query can hold exact names
+        (`parse_config RetryPolicy`): their definitions come first. For the whole code
+        of a result that is cut, call `find_symbol` with its name. Source files rank
+        before test files unless the query asks for tests. For an exact string or a
+        file you already know, your built-in grep or read is just as good."""
         guard_err = _guard("search")
         if guard_err:
             return guard_err
-        return core_api.search(
-            query,
-            limit=limit,
-            language=language,
-            symbol_type=symbol_type,
-            mode=mode,
-            rerank=rerank,
-            live_grep=live_grep,
-            detail=detail,
-        )
+        return core_api.search(query, limit=limit)
 
     @mcp.tool(annotations=READ_ONLY, title="Find a symbol")
     @_audited
@@ -399,10 +366,6 @@ def create_server():
             "One name, or several with commas (e.g. 'create_server, TokenBudget, MAX_RETRIES')",
         ],
         exact: Annotated[bool, "True for exact match, False for fuzzy substring"] = True,
-        detail: Annotated[
-            Literal["compact", "full"],
-            "'compact' (default): place, code, callers and callees by name. 'full': all fields",
-        ] = "compact",
     ) -> dict[str, Any]:
         """Look up functions, classes, methods or constants by name and get the whole
         code of each, with file, line range and direct callers and callees. Use it
@@ -410,11 +373,11 @@ def create_server():
         and in place of a file read or a grep for a definition. Pass several names in
         one call. Code longer than 6,000 characters is cut and marked `(truncated)`.
         Set exact=false to match part of a name when you are unsure of the spelling.
-        For every use of a name, use `graph`; for related code, use `explain`."""
+        For every use of a name, use `graph`."""
         guard_err = _guard("find_symbol")
         if guard_err:
             return guard_err
-        return core_api.find_symbol(symbol_name, exact=exact, detail=detail)
+        return core_api.find_symbol(symbol_name, exact=exact)
 
     @mcp.tool(annotations=READ_ONLY, title="Call graph")
     @_audited
@@ -429,11 +392,6 @@ def create_server():
             "True = everything that depends on the symbol, directly or indirectly. Use "
             "before changing a shared symbol. Only valid with direction='callers'.",
         ] = False,
-        max_depth: Annotated[int, "Max traversal depth when transitive=True (default 10)"] = 10,
-        detail: Annotated[
-            Literal["compact", "full"],
-            "'compact' (default): name, file and lines. 'full': adds docstring and complexity",
-        ] = "compact",
     ) -> dict[str, Any]:
         """Trace the call graph: who calls a function (direction='callers') or what
         it calls (direction='callees'). With transitive=true it lists everything that
@@ -441,19 +399,13 @@ def create_server():
         signature or rename, move or delete a shared function ("what breaks if I
         change X"). A callers result also has `references`: every use of the name as a
         whole word (source lines with their code, test files as counts), so you do not
-        need a grep to check it. Edges
-        are static, so calls through callbacks, reflection or dynamic dispatch are
-        missing from the caller list; `references` still shows those lines."""
+        need a grep to check it. Edges are static, so calls through callbacks,
+        reflection or dynamic dispatch are missing from the caller list; `references`
+        still shows those lines."""
         guard_err = _guard("graph")
         if guard_err:
             return guard_err
-        return core_api.graph(
-            symbol_name,
-            direction=direction,
-            transitive=transitive,
-            max_depth=max_depth,
-            detail=detail,
-        )
+        return core_api.graph(symbol_name, direction=direction, transitive=transitive)
 
     @mcp.tool(annotations=READ_ONLY, title="Analyze code quality")
     @_audited
@@ -473,26 +425,6 @@ def create_server():
         if guard_err:
             return guard_err
         return core_api.analyze(path)
-
-    @mcp.tool(annotations=READ_ONLY, title="Explain a symbol")
-    @_audited
-    def explain(
-        symbol_name: Annotated[str, "Name of the symbol to explain"],
-        verbosity: Annotated[
-            Literal["summary", "detailed", "full"],
-            "Output detail level: 'summary', 'detailed' (default) or 'full'",
-        ] = "detailed",
-    ) -> dict[str, Any]:
-        """Get a full briefing on one function or class in a single call: its
-        code, who calls it, what it calls and related code found by meaning. Use it
-        to understand an unfamiliar symbol ("explain cancel_order", "what does this
-        class do and where is it used") instead of reading several files. Use
-        verbosity='summary' for the place and the callers only, and 'full' for all
-        fields of each caller and snippets of the related code."""
-        guard_err = _guard("explain")
-        if guard_err:
-            return guard_err
-        return core_api.explain(symbol_name, verbosity=verbosity)
 
     def _map_impl(
         detail: Annotated[
@@ -527,24 +459,15 @@ def create_server():
             Literal["store", "search", "delete"],
             "'store' saves a note, 'search' finds notes by meaning, 'delete' removes notes",
         ],
-        content: Annotated[str, "Memory content to store (action='store')"] = "",
-        query: Annotated[str, "Natural language search query (action='search')"] = "",
-        memory_id: Annotated[str, "Specific memory ID to delete (action='delete')"] = "",
-        memory_type: Annotated[
-            str, "Type/filter, e.g. 'note', 'decision' (store: type; search/delete: filter)"
-        ] = "",
+        content: Annotated[str, "The note to store (action='store')"] = "",
+        query: Annotated[str, "What to look for (action='search')"] = "",
         tags: Annotated[str, "Comma-separated tags (all actions)"] = "",
-        ttl: Annotated[
-            Literal["permanent", "month", "week", "day", "session"],
-            "How long a stored note lives (action='store'); default 'permanent'",
-        ] = "permanent",
-        project: Annotated[str, "Project name for scoping (action='store')"] = "default",
-        limit: Annotated[int, "Max results (action='search', default 5)"] = 5,
+        memory_id: Annotated[str, "ID of the note to delete (action='delete')"] = "",
     ) -> dict[str, Any]:
         """Keep and recall project knowledge across sessions: decisions, preferences,
         conventions, status. Use action='store' when the user says "remember that..."
         or a decision is made, action='search' for "what did we decide about...", and
-        action='delete' to remove outdated notes by ID, tags or type. Notes are stored
+        action='delete' to remove outdated notes by ID or tags. Notes are stored
         with the index of this project (the .nexus folder) and found by meaning, not
         by exact words."""
         from nexus_mcp.security.permissions import ToolCategory
@@ -560,15 +483,7 @@ def create_server():
             return guard_err
 
         return core_api.memory(
-            action,
-            content=content,
-            query=query,
-            memory_id=memory_id,
-            memory_type=memory_type,
-            tags=tags,
-            ttl=ttl,
-            project=project,
-            limit=limit,
+            action, content=content, query=query, tags=tags, memory_id=memory_id
         )
 
     return mcp

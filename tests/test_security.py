@@ -3,7 +3,7 @@
 import asyncio
 
 import nexus_mcp.server as server_module
-from tests.conftest import _call_tool, _setup_indexed
+from tests.conftest import _call_api, _call_tool, _setup_indexed
 
 
 class TestPathValidation:
@@ -116,7 +116,7 @@ class TestSymbolNameValidation:
     def test_explain_validates_name(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "explain", {"symbol_name": "\x00"})
+            return await _call_api("explain", {"symbol_name": "\x00"})
 
         result = asyncio.run(run())
         assert "error" in result
@@ -160,9 +160,8 @@ class TestSQLInjection:
     def test_language_filter_injection(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(
-                mcp, "search",
-                {"query": "hello", "language": "'; DROP TABLE chunks; --"},
+            return await _call_api(
+                "search", {"query": "hello", "language": "'; DROP TABLE chunks; --"}
             )
 
         # Should not raise — filter values are SQL-escaped
@@ -172,10 +171,7 @@ class TestSQLInjection:
     def test_symbol_type_filter_injection(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(
-                mcp, "search",
-                {"query": "hello", "symbol_type": "' OR 1=1 --"},
-            )
+            return await _call_api("search", {"query": "hello", "symbol_type": "' OR 1=1 --"})
 
         result = asyncio.run(run())
         assert "error" not in result or "OR" not in result.get("error", "")

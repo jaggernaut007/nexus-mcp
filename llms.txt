@@ -4,15 +4,13 @@
 
 Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexes codebases into three engines (vector embeddings, BM25 keyword index, rustworkx code graph) and fuses results via Reciprocal Rank Fusion with FlashRank re-ranking. Agents get the code they need in 500-2000 tokens instead of reading entire files (5000-15000 tokens). Supports 25+ programming languages via dual parsing (tree-sitter + ast-grep).
 
-## Core Tools (10 MCP tools)
+## Core Tools (8 MCP tools)
 
 - [index](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Index one or more folders — parallel parsing, incremental reindex on changed files, 8-step pipeline. Starts a file watcher for auto-reindex.
 - [status](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Index stats, memory usage, and a staleness warning when files changed since the last index.
-- [health](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Liveness/readiness probe.
 - [search](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Hybrid code search — vector semantic + BM25 keyword + graph structural, fused via RRF, re-ranked with FlashRank. Language/type filters, live-grep fallback.
 - [find_symbol](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Look up one or more symbols by name — code, location, relationships. Exact or fuzzy matching.
 - [graph](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Callers or callees of a symbol; `transitive=True` for change-impact analysis. Replaces find_callers, find_callees and impact. Call edges are static and name-based, so results are a lower bound.
-- [explain](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Combined graph + semantic + metrics explanation of a symbol, with `verbosity` summary/detailed/full.
 - [analyze](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Code complexity, dependencies, smells, and quality metrics.
 - [map](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Project overview (`detail="summary"`), architecture (`"architecture"`), or both (`"full"`). Replaces overview and architecture.
 - [memory](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): `action="store"`/`"search"`/`"delete"` — persist and retrieve project context with tags and TTL. Replaces remember, recall and forget.
@@ -46,9 +44,9 @@ Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexe
 - **Graph**: rustworkx PyDiGraph — containment, import and static call edges; caller/callee and impact traversal
 - **Parsing**: tree-sitter (symbol extraction for embeddings) + ast-grep (containment and import structure for the graph)
 - **Memory**: LanceDB-backed semantic memory with 6 types, TTL expiration, tag filtering
-- **Token budgets**: responses are truncated to a token budget; `explain` takes a `verbosity` of summary (~500 tok), detailed (~2000 tok) or full (~8000 tok)
+- **Small results**: `search` gives the whole code of its top 3 results and the signature of the rest; `find_symbol` gives the code of each name (6,000 characters at most for one); `graph` names callers by file. An agent pays for each call with one more read of the whole conversation, so the tools aim at fewer calls, not only smaller results
 
 ## Optional
 
 - [Research Notes](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/RESEARCH.md): Deep dives on LanceDB, ONNX, rustworkx, embedding models
-- [Self-Test Demo](https://github.com/jaggernaut007/Nexus-MCP/blob/main/self_test/README.md): End-to-end demo exercising all 10 tools
+- [Self-Test Demo](https://github.com/jaggernaut007/Nexus-MCP/blob/main/self_test/README.md): End-to-end demo exercising the 8 tools and the Python API

@@ -12,7 +12,7 @@ import pytest
 
 from nexus_mcp import core_api
 from nexus_mcp.engines.fusion import exact_names_first, query_identifiers
-from tests.conftest import _call_tool, _setup_indexed
+from tests.conftest import _call_api, _call_tool, _setup_indexed
 
 
 class TestQueryIdentifiers:
@@ -97,8 +97,13 @@ def names_repo(tmp_path):
 
 
 def _run(codebase, tmp_path, tool, args):
+    """Call a tool. `explain` and the `detail` option are not in the MCP schema any more
+    (agents did not use them), so those calls go to the Python API."""
+
     async def run():
         mcp, _, _ = await _setup_indexed(codebase, tmp_path / ".nexus")
+        if tool == "explain" or "detail" in args:
+            return await _call_api(tool, args)
         return await _call_tool(mcp, tool, args)
 
     return asyncio.run(run())

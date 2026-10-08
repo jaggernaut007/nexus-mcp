@@ -164,7 +164,7 @@ class TestRejectedCallsAreAudited:
     def test_a_valid_call_is_not_logged_as_invalid(self, caplog):
         mcp = server_module.create_server()
         with caplog.at_level(logging.INFO, logger="nexus.audit"):
-            asyncio.run(_call_tool(mcp, "health"))
+            asyncio.run(_call_tool(mcp, "status"))
         records = [r.getMessage() for r in caplog.records if r.name == "nexus.audit"]
         assert records and not any("invalid_arguments" in m for m in records)
 

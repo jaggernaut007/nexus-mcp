@@ -72,7 +72,7 @@ Nexus-MCP exposes 10 tools. The v2.0.0 release merged the old 15 tools; see the 
 ### Discovery & Indexing
 
 #### `index`
-Index a codebase directory. Call it before any other tool except `status` and `health`.
+Index a codebase directory. Call it before any other tool except `status`.
 
 ```
 # Single directory
@@ -102,13 +102,6 @@ status()
 
 Returns version, indexing state, chunk counts, graph stats, peak RSS memory and a `hint` field. If files changed since the last index, the result includes `stale` and `staleness_warning`, and the server starts a background reindex. The staleness check runs at most once every `NEXUS_STALENESS_CHECK_INTERVAL` seconds (default 15).
 
-#### `health`
-Liveness and readiness probe: uptime and which engines are up. Use `status` to check index freshness.
-
-```
-health()
-```
-
 #### `map`
 Project overview: files, languages, modules and structure. Use it before you list directories or open files one by one.
 
@@ -126,19 +119,14 @@ map(detail="full")           # both
 Finds code by meaning or keyword: semantic + keyword + graph search, with code snippets.
 
 ```
-search(query="authentication middleware", limit=10, language="python", mode="hybrid")
+search(query="authentication middleware", limit=10)
 ```
 
 Parameters:
-- `query` — Natural language or code query
+- `query` — Natural language or code query. Exact names (`parse_config`) bring their definitions first.
 - `limit` — Max results (1-100, default 10)
-- `language` — Filter by language (e.g., "python", "javascript")
-- `symbol_type` — Filter by type: "function", "class", "method", "variable" or "module"
-  (a module result is the docstring at the top of a file and the names it defines)
-- `mode` — "hybrid" (default), "vector", or "bm25"
-- `rerank` — Enable FlashRank reranking (default False; needs the `reranker` extra). In the retrieval eval it lowered hit@1 on two of four suites and added 0.1 to 3 s to each query, so it is opt-in
-- `live_grep` — Force the live-grep fallback (`rg`, then `grep`) (default False)
-- `detail` — "compact" (default) or "full"
+
+The schema that the model sees holds only these two. The Python API (`nexus_mcp.core_api.search`) also takes `language`, `symbol_type` ("function", "class", "method", "variable" or "module"), `mode` ("hybrid", "vector" or "bm25"), `live_grep` and `detail` ("compact" or "full"). Agents used none of them in 49 calls, and each parameter costs prompt tokens on every turn.
 
 Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `symbol_type`, `line_start`/`line_end`, and a `hint` field. A compact response has only `total`, `results`, `hint` and, when the index is stale, `warning`; `detail="full"` adds `query`, `search_mode`, `engines_used` and the `language` of each result. With `detail="compact"` each of the top 3 results carries its whole symbol, up to 2000 characters (cut at a line boundary and marked `(truncated)` when longer), so the agent can answer without a file read. The other results show the signature and the first docstring line (160 characters at most, with no `(truncated)` mark). The snippet is the code only: the stored chunk text also has a `# path:line` line, a `type: name` line, a copy of the signature and docstring, and `Imports:` and `Calls:` lines, and compact mode leaves those out. The fields that repeat the snippet (`signature`, `docstring`, `parent`), the internal fields (`id`, `score`, `rrf_score`, `rerank_score`, `_fusion_sources`, `absolute_path`) and empty values are also left out. Measured on a 460-file project, a compact result is about 7,000 characters, 40% of a full one.
 
@@ -165,15 +153,14 @@ Trace the call graph of a symbol. This tool replaces `find_callers`, `find_calle
 graph(symbol_name="authenticate", direction="callers")        # who calls this
 graph(symbol_name="process_request", direction="callees")     # what this calls
 graph(symbol_name="DatabaseConnection", direction="callers",
-      transitive=True, max_depth=5)                            # change blast radius
+      transitive=True)                                         # change blast radius
 ```
 
 Parameters:
 - `symbol_name` — Name of the function or symbol
 - `direction` — "callers" (default) or "callees"
 - `transitive` — `True` returns the full transitive change impact. It works only with `direction="callers"`. Run it before you refactor a shared symbol.
-- `max_depth` — Maximum traversal depth for `transitive=True` (default 10)
-- `detail` — "compact" (default): callers or callees as `file -> ["name:line"]`, source files before test files. "full": one record for each symbol with docstring, complexity, signature types and the node id.
+- The Python API also takes `max_depth` and `detail` ("compact", or "full" with 25 symbols at most). Compact: callers or callees as `file -> ["name:line"]`, source files before test files. "full": one record for each symbol with docstring, complexity, signature types and the node id.
 
 With `transitive=True` and `detail="compact"`, the result has `total_impacted` and `impacted_files` (`file -> [names]`, every impacted symbol). The `impacted_symbols` list of records is only in `detail="full"`. A compact result is about 10% of the size of a full one.
 
@@ -190,15 +177,6 @@ A callers result (immediate or transitive) also has `references`: every line whe
 The caller list holds only the calls that static analysis resolved, so it is a lower bound. `references` is the complete text answer, so a separate grep is not needed. Source files come first, each line with its code (at most 8 lines per file, 60 lines in all, 110 characters per line). A source file past the budget is a line count in `more_files`. Test files are a line count each in `test_files`. `truncated` says when a cap cut the list, and the totals always count everything. In the caller lists a test file with more than 3 symbols shows 3 and `+N more`. A name with no graph node (a constant, or a language without graph support) returns its `references` with an empty caller list instead of an error.
 
 > **Limit:** call edges are static and name-based. Dynamic dispatch, callbacks and reflection are invisible, and a name shared by several definitions gets no edge. Treat results as a lower bound and use `search` for other call sites. See [Known Limitations](../README.md#known-limitations).
-
-#### `explain`
-Preferred over Read for understanding a symbol. Gives the code of the symbol, its callers and callees by name, and related code found by meaning.
-
-```
-explain(symbol_name="Router", verbosity="detailed")
-```
-
-Verbosity levels: "summary" (place, callers and callees, the project quality score), "detailed" (default: adds the code, 6,000 characters at most, and 5 related symbols by name) and "full" (all fields of the symbol and of 25 callers and callees at most, and 10 related symbols with a snippet). Since 2026-10-08 the result has no complexity report of the whole project and no raw relationship records; a result for a busy symbol was 73,000 characters with them.
 
 #### `analyze`
 Run code analysis on the indexed codebase: complexity metrics, dependency analysis, code smells and quality scores.
@@ -218,14 +196,13 @@ Persist and retrieve project context across sessions. This tool replaces `rememb
 # Store
 memory(action="store",
        content="The auth service uses JWT tokens with 24h expiry",
-       memory_type="decision", tags="auth,jwt", ttl="permanent")
+       tags="auth,jwt")
 
 # Search
-memory(action="search", query="how does authentication work?", limit=5, tags="auth")
+memory(action="search", query="how does authentication work?", tags="auth")
 
 # Delete
 memory(action="delete", tags="temporary")
-memory(action="delete", memory_type="session")
 memory(action="delete", memory_id="abc-123")
 ```
 
@@ -233,10 +210,9 @@ Parameters:
 - `action` — "store", "search" or "delete"
 - `content` — Text to store (`action="store"`)
 - `query` — Natural language query (`action="search"`)
-- `memory_id`, `memory_type`, `tags` — Filters for search and delete. `memory_type` and `tags` also set the type and tags when you store.
-- `ttl` — "permanent" (default), "month", "week", "day" or "session"
-- `project` — Project name for scoping (`action="store"`, default "default")
-- `limit` — Maximum results (`action="search"`, default 5)
+- `tags` — Comma-separated; they set the tags when you store and filter when you search or delete
+- `memory_id` — The note to delete (`action="delete"`)
+- The Python API also takes `memory_type`, `ttl`, `project` and `limit`.
 
 Memory types: note (default), decision, conversation, status, preference, doc.
 
@@ -311,7 +287,6 @@ GPU/MPS auto-detection (`NEXUS_EMBEDDING_DEVICE=auto`) tries CUDA first, then Ap
 
 2. **Use filters to narrow results** — The `language` and `symbol_type` filters are applied before search, making results more relevant and queries faster.
 
-3. **Adjust verbosity for context** — When using `explain`, start with "summary" for quick overviews and "detailed" for investigation.
 
 ### Memory
 

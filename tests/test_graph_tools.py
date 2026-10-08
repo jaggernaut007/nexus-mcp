@@ -14,7 +14,7 @@ from nexus_mcp.core.graph_models import (
     UniversalRelationship,
 )
 from nexus_mcp.state import get_state
-from tests.conftest import _call_tool, _setup_indexed
+from tests.conftest import _call_api, _call_tool, _setup_indexed
 
 # The default result is compact since 2026-10-06. These tests check the full shape.
 FULL = {"detail": "full"}
@@ -105,22 +105,20 @@ class TestFindSymbol:
         assert any("hell" in s["name"].lower() for s in result["symbols"])
 
     def test_find_symbol_includes_relationships(self, tmp_path):
-        mcp = server_module.create_server()
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
-        result = asyncio.run(_call_tool(mcp, "find_symbol", {"symbol_name": "hello", **FULL}))
+        result = asyncio.run(_call_api("find_symbol", {"symbol_name": "hello", **FULL}))
         assert "error" not in result
         symbol = result["symbols"][0]
         assert "relationships_out" in symbol
         assert "relationships_in" in symbol
 
     def test_find_symbol_relative_paths(self, tmp_path):
-        mcp = server_module.create_server()
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
-        result = asyncio.run(_call_tool(mcp, "find_symbol", {"symbol_name": "hello", **FULL}))
+        result = asyncio.run(_call_api("find_symbol", {"symbol_name": "hello", **FULL}))
         symbol = result["symbols"][0]
         file_path = symbol["location"]["file"]
         assert not file_path.startswith("/"), f"Path not relative: {file_path}"
@@ -145,24 +143,22 @@ class TestGraphCallers:
         assert "error" in result
 
     def test_callers_no_callers(self, tmp_path):
-        mcp = server_module.create_server()
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
         result = asyncio.run(
-            _call_tool(mcp, "graph", {"symbol_name": "orchestrate", "direction": "callers", **FULL})
+            _call_api("graph", {"symbol_name": "orchestrate", "direction": "callers", **FULL})
         )
         assert "error" not in result
         assert result["total"] == 0
         assert result["callers"] == []
 
     def test_callers_with_callers(self, tmp_path):
-        mcp = server_module.create_server()
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
         result = asyncio.run(
-            _call_tool(mcp, "graph", {"symbol_name": "helper", "direction": "callers", **FULL})
+            _call_api("graph", {"symbol_name": "helper", "direction": "callers", **FULL})
         )
         assert "error" not in result
         assert result["symbol"] == "helper"
@@ -200,12 +196,11 @@ class TestGraphCallees:
         assert "error" in result
 
     def test_callees_with_callees(self, tmp_path):
-        mcp = server_module.create_server()
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
         result = asyncio.run(
-            _call_tool(mcp, "graph", {"symbol_name": "orchestrate", "direction": "callees", **FULL})
+            _call_api("graph", {"symbol_name": "orchestrate", "direction": "callees", **FULL})
         )
         assert "error" not in result
         assert result["symbol"] == "orchestrate"
@@ -215,12 +210,11 @@ class TestGraphCallees:
         assert "helper" in callee_names
 
     def test_callees_no_callees(self, tmp_path):
-        mcp = server_module.create_server()
         state = get_state()
         _setup_graph_with_calls(state, tmp_path)
 
         result = asyncio.run(
-            _call_tool(mcp, "graph", {"symbol_name": "helper", "direction": "callees", **FULL})
+            _call_api("graph", {"symbol_name": "helper", "direction": "callees", **FULL})
         )
         assert "error" not in result
         assert result["total"] == 0

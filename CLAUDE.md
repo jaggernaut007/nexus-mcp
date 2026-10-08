@@ -15,8 +15,8 @@ Lower token use for an agent, with the same accuracy. Set by the owner on 2026-1
 
 ## Use Nexus-MCP Tools Before Built-in Tools
 
-Nexus-MCP is registered as an MCP server (`nexus-mcp`) with 10 tools: `index`,
-`status`, `health`, `search`, `find_symbol`, `graph`, `explain`, `analyze`, `map`,
+Nexus-MCP is registered as an MCP server (`nexus-mcp`) with 8 tools: `index`,
+`status`, `search`, `find_symbol`, `graph`, `analyze`, `map`,
 `memory`. Prefer these over Read/Grep/Glob for exploring an indexed codebase — start
 with `status`, index if needed, then `search`/`find_symbol`/`graph` before falling
 back to built-in tools for files nexus-mcp has already identified.
@@ -36,7 +36,7 @@ repo to read the skill content directly.
 
 ### Known limitations
 
-- **Call edges are static and name-based.** `graph()` and the `callers`/`callees` fields of `explain()` come from parsing, not runtime tracing. Edges exist for Python, JavaScript, TypeScript, Go, Java and Rust. A call gets an edge only when exactly one callee fits: in the same file, in an imported file, or with a unique name in the index. A name shared by several definitions gets no edge, so results are a lower bound. Python is covered best; see ADR-019 for the other languages. `analyze` complexity is cyclomatic and approximate (only Python counts `and`/`or`); only Python functions carry docstrings.
+- **Call edges are static and name-based.** `graph()` and the `callers`/`callees` fields of `find_symbol()` come from parsing, not runtime tracing. Edges exist for Python, JavaScript, TypeScript, Go, Java and Rust. A call gets an edge only when exactly one callee fits: in the same file, in an imported file, or with a unique name in the index. A name shared by several definitions gets no edge, so results are a lower bound. Python is covered best; see ADR-019 for the other languages. `analyze` complexity is cyclomatic and approximate (only Python counts `and`/`or`); only Python functions carry docstrings.
 - **The call graph only sees static edges.** `graph()` is built from
   parsing, not runtime tracing. It will **miss**: dynamic dispatch (Python monkey-patching, Ruby
   metaprogramming), calls made through callbacks/closures/lambdas (e.g.
@@ -109,7 +109,7 @@ src/nexus_mcp/
     └── store.py               # SQLite graph persistence
 benchmarks/                # Token-efficiency benchmark harness (ADR-018)
 self_test/
-├── demo_mcp.py            # End-to-end demo exercising all 10 tools
+├── demo_mcp.py            # End-to-end demo exercising the 8 tools and the Python API
 └── README.md              # Usage, sample project, troubleshooting
 llms.txt, llms-full.txt    # AI-readable docs; rebuild llms-full.txt with scripts/build_llms_full.py
 .claude-plugin/
@@ -130,7 +130,7 @@ pytest -v                  # Run tests (843 tests, 831 without slow)
 pytest -m "not slow"       # Skip performance benchmarks
 ruff check .               # Lint
 nexus-mcp-ci               # Run server
-python self_test/demo_mcp.py  # Run self-test demo (all 10 tools)
+python self_test/demo_mcp.py  # Run self-test demo (the 8 tools and the Python API)
 claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 ```
 
@@ -162,7 +162,7 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 2. Models lazy-loaded, unloaded after indexing (try/finally ensures cleanup)
 3. LanceDB tables: `chunks` (vectors), `memories` (memory layer)
 4. Graph engine is thread-safe with RLock
-5. All tools require `index` first except `status` and `health`
+5. All tools require `index` first except `status`
 6. Filter values in vector_engine are SQL-escaped to prevent injection
 7. Pipeline `_pipeline` in core_api.py is protected by `_pipeline_lock`, a threading lock, held for the full duration of `index()` (not just creation) so background reindexes can safely detect "busy" via a non-blocking acquire
 8. Input validation runs at tool entry in `core_api.py` (null bytes, length limits, path traversal)

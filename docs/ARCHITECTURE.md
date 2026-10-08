@@ -15,7 +15,7 @@ flowchart TB
     Client["MCP Client (Claude Code / IDE)"]
 
     subgraph Server["server.py — FastMCP"]
-        Tools["10 tools: index, status, health, search,\nfind_symbol, graph, explain, analyze, map, memory"]
+        Tools["8 tools: index, status, search,\nfind_symbol, graph, analyze, map, memory"]
         Guard["permission guard + rate limiter\n(security/permissions.py, security/rate_limiter.py)"]
         Audit["@_audited → middleware/audit.py"]
     end

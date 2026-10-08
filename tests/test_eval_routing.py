@@ -194,8 +194,8 @@ class TestPrompts:
                 assert spec["expected_any_of"]
 
     def test_load_prompts_expected_tools_exist(self):
-        known = {"index", "status", "health", "search", "find_symbol", "graph",
-                 "explain", "analyze", "map", "memory"}
+        known = {"index", "status", "search", "find_symbol", "graph", "analyze", "map",
+                 "memory"}
         for spec in runner.load_prompts():
             assert set(spec.get("expected_any_of", [])) <= known
 

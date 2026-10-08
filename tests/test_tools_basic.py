@@ -10,7 +10,7 @@ from fastmcp.exceptions import NotFoundError
 import nexus_mcp.core_api as core_api
 import nexus_mcp.server as server_module
 from nexus_mcp.state import get_state
-from tests.conftest import _call_tool, _mock_embedding_service, _setup_indexed
+from tests.conftest import _call_api, _call_tool, _mock_embedding_service, _setup_indexed
 
 
 async def _index_no_watch(codebase_path, storage_dir):
@@ -140,7 +140,7 @@ class TestSearch:
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
             # The default shape is compact since 2.1.0 (tests/test_compact_results.py).
             # This test pins the full shape, which is now opt-in.
-            return await _call_tool(mcp, "search", {"query": "test", "detail": "full"})
+            return await _call_api("search", {"query": "test", "detail": "full"})
 
         result = asyncio.run(run())
         r = result["results"][0]
@@ -311,8 +311,8 @@ class TestToolConsolidation:
             if k.startswith("tool:")
         }
         assert names == {
-            "index", "status", "health", "search", "find_symbol",
-            "analyze", "explain", "graph", "map", "memory",
+            "index", "status", "search", "find_symbol",
+            "analyze", "graph", "map", "memory",
         }
 
     @pytest.mark.parametrize(

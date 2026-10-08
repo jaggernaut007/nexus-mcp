@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from tests.conftest import _call_tool, _setup_indexed
+from tests.conftest import _call_api, _call_tool, _setup_indexed
 
 
 @pytest.fixture
@@ -57,7 +57,7 @@ class TestHybridSearch:
         async def _test():
             storage = tmp_path / "storage"
             mcp, _, _ = await _setup_indexed(search_codebase, storage)
-            result = await _call_tool(mcp, "search", {
+            result = await _call_api("search", {
                 "query": "parse",
                 "mode": "hybrid",
                 "detail": "full",
@@ -72,7 +72,7 @@ class TestHybridSearch:
         async def _test():
             storage = tmp_path / "storage"
             mcp, _, _ = await _setup_indexed(search_codebase, storage)
-            result = await _call_tool(mcp, "search", {
+            result = await _call_api("search", {
                 "query": "validate input",
                 "mode": "vector",
                 "detail": "full",
@@ -87,7 +87,7 @@ class TestHybridSearch:
         async def _test():
             storage = tmp_path / "storage"
             mcp, _, _ = await _setup_indexed(search_codebase, storage)
-            result = await _call_tool(mcp, "search", {
+            result = await _call_api("search", {
                 "query": "parse tokens",
                 "mode": "bm25",
                 "detail": "full",
@@ -103,7 +103,7 @@ class TestHybridSearch:
         async def _test():
             storage = tmp_path / "storage"
             mcp, _, _ = await _setup_indexed(search_codebase, storage)
-            result = await _call_tool(mcp, "search", {
+            result = await _call_api("search", {
                 "query": "parse",
                 "language": "python",
                 "detail": "full",

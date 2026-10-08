@@ -175,13 +175,13 @@ def priced_repo(tmp_path):
 def _search_tool(codebase, tmp_path, query, graph_calls, detail="compact"):
     import asyncio
 
-    from tests.conftest import _call_tool, _setup_indexed
+    from tests.conftest import _call_api, _setup_indexed
 
     async def run():
         mcp, _, _ = await _setup_indexed(codebase, tmp_path / ".nexus")
         get_graph = get_state().graph_engine
         graph_calls.append(get_graph is not None)
-        return await _call_tool(mcp, "search", {"query": query, "detail": detail})
+        return await _call_api("search", {"query": query, "detail": detail})
 
     from nexus_mcp.state import get_state
 
@@ -342,7 +342,7 @@ def test_reranker_scores_are_plain_floats():
 def test_find_symbol_compact_names_callers_and_callees(priced_repo, tmp_path):
     import asyncio
 
-    from tests.conftest import _call_tool, _setup_indexed
+    from tests.conftest import _call_api, _setup_indexed
 
     (priced_repo / "src" / "checkout.py").write_text(
         "from pricing import price_order\n\n\ndef checkout(order):\n    return price_order(order)\n"
@@ -350,10 +350,8 @@ def test_find_symbol_compact_names_callers_and_callees(priced_repo, tmp_path):
 
     async def run():
         mcp, _, _ = await _setup_indexed(priced_repo, tmp_path / ".nexus")
-        compact = await _call_tool(mcp, "find_symbol", {"symbol_name": "price_order"})
-        full = await _call_tool(
-            mcp, "find_symbol", {"symbol_name": "price_order", "detail": "full"}
-        )
+        compact = await _call_api("find_symbol", {"symbol_name": "price_order"})
+        full = await _call_api("find_symbol", {"symbol_name": "price_order", "detail": "full"})
         return compact, full, core_api.find_symbol("price_order", detail="verbose")
 
     compact, full, bad = asyncio.run(run())

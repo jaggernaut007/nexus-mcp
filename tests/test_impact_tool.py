@@ -12,7 +12,7 @@ from nexus_mcp.core.graph_models import (
 )
 from nexus_mcp.engines.graph_engine import RustworkxCodeGraph
 from nexus_mcp.state import get_state
-from tests.conftest import _call_tool
+from tests.conftest import _call_api, _call_tool
 
 # The default result is compact since 2026-10-06. These tests check the full shape.
 FULL = {"detail": "full"}
@@ -72,25 +72,23 @@ class TestImpact:
         assert "error" in result
 
     def test_impact_no_callers(self, tmp_path):
-        mcp = server_module.create_server()
         state = get_state()
         _setup_deep_call_chain(state, tmp_path)
 
         # d is at the top of the chain, nobody calls d
         args = {"symbol_name": "d", "transitive": True, **FULL}
-        result = asyncio.run(_call_tool(mcp, "graph", args))
+        result = asyncio.run(_call_api("graph", args))
         assert "error" not in result
         assert result["total_impacted"] == 0
         assert result["impacted_symbols"] == []
 
     def test_impact_with_transitive_callers(self, tmp_path):
-        mcp = server_module.create_server()
         state = get_state()
         _setup_deep_call_chain(state, tmp_path)
 
         # a is called by b, c (via b), d (via c->b), and e
         args = {"symbol_name": "a", "transitive": True, **FULL}
-        result = asyncio.run(_call_tool(mcp, "graph", args))
+        result = asyncio.run(_call_api("graph", args))
         assert "error" not in result
         assert result["symbol"] == "a"
         assert result["total_impacted"] >= 4
@@ -101,14 +99,13 @@ class TestImpact:
         assert "e" in names
 
     def test_impact_max_depth(self, tmp_path):
-        mcp = server_module.create_server()
         state = get_state()
         _setup_deep_call_chain(state, tmp_path)
 
         # With max_depth=1, only direct callers of a: b and e
         result = asyncio.run(
-            _call_tool(
-                mcp, "graph", {"symbol_name": "a", "max_depth": 1, "transitive": True, **FULL}
+            _call_api(
+                "graph", {"symbol_name": "a", "max_depth": 1, "transitive": True, **FULL}
             )
         )
         assert "error" not in result

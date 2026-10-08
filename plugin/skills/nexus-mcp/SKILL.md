@@ -15,16 +15,19 @@ Tool names below are bare. Your client may add a prefix.
    project path.
 3. The index keeps itself fresh. A `warning` field means a background reindex is running;
    the next call or two may lag the latest edit.
-4. Answer from the result. `search` returns the whole code of its top three results, and
-   `graph` returns every text reference of the name. Read a file or grep only for what
-   the result does not show.
+4. Answer from the result. `search` returns the whole code of its top three results,
+   `find_symbol` returns the whole code of each name, and `graph` returns every text
+   reference of the name.
+5. Use few calls: each call costs one more read of the whole prompt. When you need the
+   code of other names (a function that is cut, a constant, a class), call `find_symbol`
+   once with all the names. Do not grep for a name and do not read a file to see a symbol.
 
 ## Pick a tool by question
 
 | The question | The tool |
 |---|---|
 | Where is... / how does... / find the code that... | `search` |
-| A function or class I can name | `find_symbol`, then `explain` for the full picture |
+| Functions, classes or constants I can name | `find_symbol` with all the names in one call; it returns their code. `explain` adds related code |
 | Who calls X / what does X call | `graph` (`direction` callers or callees) |
 | What breaks if I change X | `graph` with `transitive=true`, before the edit |
 | Overview / where do I start | `map` (`detail` summary, architecture or full) |

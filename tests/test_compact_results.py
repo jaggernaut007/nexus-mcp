@@ -83,8 +83,13 @@ class TestTailSnippet:
         assert out == "def f(a):\nReturn a."
 
     def test_tail_snippet_without_a_signature_uses_the_first_code_line(self):
-        assert core_api._tail_snippet("Caches of the gateway.\n\nDefines: A, B") == (
+        assert core_api._tail_snippet("Caches of the gateway.\n\nMore text.") == (
             "Caches of the gateway."
+        )
+
+    def test_tail_snippet_of_a_module_chunk_keeps_the_defines_line(self):
+        assert core_api._tail_snippet("Caches of the gateway.\n\nDefines: A, B") == (
+            "Caches of the gateway.\nDefines: A, B"
         )
 
     def test_tail_snippet_does_not_repeat_a_docstring_that_is_in_the_signature(self):
@@ -262,12 +267,31 @@ class TestGraphDetail:
         assert len(result["impacted_files"]) == n  # the blast radius is complete
         assert result["impacted_files"]["src/caller_007.py"] == ["caller_007"]
 
-    def test_transitive_full_lists_every_symbol(self, tmp_path):
-        n = 45
+    def test_transitive_full_lists_every_symbol_below_the_cap(self, tmp_path):
+        n = core_api.MAX_FULL_NODES
         _graph_with_callers(tmp_path, n)
         result = core_api.graph("target", transitive=True, detail="full")
         assert len(result["impacted_symbols"]) == n
         assert "truncated" not in result
+
+    def test_transitive_full_is_capped_and_still_names_every_file(self, tmp_path):
+        # Requirement changed on 2026-10-08: `detail="full"` had no limit, and one call
+        # in the live benchmark returned 20,000 characters.
+        n = core_api.MAX_FULL_NODES + 20
+        _graph_with_callers(tmp_path, n)
+        result = core_api.graph("target", transitive=True, detail="full")
+        assert len(result["impacted_symbols"]) == core_api.MAX_FULL_NODES
+        assert str(n) in result["truncated"]
+        assert result["total_impacted"] == n
+        assert sum(len(v) for v in result["impacted_files"].values()) == n
+
+    def test_immediate_full_is_capped(self, tmp_path):
+        n = core_api.MAX_FULL_NODES + 5
+        _graph_with_callers(tmp_path, n)
+        result = core_api.graph("target", direction="callers", detail="full")
+        assert result["total"] == n
+        assert len(result["callers"]) == core_api.MAX_FULL_NODES
+        assert str(n) in result["truncated"]
 
     def test_compact_graph_result_is_much_smaller_than_full(self, tmp_path):
         _graph_with_callers(tmp_path, 60)

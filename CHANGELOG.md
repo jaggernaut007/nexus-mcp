@@ -6,6 +6,24 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Fewer turns for an agent.** Each turn of an agent reads the whole prompt again, so a
+  follow-up grep or file read costs more than its result. Three changes remove such calls:
+  - `find_symbol` returns the `code` of each symbol (the whole symbol, without its common
+    indent; 6,000 characters at most for one symbol and 12,000 for one call). It takes
+    several names in one call (`"should_keep, AUTO_APPLY_CATEGORIES"`), finds constants
+    and other names that have no graph node, and lists names with no match in `not_found`.
+  - A `search` query can hold exact names (`snake_case` or `CamelCase`). Their
+    definitions come first; a file that defines more of the names comes before the
+    others. hit@1: `flask` 0.59 to 0.64, the other three suites unchanged. Other fusion
+    weights, another RRF constant and the reranker each lowered a suite, so they stay.
+  - A module result below the top 3 shows its `Defines:` line.
+- **Caps.** `graph` with `detail="full"` shows 25 symbols with all fields and says how
+  many there are (one call returned 20,000 characters). `explain` no longer carries the
+  complexity report of the whole project, raw relationship records or raw search rows; it
+  gives the code of the symbol, its callers and callees by name and related code by name.
+- `python -m benchmarks.runner --warm-up` sends one unrecorded call for a condition when
+  its prompt cache is cold. Before, the first task of a batch paid the cache write of the
+  prompt (about $0.06) and the cost of a task depended on its place in the batch.
 - **Module chunks.** A file that starts with a docstring (Python) or a comment block gets
   one more chunk: that text and a `Defines:` line with its top-level classes and functions.
   `search` returns it with `symbol_type: "module"`. Before, a file that only its top

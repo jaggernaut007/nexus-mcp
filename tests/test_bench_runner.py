@@ -423,3 +423,67 @@ class TestRequireLogin:
     def test_login_check_does_not_block_when_the_status_is_unreadable(self, monkeypatch, tmp_path):
         self._run(monkeypatch, "not json")
         runner.require_login(tmp_path)  # no exception: the first run will report it
+
+
+def _fake_runs(monkeypatch, tmp_path):
+    """run_once and warm_up that only record their calls, in order."""
+    calls = []
+    monkeypatch.setattr(runner, "repo_dir_for", lambda suite: tmp_path)
+    monkeypatch.setattr(
+        runner, "run_once",
+        lambda task, condition, *a, **k: calls.append(("run", condition))
+        or {"task_id": task["id"], "condition": condition},
+    )
+    monkeypatch.setattr(
+        runner, "warm_up", lambda condition, *a, **k: calls.append(("warm", condition))
+    )
+    return calls
+
+
+def test_run_suite_warms_each_condition_once_while_its_cache_is_warm(tmp_path, monkeypatch):
+    calls = _fake_runs(monkeypatch, tmp_path)
+    records = runner.run_suite(
+        _suite(), ["baseline", "nexus"], 2, "sonnet", tmp_path, tmp_path / "o.jsonl", warm=True
+    )
+    assert calls[:2] == [("warm", "baseline"), ("run", "baseline")]
+    assert calls.count(("warm", "baseline")) == 1
+    assert calls.count(("warm", "nexus")) == 1
+    assert calls.index(("warm", "nexus")) < calls.index(("run", "nexus"))
+    assert all(r["warm_cache"] is True for r in records)
+
+
+def test_run_suite_warms_a_condition_again_after_the_cache_lifetime(tmp_path, monkeypatch):
+    calls = _fake_runs(monkeypatch, tmp_path)
+    clock = iter(range(10**6, 2 * 10**6, runner.WARM_UP_TTL_S + 1))
+    monkeypatch.setattr(runner.time, "time", lambda: next(clock))
+    runner.run_suite(_suite(), ["baseline"], 1, "sonnet", tmp_path, tmp_path / "o.jsonl", warm=True)
+    assert calls == [("warm", "baseline"), ("run", "baseline")] * 2
+
+
+def test_run_suite_does_not_warm_by_default(tmp_path, monkeypatch):
+    calls = _fake_runs(monkeypatch, tmp_path)
+    records = runner.run_suite(_suite(), ["baseline"], 1, "sonnet", tmp_path, tmp_path / "o.jsonl")
+    assert ("warm", "baseline") not in calls
+    assert all(r["warm_cache"] is False for r in records)
+
+
+def test_warm_up_sends_one_small_prompt_and_waits(tmp_path, monkeypatch):
+    seen = {}
+
+    class _Proc:
+        pid = 1
+
+        def wait(self, timeout=None):
+            seen["timeout"] = timeout
+            return 0
+
+    def fake_popen(argv, **kwargs):
+        seen["argv"] = argv
+        seen["cwd"] = kwargs["cwd"]
+        return _Proc()
+
+    monkeypatch.setattr(runner.subprocess, "Popen", fake_popen)
+    runner.warm_up("baseline", tmp_path, "sonnet", tmp_path)
+    assert runner.WARM_UP_PROMPT in seen["argv"]
+    assert seen["cwd"] == str(tmp_path)
+    assert seen["timeout"] == runner.WARM_UP_TIMEOUT_S

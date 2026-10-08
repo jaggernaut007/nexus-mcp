@@ -130,6 +130,36 @@ class LanceDBVectorEngine(IEngine):
 
         return results
 
+    def find_by_symbol_names(
+        self, names: List[str], limit_per_name: int = 5
+    ) -> List[Dict[str, Any]]:
+        """Chunks whose symbol name is one of ``names``. No embedding is computed.
+
+        A method `Class.name` matches `name`. The chunk table also holds constants and
+        module chunks, which the graph does not.
+        """
+        table = self._get_or_create_table()
+        if not names or table.count_rows() == 0:
+            return []
+        rows: List[Dict[str, Any]] = []
+        for name in names:
+            safe = _escape_sql(name)
+            found = (
+                table.search()
+                .where(f"symbol_name = '{safe}' OR symbol_name LIKE '%.{safe}'")
+                .limit(limit_per_name * 4)
+                .to_list()
+            )
+            # `_` is a wildcard in LIKE, so check the name again.
+            exact = [
+                r for r in found
+                if r.get("symbol_name") == name or str(r.get("symbol_name")).endswith("." + name)
+            ]
+            for r in exact[:limit_per_name]:
+                r.pop("vector", None)
+                rows.append(r)
+        return rows
+
     def delete(self, ids: List[str]) -> None:
         """Delete chunks by ID."""
         if not ids:

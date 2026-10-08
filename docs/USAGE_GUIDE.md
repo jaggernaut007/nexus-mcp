@@ -142,16 +142,19 @@ Parameters:
 
 Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `symbol_type`, `line_start`/`line_end`, and a `hint` field. A compact response has only `total`, `results`, `hint` and, when the index is stale, `warning`; `detail="full"` adds `query`, `search_mode`, `engines_used` and the `language` of each result. With `detail="compact"` each of the top 3 results carries its whole symbol, up to 2000 characters (cut at a line boundary and marked `(truncated)` when longer), so the agent can answer without a file read. The other results show the signature and the first docstring line (160 characters at most, with no `(truncated)` mark). The snippet is the code only: the stored chunk text also has a `# path:line` line, a `type: name` line, a copy of the signature and docstring, and `Imports:` and `Calls:` lines, and compact mode leaves those out. The fields that repeat the snippet (`signature`, `docstring`, `parent`), the internal fields (`id`, `score`, `rrf_score`, `rerank_score`, `_fusion_sources`, `absolute_path`) and empty values are also left out. Measured on a 460-file project, a compact result is about 7,000 characters, 40% of a full one.
 
-Results in test files come after results in source files, unless the query itself asks for tests (a word such as "test", "fixture" or "mock", or a name such as `test_login`). No result is removed. On a 45,000-chunk index of django, where 70% of the chunks are tests, this raised hit@1 from 6 of 12 to 8 of 12 task queries. Hybrid mode fuses vector and keyword results; the graph list is off by default (`NEXUS_FUSION_WEIGHT_GRAPH=0`). With `detail="full"` the snippet is up to 2000 characters and those fields are present. Raw embedding vectors are always stripped. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a `warning` (in full mode the field is always there and is null when the index is fresh). A background reindex starts, and the results still return at once.
+Results in test files come after results in source files, unless the query itself asks for tests (a word such as "test", "fixture" or "mock", or a name such as `test_login`). No result is removed. On a 45,000-chunk index of django, where 70% of the chunks are tests, this raised hit@1 from 6 of 12 to 8 of 12 task queries. A query can hold exact names written as `snake_case` or `CamelCase` (`"parse_config RetryPolicy"`): their definitions come first, and a file that defines more of the names comes before the others. Hybrid mode fuses vector and keyword results; the graph list is off by default (`NEXUS_FUSION_WEIGHT_GRAPH=0`). With `detail="full"` the snippet is up to 2000 characters and those fields are present. Raw embedding vectors are always stripped. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a `warning` (in full mode the field is always there and is null when the index is fresh). A background reindex starts, and the results still return at once.
 
 ### Graph Analysis
 
 #### `find_symbol`
-Finds a symbol definition by name. Returns file path, line numbers, docstring, type, and the callers and callees of the symbol.
+Finds symbol definitions by name. Returns file path, line numbers, type, the `code` of the symbol, and its callers and callees.
 
 ```
 find_symbol(symbol_name="UserService", exact=True)
+find_symbol(symbol_name="should_keep, AUTO_APPLY_CATEGORIES, MailClassification")
 ```
+
+Pass several names in one call (commas or spaces between them, 8 names at most): an agent pays for each call with one more read of its prompt. `code` is the whole symbol without its common indent, 6,000 characters at most for one symbol and 12,000 for one call; longer code is cut at a line and marked `(truncated)`, and `start_line` and `end_line` say where the rest is. A name with more than 3 definitions gets code for the first 3 (source files before test files). A name with no graph node, such as a constant, comes from the chunk table. Names with no match are in `not_found`.
 
 Use `exact=False` for fuzzy substring matching. With `detail="compact"` (default) the callers and callees are given by name as `file -> ["name:line"]`, at most 20 each (`callers_total` or `callees_total` gives the true count when there are more). With `detail="full"` each symbol has every node field and the raw relationship records with node ids. A compact result is about a third of the size of a full one.
 
@@ -189,13 +192,13 @@ The caller list holds only the calls that static analysis resolved, so it is a l
 > **Limit:** call edges are static and name-based. Dynamic dispatch, callbacks and reflection are invisible, and a name shared by several definitions gets no edge. Treat results as a lower bound and use `search` for other call sites. See [Known Limitations](../README.md#known-limitations).
 
 #### `explain`
-Preferred over Read for understanding a symbol. Combines graph relationships, semantic search results and code metrics.
+Preferred over Read for understanding a symbol. Gives the code of the symbol, its callers and callees by name, and related code found by meaning.
 
 ```
 explain(symbol_name="Router", verbosity="detailed")
 ```
 
-Verbosity levels: "summary" (concise), "detailed" (default), "full" (everything).
+Verbosity levels: "summary" (place, callers and callees, the project quality score), "detailed" (default: adds the code, 6,000 characters at most, and 5 related symbols by name) and "full" (all fields of the symbol and of 25 callers and callees at most, and 10 related symbols with a snippet). Since 2026-10-08 the result has no complexity report of the whole project and no raw relationship records; a result for a busy symbol was 73,000 characters with them.
 
 #### `analyze`
 Run code analysis on the indexed codebase: complexity metrics, dependency analysis, code smells and quality scores.

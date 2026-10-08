@@ -6,6 +6,7 @@ into a single ranked list using Reciprocal Rank Fusion (RRF).
 
 import heapq
 import logging
+import re
 from collections import Counter
 from typing import Any, Dict, List, Optional
 
@@ -70,6 +71,67 @@ def demote_test_files(query: str, results: List[Dict[str, Any]]) -> List[Dict[st
         path = r.get("absolute_path") or r.get("filepath") or ""
         (tests if is_test_path(path) else source).append(r)
     return source + tests
+
+
+_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_INNER_CAPITAL = re.compile(r"[a-z0-9][A-Z]")
+MAX_QUERY_IDENTIFIERS = 5
+
+
+def query_identifiers(query: str) -> List[str]:
+    """Words of the query that are written like code names: `snake_case` or `CamelCase`.
+
+    A plain word (`cache`, `Governor`, `API`) is not a name here: it can be prose. The
+    part after the last dot of `module.name` is used. At most ``MAX_QUERY_IDENTIFIERS``.
+    """
+    names: List[str] = []
+    for token in _IDENTIFIER.findall(query):
+        if len(token) < 3 or token in names:
+            continue
+        if "_" in token.strip("_") or _INNER_CAPITAL.search(token):
+            names.append(token)
+    return names[:MAX_QUERY_IDENTIFIERS]
+
+
+def exact_names_first(
+    query: str, results: List[Dict[str, Any]], definitions: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """Put the definitions of the names in the query before the other results.
+
+    ``definitions`` are the chunks whose symbol name is a name in the query. A file that
+    defines more of the names comes first; then the order of ``results`` decides. On four
+    eval suites this raised hit@1 on one (0.59 to 0.64) and lowered none. A plain "all
+    definitions first" order lowered one suite, because one name can have a definition in
+    several files.
+    """
+    if not definitions:
+        return results
+    names_in_file: Dict[str, set] = {}
+    for d in definitions:
+        names_in_file.setdefault(d.get("filepath", ""), set()).add(
+            str(d.get("symbol_name", "")).rsplit(".", 1)[-1]
+        )
+    order = {r.get("id"): i for i, r in enumerate(results)}
+    # A definition that the engines also found keeps its scores. One that only the name
+    # lookup found gets the same fields, so that each row has one shape.
+    ranked = {r.get("id"): r for r in results}
+    definitions = [
+        ranked.get(
+            d.get("id"),
+            {**d, "score": 1.0, "rrf_score": 0.0, "_fusion_sources": ["exact_name"]},
+        )
+        for d in definitions
+    ]
+    first = sorted(
+        definitions,
+        key=lambda d: (
+            -len(names_in_file[d.get("filepath", "")]),
+            order.get(d.get("id"), len(results)),
+        ),
+    )
+    first = demote_test_files(query, first)
+    ids = {d.get("id") for d in first}
+    return first + [r for r in results if r.get("id") not in ids]
 
 
 def _name_words(name: str) -> List[str]:

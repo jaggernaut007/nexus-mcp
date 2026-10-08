@@ -191,9 +191,9 @@ Measured against equivalent agentic file-browsing workflows on a ~10,000-line Py
 
 | Level | Token Budget | What's Included |
 |-------|:-----------:|-----------------|
-| `summary` | ~500 tokens | Counts, scores, file:line pointers only |
-| `detailed` | ~2,000 tokens | Signatures, types, line ranges, docstrings |
-| `full` | ~8,000 tokens | Full code snippets, all relationships, metadata |
+| `summary` | ~500 tokens | Place, callers and callees by name, quality score |
+| `detailed` | ~2,000 tokens | Adds the code of the symbol and related symbols by name |
+| `full` | ~4,000 tokens | All fields of the symbol and of up to 25 callers and callees |
 
 ---
 
@@ -224,9 +224,9 @@ better under MCP Tool Search than many thin ones.
 
 | Tool | Use When |
 |------|----------|
-| `find_symbol(symbol_name, exact, detail)` | Look up a specific symbol, with its callers and callees by name. `exact=False` for fuzzy matching. `detail`: `compact` (default) or `full`. |
+| `find_symbol(symbol_name, exact, detail)` | Look up one or more symbols by name (several names in one call): the code of each, with its callers and callees by name. `exact=False` for fuzzy matching. `detail`: `compact` (default) or `full`. |
 | `graph(symbol_name, direction, transitive, max_depth, detail)` | `detail`: `compact` (default: name, file, lines) or `full`. `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True`** (was `impact()`) gives the transitive change blast radius before a refactor (a lower bound: static edges only). It requires `direction="callers"`; `direction="callees"` with `transitive=True` returns an error. Call edges are static and name-based, so use `search` for call sites the graph cannot see (see [Known Limitations](#known-limitations)). |
-| `explain(symbol_name, verbosity)` | **Replaces `Read` for understanding code.** Graph relationships + semantic context + quality metrics in one call. |
+| `explain(symbol_name, verbosity)` | **Replaces `Read` for understanding code.** The code of the symbol, its callers and callees and related code in one call. |
 | `analyze(path)` | Code quality: cyclomatic complexity, cognitive complexity, code smells, dependency metrics. |
 
 ### Memory

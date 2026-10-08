@@ -115,6 +115,34 @@ The peak RSS is one process per model that indexed both suites. One query is wor
 4. **`jina-code` was dropped.** Its first run on these suites was still indexing after more than
    90 minutes and hit the time limit. It is deprecated (see ADR-004, amendment).
 
+## Fifth round, 2026-10-08: which combination of engines
+
+Question: which mix of vector search, keyword search (BM25), exact names, RRF and the
+reranker gives the best order. Gate: no suite may fall. `bge-small-en`, hit@1, order of
+the suites: jobscout / flask / nexus_mcp / shop_repo.
+
+| Combination | hit@1 | Verdict |
+|---|---|---|
+| Vector + BM25, RRF weights 0.5 / 0.3, k = 60 (`hybrid-source-first`) | 0.81 / 0.59 / 0.76 / 0.50 | the base |
+| Base + definitions of the names in the query first, by file (`hybrid-exact`) | 0.81 / 0.64 / 0.76 / 0.50 | **adopted** |
+| Base + all definitions of the names first | jobscout falls to 0.78 | rejected |
+| Weights 0.7 / 0.3 | shop_repo +0.12, nexus_mcp -0.04 | rejected |
+| Weights 0.5 / 0.5 and 0.3 / 0.5 | two suites fall | rejected |
+| RRF k = 10 and k = 20 | nexus_mcp -0.04 | rejected |
+| Vector only | 0.70 / 0.64 / 0.72 / 0.75 | rejected: the two large suites fall |
+| BM25 only | all four fall | rejected |
+| Base + FlashRank reranker (`hybrid-rerank`) | 0.78 / 0.64 / 0.52 / 0.62, 2 to 7 s for each query | rejected |
+
+The `nexus_mcp` suite indexes this repository, so its base value moves with the code
+(0.80 in round 4, 0.76 here). Compare the modes inside one round only.
+
+"By file" means: a file that defines more of the names in the query comes first, then
+the fused order decides. A name is a word written as `snake_case` or `CamelCase`.
+
+A snippet budget by rank (whole symbols until 4,000 characters are used) was simulated on
+the queries of the live benchmark. The result got larger and covered 66 of the 250 lines
+that the agent read later. It was not built.
+
 ## Fourth round, 2026-10-07: module chunks
 
 One more chunk for each file that starts with a docstring or a comment block (ADR-008

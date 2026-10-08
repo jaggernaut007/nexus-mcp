@@ -37,15 +37,18 @@ if a tool answers "No codebase indexed", call `index` once with the absolute pro
 
 Which tool answers which question:
 - "where is...", "how does...", "find the code that..." -> `search`
-- a function or class you can name -> `find_symbol`; for a full briefing -> `explain`
+- functions, classes or constants you can name -> `find_symbol` (several names in one \
+call; it returns their code); for a briefing with related code -> `explain`
 - "who calls X", "what does X call", "what breaks if I change X" -> `graph` \
 (use transitive=true before a rename, signature change or delete)
 - "give me an overview", "where do I start", "how is this structured" -> `map`
 - "most complex code", "dead code", "review quality" -> `analyze`
 - a decision, preference or note to keep across sessions -> `memory`
 
-`search` returns the whole code of its top results, and `graph` returns every text \
-reference beside the call edges, so a follow-up file read or grep is usually not needed. \
+`search` returns the whole code of its top results, `find_symbol` returns the whole \
+code of each name, and `graph` returns every text reference beside the call edges. \
+So do not follow a nexus call with a file read or a grep for a name: call \
+`find_symbol` with all the names at once. \
 Use your built-in grep or file read when you already know the exact file or string. \
 Call edges are static: calls through callbacks, reflection or dynamic dispatch are not \
 visible, so read the references list of `graph` before you delete code.
@@ -368,11 +371,12 @@ def create_server():
         "find the code that...", "what handles...". Returns ranked results with file
         path and line range. The first three carry the whole function or class, so you
         can answer without opening the file. Source files rank before test files unless
-        the query asks for tests. It combines semantic, keyword and graph search, and
-        falls back to live text search when results are few. For an
+        the query asks for tests. It combines semantic and keyword search, and falls
+        back to live text search when results are few. A query can also hold exact
+        names (`parse_config RetryPolicy`): their definitions come first. For the
+        whole code of a result that is cut, call `find_symbol` with its name. For an
         exact string or a file you already know, your built-in grep or read is just as
-        good. A non-null `warning` means the index was slightly stale; results still
-        return."""
+        good. A `warning` means the index was slightly stale; results still return."""
         guard_err = _guard("search")
         if guard_err:
             return guard_err
@@ -390,18 +394,23 @@ def create_server():
     @mcp.tool(annotations=READ_ONLY, title="Find a symbol")
     @_audited
     def find_symbol(
-        symbol_name: Annotated[str, "Symbol name (e.g. 'create_server', 'TokenBudget')"],
+        symbol_name: Annotated[
+            str,
+            "One name, or several with commas (e.g. 'create_server, TokenBudget, MAX_RETRIES')",
+        ],
         exact: Annotated[bool, "True for exact match, False for fuzzy substring"] = True,
         detail: Annotated[
             Literal["compact", "full"],
-            "'compact' (default): place, docstring, callers and callees by name. 'full': all",
+            "'compact' (default): place, code, callers and callees by name. 'full': all fields",
         ] = "compact",
     ) -> dict[str, Any]:
-        """Look up a function, class or method by name and get where it is defined: file,
-        line range, complexity, docstring and its direct callers and callees. Use it
-        when you know the name ("show me create_order", "where is TokenBudget defined").
+        """Look up functions, classes, methods or constants by name and get the whole
+        code of each, with file, line range and direct callers and callees. Use it
+        when you know the name ("show me create_order", "where is TokenBudget defined"),
+        and in place of a file read or a grep for a definition. Pass several names in
+        one call. Code longer than 6,000 characters is cut and marked `(truncated)`.
         Set exact=false to match part of a name when you are unsure of the spelling.
-        For who calls it, use `graph`; for a full briefing, use `explain`."""
+        For every use of a name, use `graph`; for related code, use `explain`."""
         guard_err = _guard("find_symbol")
         if guard_err:
             return guard_err
@@ -475,11 +484,11 @@ def create_server():
         ] = "detailed",
     ) -> dict[str, Any]:
         """Get a full briefing on one function or class in a single call: its
-        definition, who calls it, what it calls, related code found by meaning, and
-        quality metrics. Use it to understand an unfamiliar symbol ("explain
-        cancel_order", "what does this class do and where is it used") instead of
-        reading several files. Use verbosity='summary' for a quick look and 'full'
-        for everything."""
+        code, who calls it, what it calls and related code found by meaning. Use it
+        to understand an unfamiliar symbol ("explain cancel_order", "what does this
+        class do and where is it used") instead of reading several files. Use
+        verbosity='summary' for the place and the callers only, and 'full' for all
+        fields of each caller and snippets of the related code."""
         guard_err = _guard("explain")
         if guard_err:
             return guard_err

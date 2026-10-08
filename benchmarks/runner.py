@@ -111,6 +111,49 @@ def repo_dir_for(suite: Dict[str, Any]) -> Path:
     return REPOS_DIR / suite["repo"]["name"]
 
 
+WARM_UP_PROMPT = "Reply with the single word: ready. Do not call a tool."
+WARM_UP_TTL_S = 240  # the prompt cache lives 5 minutes; warm again after 4
+WARM_UP_BUDGET_USD = 0.25
+WARM_UP_TIMEOUT_S = 120
+
+
+def warm_up(
+    condition: str, repo_dir: Path, model: str, config_dir: Path
+) -> None:
+    """Send one small call for a condition, so that its prompt is in the cache.
+
+    The system prompt and the tool definitions of a condition are about 17,000 tokens.
+    The first call writes them to the prompt cache (about $0.06); later calls read them.
+    Without this call the first task of a batch pays that write and the other tasks do
+    not, so the cost of a task depended on its place in the batch. The call is not
+    recorded. A failure here is not an error: the run that follows shows the fault.
+    """
+    base, embedding_model = cond.split_condition(condition)
+    mcp_config = cond.NEXUS_MCP_CONFIG
+    if embedding_model:
+        mcp_config = cond.write_model_mcp_config(
+            RESULTS_DIR / "mcp-configs" / f"{repo_dir.name}-{embedding_model}.json",
+            embedding_model,
+            storage_dir_for(repo_dir, embedding_model),
+        )
+    built = cond.build_run(
+        condition, WARM_UP_PROMPT, model, WARM_UP_BUDGET_USD, config_dir,
+        mcp_config_path=mcp_config,
+    )
+    proc = subprocess.Popen(
+        built["argv"], cwd=str(repo_dir), env=built["env"], stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL, start_new_session=True,
+    )
+    try:
+        proc.wait(timeout=WARM_UP_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        proc.wait()
+
+
 def run_once(
     task: Dict[str, Any],
     condition: str,
@@ -229,6 +272,7 @@ def run_suite(
     out_path: Path,
     task_ids: Optional[List[str]] = None,
     raw_dir: Optional[Path] = None,
+    warm: bool = False,
 ) -> List[Dict[str, Any]]:
     """Run the suite, writing each record to `out_path` as it completes.
 
@@ -238,6 +282,10 @@ def run_suite(
     batch continues rather than discarding the whole run. A run that already has an
     error-free record in `out_path` is skipped, so the same command resumes after an
     interruption. A usage-limit error stops the batch and is re-raised.
+
+    With `warm`, a condition that had no call in the last `WARM_UP_TTL_S` seconds gets
+    one `warm_up` call before its run, so that each recorded run starts with a warm
+    prompt cache.
     """
     repo = suite["repo"]
     repo_dir = repo_dir_for(suite)
@@ -265,6 +313,7 @@ def run_suite(
     done = 0
     finished = done_keys(out_path, model)
     version = claude_version()
+    last_call: Dict[str, float] = {}
     for task in tasks:
         merged_task = {**defaults, **task}
         for condition in condition_names:
@@ -276,6 +325,9 @@ def run_suite(
                     f"[{done}/{total}] {merged_task['id']} / {condition} / rep {rep + 1}",
                     file=sys.stderr,
                 )
+                if warm and time.time() - last_call.get(condition, 0.0) > WARM_UP_TTL_S:
+                    print(f"    warm-up call for {condition}", file=sys.stderr)
+                    warm_up(condition, repo_dir, model, config_dir)
                 try:
                     record = run_once(
                         merged_task, condition, repo, repo_dir, model, config_dir,
@@ -302,7 +354,9 @@ def run_suite(
                         "run_error": f"{type(exc).__name__}: {exc}",
                         "is_error": True,
                     }
+                last_call[condition] = time.time()
                 record["rep"] = rep
+                record["warm_cache"] = warm
                 records.append(record)
                 write_record(record, out_path)
     return records
@@ -347,6 +401,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--save-raw", action="store_true",
         help="Keep the raw stream-json of each run under results/raw/ for recomputing",
     )
+    parser.add_argument(
+        "--warm-up", action="store_true",
+        help="Send one unrecorded call for a condition before its run when its prompt "
+        "cache is cold, so that the cost of a task does not depend on its place",
+    )
     args = parser.parse_args(argv)
 
     suite = load_task_suite(Path(args.tasks))
@@ -369,7 +428,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     try:
         records = run_suite(
             suite, condition_names, reps, args.model, config_dir, out_path, task_ids,
-            raw_dir=raw_dir,
+            raw_dir=raw_dir, warm=args.warm_up,
         )
     except UsageLimitReached:
         return 3

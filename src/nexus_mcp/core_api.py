@@ -650,6 +650,15 @@ _SEARCH_INTERNAL_FIELDS = (
     "signature", "docstring", "parent", "language",
 )
 MAX_SYMBOL_RELATIONS = 20
+# `find_symbol` returns the code of a symbol, so that no file read follows. In the live
+# benchmark the agent read 190 to 270 lines of a file to see one function of 130 lines.
+FIND_SYMBOL_MAX_NAMES = 8
+SYMBOL_CODE_CHARS = 6000  # one symbol
+SYMBOL_CODE_BUDGET = 12000  # all symbols of one call
+MAX_SYMBOL_MATCHES_WITH_CODE = 3  # a name with more definitions shows the place of the rest
+# `detail="full"` of `graph` and `verbosity="full"` of `explain` list at most this many
+# symbols with all their fields. One `graph` call returned 20,000 characters without it.
+MAX_FULL_NODES = 25
 
 
 def _chunk_code(text: str, signature: str = "", docstring: str = "") -> str:
@@ -702,7 +711,12 @@ def _tail_snippet(code: str, signature: str = "", docstring: str = "") -> str:
     head = signature.strip() or code.strip().split("\n", 1)[0]
     doc = docstring.strip().split("\n", 1)[0]
     text = f"{head}\n{doc}" if doc and doc not in head else head
-    return text[:COMPACT_TAIL_SNIPPET_CHARS].rstrip()
+    text = text[:COMPACT_TAIL_SNIPPET_CHARS].rstrip()
+    # A module chunk: the names that the file defines say more than a second line.
+    for line in code.split("\n"):
+        if line.startswith("Defines: "):
+            return f"{text}\n{line[:COMPACT_TAIL_SNIPPET_CHARS]}"
+    return text
 
 
 def _compact_search_result(r: dict[str, Any]) -> dict[str, Any]:
@@ -738,7 +752,9 @@ def search(
     from nexus_mcp.engines.fusion import (
         ReciprocalRankFusion,
         demote_test_files,
+        exact_names_first,
         graph_relevance_search,
+        query_identifiers,
     )
     from nexus_mcp.engines.reranker import FlashReranker
     from nexus_mcp.state import get_state
@@ -841,6 +857,22 @@ def search(
             state._reranker = FlashReranker(model_name=settings.reranker_model)
         results = demote_test_files(query, state._reranker.rerank(query, results, limit=limit))
     else:
+        # A name in the query (`parse_config`, `RetryPolicy`) is a request for its
+        # definition. In the live benchmark the agent sent such names to grep.
+        names = query_identifiers(query) if mode == "hybrid" else []
+        if names:
+            try:
+                definitions = [
+                    d
+                    for d in state.vector_engine.find_by_symbol_names(names)
+                    if (not language or d.get("language") == language)
+                    and (not symbol_type or d.get("symbol_type") == symbol_type)
+                ]
+                if definitions:
+                    results = exact_names_first(query, results, definitions)
+                    engines_used.append("exact_name")
+            except Exception as e:  # noqa: BLE001 - an addition, never a failure
+                logger.debug("Exact name lookup failed: %s", e)
         results = results[:limit]
 
     if not symbol_type and (live_grep or (mode == "hybrid" and len(results) < limit)):
@@ -938,7 +970,9 @@ def search(
             response["hint"] = (
                 f"The first {COMPACT_TOP_RESULTS} results hold the whole symbol unless "
                 "marked (truncated); answer from them without a file read. The others "
-                "show the signature only."
+                "show the signature only. For the whole code of other symbols call "
+                "find_symbol with their names (several names in one call), not a "
+                "file read or a grep."
             )
         return response
 
@@ -955,12 +989,78 @@ def search(
 
 # --- Graph analysis -----------------------------------------------------------
 
-def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -> dict[str, Any]:
-    """Look up a symbol by name, with its call-graph relationships.
+def _split_symbol_names(symbol_name: str) -> List[str]:
+    """The names of a `find_symbol` call: one name, or several with commas, spaces or `|`."""
+    names: List[str] = []
+    for name in re.split(r"[\s,|]+", symbol_name.strip()):
+        if re.search(r"\w", name) and name not in names:
+            names.append(name)
+    return names[:FIND_SYMBOL_MAX_NAMES]
 
-    ``detail="compact"`` (default) gives file, lines, docstring and the callers and
-    callees by name (`file -> ["name:line"]`, at most ``MAX_SYMBOL_RELATIONS`` each).
-    ``detail="full"`` gives every node field and the raw relationship records."""
+
+def _symbol_source(path: str, start_line: int, end_line: int, limit: int) -> str:
+    """Lines ``start_line`` to ``end_line`` of a file, without the common indent.
+
+    Returns "" when the file cannot be read (it was deleted after the index was built).
+    """
+    import textwrap
+
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+    except OSError:
+        return ""
+    first = max(1, int(start_line or 1))
+    last = max(first, int(end_line or first))
+    code = textwrap.dedent("".join(lines[first - 1:last])).rstrip()
+    return _trim_snippet(code, limit)
+
+
+def _chunk_symbol_entries(state, name: str) -> list[tuple[dict[str, Any], tuple]]:
+    """`find_symbol` entries from the chunk table, for a name with no graph node.
+
+    The graph holds functions, classes and methods of six languages. A constant, a module
+    docstring or a symbol of another language is only in the chunk table.
+    """
+    try:
+        rows = state.vector_engine.find_by_symbol_names([name])
+    except Exception as e:  # noqa: BLE001 - a second source, never a failure
+        logger.debug("Chunk lookup failed for %s: %s", name, e)
+        return []
+    out = []
+    for r in rows:
+        path = str(r.get("filepath", ""))
+        rel = path
+        if state.codebase_path:
+            try:
+                rel = str(Path(path).relative_to(state.codebase_path))
+            except ValueError:
+                pass
+        entry = {
+            "name": r.get("symbol_name", name),
+            "type": r.get("symbol_type", ""),
+            "file": rel,
+            "start_line": r.get("line_start"),
+            "end_line": r.get("line_end"),
+        }
+        out.append((entry, (path, r.get("line_start"), r.get("line_end"))))
+    return out
+
+
+def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -> dict[str, Any]:
+    """Look up one or more symbols by name: place, code and call-graph relationships.
+
+    ``symbol_name`` holds one name, or several names with commas or spaces between them
+    (at most ``FIND_SYMBOL_MAX_NAMES``). Each symbol comes with its ``code`` (at most
+    ``SYMBOL_CODE_CHARS`` for one symbol, ``SYMBOL_CODE_BUDGET`` for the call, and only
+    the first ``MAX_SYMBOL_MATCHES_WITH_CODE`` definitions of one name). A name with no
+    graph node (a constant, for example) is looked up in the chunk table.
+
+    ``detail="compact"`` (default) gives file, lines and the callers and callees by name
+    (`file -> ["name:line"]`, at most ``MAX_SYMBOL_RELATIONS`` each). ``detail="full"``
+    gives every node field and the raw relationship records."""
+    from nexus_mcp.engines.fusion import is_test_path
+
     err = validate_symbol_name(symbol_name)
     if err:
         return err
@@ -971,26 +1071,49 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
     if err:
         return err
 
-    matches = _resolve_symbol(state.graph_engine, symbol_name, exact=exact)
-    if not matches:
+    symbols: list[dict[str, Any]] = []
+    not_found: list[str] = []
+    budget = SYMBOL_CODE_BUDGET
+    for name in _split_symbol_names(symbol_name) or [symbol_name]:
+        nodes = _resolve_symbol(state.graph_engine, name, exact=exact)
+        nodes = sorted(nodes, key=lambda n: is_test_path(n.location.file_path))
+        found: list[tuple[dict[str, Any], tuple]] = []
+        for node in nodes:
+            if detail == "compact":
+                entry = _symbol_compact(node, state)
+            else:
+                entry = _serialize_node(node, state.codebase_path)
+                rels_from = state.graph_engine.get_relationships_from(node.id)
+                rels_to = state.graph_engine.get_relationships_to(node.id)
+                entry["relationships_out"] = [_serialize_relationship(r) for r in rels_from]
+                entry["relationships_in"] = [_serialize_relationship(r) for r in rels_to]
+            loc = node.location
+            found.append((entry, (loc.file_path, loc.start_line, loc.end_line)))
+        if not found and exact:
+            found = _chunk_symbol_entries(state, name)
+        if not found:
+            not_found.append(name)
+            continue
+        for i, (entry, place) in enumerate(found):
+            if i < MAX_SYMBOL_MATCHES_WITH_CODE and budget > 0:
+                code = _symbol_source(*place, min(SYMBOL_CODE_CHARS, budget))
+                if code:
+                    entry["code"] = code
+                    budget -= len(code)
+                    if detail == "compact":
+                        entry.pop("docstring", None)  # the code starts with it
+            symbols.append(entry)
+
+    if not symbols:
         msg = f"Symbol '{symbol_name}' not found."
         if exact:
             msg += " Try exact=False for fuzzy matching."
         return {"error": msg}
 
-    if detail == "compact":
-        return {"total": len(matches), "symbols": [_symbol_compact(n, state) for n in matches]}
-
-    symbols = []
-    for node in matches:
-        entry = _serialize_node(node, state.codebase_path)
-        rels_from = state.graph_engine.get_relationships_from(node.id)
-        rels_to = state.graph_engine.get_relationships_to(node.id)
-        entry["relationships_out"] = [_serialize_relationship(r) for r in rels_from]
-        entry["relationships_in"] = [_serialize_relationship(r) for r in rels_to]
-        symbols.append(entry)
-
-    return {"total": len(symbols), "symbols": symbols}
+    result: dict[str, Any] = {"total": len(symbols), "symbols": symbols}
+    if not_found:
+        result["not_found"] = not_found
+    return result
 
 
 def _graph_immediate(
@@ -1018,9 +1141,14 @@ def _graph_immediate(
         direction: (
             _group_by_file(related_nodes, state.codebase_path)
             if detail == "compact"
-            else [_serialize_node(n, state.codebase_path) for n in related_nodes]
+            else [_serialize_node(n, state.codebase_path) for n in related_nodes[:MAX_FULL_NODES]]
         ),
     }
+    if detail != "compact" and len(related_nodes) > MAX_FULL_NODES:
+        result["truncated"] = (
+            f"The first {MAX_FULL_NODES} of {len(related_nodes)} are shown. "
+            'detail="compact" names all of them.'
+        )
     if direction == "callers":
         _add_references(result, state, symbol_name)
     return result
@@ -1111,6 +1239,12 @@ def _graph_transitive_impact(
     if compact:
         del result["impacted_symbols"]
         result["impacted_files"] = _collapse_test_symbols(by_file)
+    elif len(all_impacted) > MAX_FULL_NODES:
+        result["impacted_symbols"] = all_impacted[:MAX_FULL_NODES]
+        result["truncated"] = (
+            f"impacted_symbols shows the first {MAX_FULL_NODES} of {len(all_impacted)}. "
+            "impacted_files names all of them."
+        )
     _add_references(result, state, symbol_name)
     return result
 
@@ -1229,19 +1363,33 @@ def explain(symbol_name: str, verbosity: str = "detailed") -> dict[str, Any]:
     if not matches:
         return {"error": f"Symbol '{symbol_name}' not found."}
 
-    node = matches[0]
-    symbol_data = _serialize_node(node, state.codebase_path)
+    from nexus_mcp.engines.fusion import is_test_path
 
-    rels_from = state.graph_engine.get_relationships_from(node.id)
-    rels_to = state.graph_engine.get_relationships_to(node.id)
-    symbol_data["callers"] = [
-        _serialize_node(c, state.codebase_path) for c in state.graph_engine.get_callers(node.id)
-    ]
-    symbol_data["callees"] = [
-        _serialize_node(c, state.codebase_path) for c in state.graph_engine.get_callees(node.id)
-    ]
-    symbol_data["relationships_out"] = [_serialize_relationship(r) for r in rels_from]
-    symbol_data["relationships_in"] = [_serialize_relationship(r) for r in rels_to]
+    node = sorted(matches, key=lambda n: is_test_path(n.location.file_path))[0]
+    full = verbosity == "full"
+    # A briefing is about one symbol. Before 2026-10-08 it also carried every field of
+    # each caller and callee, the raw relationship records, raw search rows and the
+    # complexity report of the whole project: 73,000 characters for a busy symbol.
+    if full:
+        symbol_data = _serialize_node(node, state.codebase_path)
+        for key, related in (
+            ("callers", state.graph_engine.get_callers(node.id)),
+            ("callees", state.graph_engine.get_callees(node.id)),
+        ):
+            symbol_data[key] = [
+                _serialize_node(c, state.codebase_path) for c in related[:MAX_FULL_NODES]
+            ]
+            if len(related) > MAX_FULL_NODES:
+                symbol_data[f"{key}_total"] = len(related)
+    else:
+        symbol_data = _symbol_compact(node, state)
+    if verbosity != "summary":
+        loc = node.location
+        code = _symbol_source(loc.file_path, loc.start_line, loc.end_line, SYMBOL_CODE_CHARS)
+        if code:
+            symbol_data["code"] = code
+            if not full:
+                symbol_data.pop("docstring", None)  # the code starts with it
 
     search_results = []
     if state.vector_engine:
@@ -1249,24 +1397,43 @@ def explain(symbol_name: str, verbosity: str = "detailed") -> dict[str, Any]:
         if node.docstring:
             search_text += " " + node.docstring
         try:
-            search_results = state.vector_engine.search(search_text, limit=10)
+            search_results = state.vector_engine.search(search_text, limit=11)
         except Exception as e:
             logger.debug("Vector search failed in explain: %s", e)
+    related_code = []
+    for r in search_results:
+        path = str(r.get("filepath", ""))
+        if path == node.location.file_path and r.get("line_start") == node.location.start_line:
+            continue  # the symbol itself
+        if state.codebase_path:
+            try:
+                path = str(Path(path).relative_to(state.codebase_path))
+            except ValueError:
+                pass
+        row = {
+            "symbol_name": r.get("symbol_name", ""),
+            "filepath": path,
+            "line_start": r.get("line_start"),
+            "score": r.get("score", 0.0),
+        }
+        if full:
+            row["code_snippet"] = _trim_snippet(
+                _chunk_code(r.get("text", ""), r.get("signature") or "", r.get("docstring") or ""),
+                COMPACT_TAIL_SNIPPET_CHARS * 3,
+            )
+        related_code.append(row)
 
     analysis = {}
-    try:
-        from nexus_mcp.analysis.code_analyzer import CodeAnalyzer
+    if verbosity != "detailed":
+        try:
+            from nexus_mcp.analysis.code_analyzer import CodeAnalyzer
 
-        analyzer = CodeAnalyzer(state.graph_engine)
-        analysis = {
-            "complexity": analyzer.analyze_complexity(),
-            "quality": analyzer.calculate_quality_metrics(),
-        }
-    except Exception as e:
-        logger.debug("Code analysis failed in explain: %s", e)
+            analysis = {"quality": CodeAnalyzer(state.graph_engine).calculate_quality_metrics()}
+        except Exception as e:
+            logger.debug("Code analysis failed in explain: %s", e)
 
     builder = ResponseBuilder(verbosity)
-    return builder.build_explain_response(symbol_data, search_results, analysis)
+    return builder.build_explain_response(symbol_data, related_code[:10], analysis)
 
 
 def _build_overview(state) -> dict[str, Any]:

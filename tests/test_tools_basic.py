@@ -132,7 +132,6 @@ class TestSearch:
 
         result = asyncio.run(run())
         assert "error" not in result
-        assert result["query"] == "hello"
         assert result["total"] > 0
         assert len(result["results"]) > 0
 
@@ -214,7 +213,7 @@ class TestStaleness:
             return await _call_tool(mcp, "search", {"query": "hello"})
 
         result = asyncio.run(run())
-        assert result["warning"] is None
+        assert "warning" not in result
 
     def test_staleness_check_is_throttled(self, mini_codebase, tmp_path):
         """Two status() calls within the throttle window should only recompute

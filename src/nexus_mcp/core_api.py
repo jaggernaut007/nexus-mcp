@@ -632,7 +632,7 @@ DETAIL_LEVELS = ("compact", "full")
 # large project is about 1,600 characters), so the agent does not need a file read after
 # the search. In the benchmark traces a read of the top hit followed 9 of 12 searches.
 COMPACT_SNIPPET_CHARS = 2000  # the top COMPACT_TOP_RESULTS results
-COMPACT_TAIL_SNIPPET_CHARS = 160  # the rest: enough for the signature
+COMPACT_TAIL_SNIPPET_CHARS = 160  # the rest: the signature and one docstring line
 COMPACT_TOP_RESULTS = 3
 FULL_SNIPPET_CHARS = 2000
 # Each engine returns this many times `limit`, so that enough source results are left
@@ -643,10 +643,11 @@ MAX_REFERENCE_LINES_PER_FILE = 8
 MAX_TEST_SYMBOLS_PER_FILE = 3  # a test file with more callers shows a count of the rest
 # Fields that help ranking or debugging but not an agent's answer. `signature` and
 # `docstring` are also the first lines of the chunk text, so the snippet carries them.
-# `parent` is part of the qualified `symbol_name`.
+# `parent` is part of the qualified `symbol_name`. The extension of `filepath` says the
+# `language`.
 _SEARCH_INTERNAL_FIELDS = (
     "id", "score", "rrf_score", "rerank_score", "_fusion_sources", "absolute_path",
-    "signature", "docstring", "parent",
+    "signature", "docstring", "parent", "language",
 )
 MAX_SYMBOL_RELATIONS = 20
 
@@ -692,6 +693,18 @@ def _trim_snippet(code: str, limit: int) -> str:
     return cut + "\n... (truncated)"
 
 
+def _tail_snippet(code: str, signature: str = "", docstring: str = "") -> str:
+    """The snippet of a result below the top: the signature and the first docstring line.
+
+    It tells the agent what the symbol is. It has no `(truncated)` mark, because each
+    result below the top is cut and the hint of the response says so.
+    """
+    head = signature.strip() or code.strip().split("\n", 1)[0]
+    doc = docstring.strip().split("\n", 1)[0]
+    text = f"{head}\n{doc}" if doc and doc not in head else head
+    return text[:COMPACT_TAIL_SNIPPET_CHARS].rstrip()
+
+
 def _compact_search_result(r: dict[str, Any]) -> dict[str, Any]:
     """Drop internal fields and empty values from one search result."""
     return {
@@ -716,9 +729,11 @@ def search(
     """Primary code discovery: hybrid vector+BM25+graph search with RRF fusion,
     optional reranking, and an automatic live-grep fallback when results are sparse.
 
-    ``detail="compact"`` (default) drops internal fields and trims each snippet to
-    ``COMPACT_SNIPPET_CHARS``; ``detail="full"`` keeps scores, ids, absolute paths and
-    snippets up to ``FULL_SNIPPET_CHARS``."""
+    ``detail="compact"`` (default) drops internal fields, gives the whole symbol (up to
+    ``COMPACT_SNIPPET_CHARS``) for the first ``COMPACT_TOP_RESULTS`` results and the
+    signature for the others, and returns only ``total``, ``results``, ``hint`` and a
+    ``warning`` when the index is stale. ``detail="full"`` keeps scores, ids, absolute
+    paths, the query, the engine names and snippets up to ``FULL_SNIPPET_CHARS``."""
     from nexus_mcp.config import get_settings
     from nexus_mcp.engines.fusion import (
         ReciprocalRankFusion,
@@ -873,17 +888,24 @@ def search(
     for rank, r in enumerate(results):
         r.pop("vector", None)
 
-        snippet_limit = FULL_SNIPPET_CHARS
-        if compact:
-            top = rank < COMPACT_TOP_RESULTS
-            snippet_limit = COMPACT_SNIPPET_CHARS if top else COMPACT_TAIL_SNIPPET_CHARS
+        signature, docstring = r.get("signature") or "", r.get("docstring") or ""
+        tail = compact and rank >= COMPACT_TOP_RESULTS
+        snippet_limit = COMPACT_SNIPPET_CHARS if compact else FULL_SNIPPET_CHARS
         if "text" in r:
             code = r.pop("text")
             if compact:
-                code = _chunk_code(code, r.get("signature") or "", r.get("docstring") or "")
-            r["code_snippet"] = _trim_snippet(code, snippet_limit)
+                code = _chunk_code(code, signature, docstring)
+            r["code_snippet"] = (
+                _tail_snippet(code, signature, docstring)
+                if tail
+                else _trim_snippet(code, snippet_limit)
+            )
         elif compact and r.get("code_snippet"):
-            r["code_snippet"] = _trim_snippet(r["code_snippet"], snippet_limit)
+            r["code_snippet"] = (
+                _tail_snippet(r["code_snippet"], signature, docstring)
+                if tail
+                else _trim_snippet(r["code_snippet"], snippet_limit)
+            )
 
         abs_path = r.get("absolute_path") or r.get("filepath")
         if not abs_path:
@@ -904,7 +926,21 @@ def search(
             r["language"] = get_language_for_file(r["absolute_path"]) or "unknown"
 
     if compact:
-        results = [_compact_search_result(r) for r in results]
+        # No echo of the query and no engine names: the agent sent the first and does
+        # not use the second. `detail="full"` keeps them.
+        response: dict[str, Any] = {
+            "total": len(results),
+            "results": [_compact_search_result(r) for r in results],
+        }
+        if search_warning:
+            response["warning"] = search_warning
+        if len(results) > COMPACT_TOP_RESULTS:
+            response["hint"] = (
+                f"The first {COMPACT_TOP_RESULTS} results hold the whole symbol unless "
+                "marked (truncated); answer from them without a file read. The others "
+                "show the signature only."
+            )
+        return response
 
     return {
         "query": query,
@@ -913,14 +949,7 @@ def search(
         "engines_used": engines_used,
         "results": results,
         "warning": search_warning,
-        "hint": (
-            (
-                f"The first {COMPACT_TOP_RESULTS} results hold the whole symbol unless marked "
-                "(truncated); answer from them without a file read."
-            )
-            if compact
-            else "Results include code_snippet — you can often answer without a file read."
-        ),
+        "hint": "Results include code_snippet — you can often answer without a file read.",
     }
 
 

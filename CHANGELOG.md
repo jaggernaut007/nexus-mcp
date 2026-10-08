@@ -74,6 +74,13 @@ All notable changes to this project will be documented in this file.
   - A compact `search` snippet is the code only. The stored chunk text also holds a copy of
     the signature and the docstring and `Imports:` and `Calls:` lines; they are left out, with
     `parent` and `rerank_score`. The tail results get 160 characters, not 240.
+  - A compact `search` result below the top 3 shows the signature and the first docstring
+    line, with no `(truncated)` mark. Compact results have no `language` field (the file
+    extension says it), and the response has only `total`, `results`, `hint` and, when the
+    index is stale, `warning`. `detail="full"` keeps `query`, `search_mode`,
+    `engines_used` and `language`. On 27 queries that an agent sent in the live benchmark
+    the mean result went from 5,089 to 4,311 characters (15% less) with the same result
+    order.
 - **`search(rerank=...)` is now `False` by default.** With `flashrank` installed, both
   FlashRank models lowered hit@1 on two of four eval suites (`nexus_mcp` 0.72 to 0.44,
   `jobscout` 0.70 to 0.59) and added 0.1 to 3 s to a query. Pass `rerank=True` to use it.

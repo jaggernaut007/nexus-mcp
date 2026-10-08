@@ -2,6 +2,17 @@
 
 Unified MCP server: hybrid search + code graph + semantic memory. Memory (measured, docs/MEMORY.md): ~90MB idle, ~460MB with the embedding model loaded, ~500MB while indexing a small project. The old <350MB target is not met once the model is loaded.
 
+## North star
+
+Lower token use for an agent, with the same accuracy. Set by the owner on 2026-10-08.
+
+- **Measure:** the tokens and the cost of a task in the live benchmark (`benchmarks/`),
+  against the Grep and Read condition.
+- **Gate:** accuracy must not fall. Check hit@1 on the four retrieval suites
+  (`python -m evals.retrieval.run`) and the answer score of the benchmark.
+- Keep a change only when it lowers the measure and passes the gate. Record the two
+  numbers, before and after, in `CHANGELOG.md`.
+
 ## Use Nexus-MCP Tools Before Built-in Tools
 
 Nexus-MCP is registered as an MCP server (`nexus-mcp`) with 10 tools: `index`,

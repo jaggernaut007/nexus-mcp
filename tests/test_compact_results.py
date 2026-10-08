@@ -75,6 +75,29 @@ class TestStripChunkHeader:
         assert core_api._strip_chunk_header(text) == text
 
 
+class TestTailSnippet:
+    def test_tail_snippet_is_the_signature_and_the_first_docstring_line(self):
+        out = core_api._tail_snippet(
+            "def f(a):\n    return a", "def f(a):", "Return a.\n\nMore text."
+        )
+        assert out == "def f(a):\nReturn a."
+
+    def test_tail_snippet_without_a_signature_uses_the_first_code_line(self):
+        assert core_api._tail_snippet("Caches of the gateway.\n\nDefines: A, B") == (
+            "Caches of the gateway."
+        )
+
+    def test_tail_snippet_does_not_repeat_a_docstring_that_is_in_the_signature(self):
+        assert core_api._tail_snippet("x = 1  # note", "x = 1  # note", "note") == (
+            "x = 1  # note"
+        )
+
+    def test_tail_snippet_is_cut_at_the_limit_without_a_mark(self):
+        out = core_api._tail_snippet("", "def f(" + "a, " * 200 + "):", "")
+        assert len(out) <= core_api.COMPACT_TAIL_SNIPPET_CHARS
+        assert "(truncated)" not in out
+
+
 class TestCompactSearchResult:
     def test_compact_search_result_drops_internal_fields_and_empty_values(self):
         row = {
@@ -88,6 +111,33 @@ class TestCompactSearchResult:
 
 
 class TestSearchDetail:
+    def test_compact_search_has_no_query_echo_engine_names_or_language(
+        self, long_function_codebase, tmp_path
+    ):
+        result = _search(long_function_codebase, tmp_path)
+        assert set(result) <= {"total", "results", "hint", "warning"}, set(result)
+        assert result["total"] == len(result["results"])
+        assert all("language" not in r for r in result["results"])
+
+    def test_full_search_keeps_the_query_the_engine_names_and_the_language(
+        self, long_function_codebase, tmp_path
+    ):
+        result = _search(long_function_codebase, tmp_path, detail="full")
+        assert {"query", "search_mode", "engines_used", "warning"} <= set(result)
+        assert all(r["language"] == "python" for r in result["results"])
+
+    def test_compact_results_below_the_top_have_no_truncated_mark(self, tmp_path):
+        src = tmp_path / "src"
+        src.mkdir()
+        for i in range(8):
+            body = "\n".join(f"    step_{j} = shared_step_{j}(data)" for j in range(60))
+            (src / f"mod_{i}.py").write_text(f"def shared_function_{i}(data):\n{body}\n")
+        result = _search(tmp_path, tmp_path, limit=8)
+        tail = result["results"][core_api.COMPACT_TOP_RESULTS:]
+        assert tail and "signature only" in result["hint"]
+        for r in tail:
+            assert r["code_snippet"] == f"def {r['symbol_name']}(data):"
+
     def test_default_search_is_compact(self, long_function_codebase, tmp_path):
         result = _search(long_function_codebase, tmp_path)
         assert result["results"], result

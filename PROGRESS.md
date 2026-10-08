@@ -3,6 +3,17 @@
 [![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 [![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/score.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 
+## North star
+
+Lower token use for an agent, with the same accuracy. Set by the owner on 2026-10-08.
+
+- **Measure:** the tokens and the cost of a task in the live benchmark (`benchmarks/`),
+  against the Grep and Read condition.
+- **Gate:** accuracy must not fall. Check hit@1 on the four retrieval suites
+  (`python -m evals.retrieval.run`) and the answer score of the benchmark.
+- Keep a change only when it lowers the measure and passes the gate. Record the two
+  numbers, before and after, in `CHANGELOG.md`.
+
 ## Phase 1: Scaffold + Port Core Modules — COMPLETE
 - [x] Project structure created
 - [x] pyproject.toml with all dependencies

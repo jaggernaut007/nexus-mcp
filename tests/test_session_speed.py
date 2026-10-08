@@ -172,7 +172,7 @@ def priced_repo(tmp_path):
     return tmp_path
 
 
-def _search_tool(codebase, tmp_path, query, graph_calls):
+def _search_tool(codebase, tmp_path, query, graph_calls, detail="compact"):
     import asyncio
 
     from tests.conftest import _call_tool, _setup_indexed
@@ -181,7 +181,7 @@ def _search_tool(codebase, tmp_path, query, graph_calls):
         mcp, _, _ = await _setup_indexed(codebase, tmp_path / ".nexus")
         get_graph = get_state().graph_engine
         graph_calls.append(get_graph is not None)
-        return await _call_tool(mcp, "search", {"query": query})
+        return await _call_tool(mcp, "search", {"query": query, "detail": detail})
 
     from nexus_mcp.state import get_state
 
@@ -204,7 +204,7 @@ def test_search_keeps_engine_order_when_the_query_asks_for_tests(priced_repo, tm
 
 def test_search_does_not_use_the_graph_list_by_default(priced_repo, tmp_path, monkeypatch):
     has_graph = []
-    out = _search_tool(priced_repo, tmp_path, "price_order", has_graph)
+    out = _search_tool(priced_repo, tmp_path, "price_order", has_graph, detail="full")
     assert has_graph == [True]
     assert "graph" not in out["engines_used"]
 
@@ -216,7 +216,7 @@ def test_search_uses_the_graph_list_when_its_weight_is_positive(
     from nexus_mcp.config import reset_settings
 
     reset_settings()
-    out = _search_tool(priced_repo, tmp_path, "price_order", [])
+    out = _search_tool(priced_repo, tmp_path, "price_order", [], detail="full")
     assert "graph" in out["engines_used"]
 
 

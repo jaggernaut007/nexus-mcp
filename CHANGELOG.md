@@ -6,6 +6,12 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Live benchmark, 2026-10-08.** 12 jobscout questions, 72 runs, Claude Sonnet, warm prompt
+  cache: nexus costs 19.7% less than Grep and Read ($0.459 against $0.571), with 38% fewer turns
+  (34 against 55) and 25% fewer output tokens, and 36 of 36 answers correct in both conditions.
+  The same questions on 2026-10-07 gave nexus 6% more cost. The change comes from fewer turns:
+  exact names in `search`, the code in `find_symbol`, 8 tools instead of 10, module chunks, and
+  the warm-up call that takes the prompt cache write out of the first run. See `docs/EVALS.md`.
 - **Fewer turns for an agent.** Each turn of an agent reads the whole prompt again, so a
   follow-up grep or file read costs more than its result. Three changes remove such calls:
   - `find_symbol` returns the `code` of each symbol (the whole symbol, without its common

@@ -161,23 +161,25 @@ search("how does auth work")
 
 ## Token Efficiency
 
-Measured on 12 questions about a private 460-file Python project, with Claude Sonnet and the
-prompt cache warm for both conditions (a live run, 2026-10-07; the traces are in
-`benchmarks/results/raw/`):
+Measured on 12 questions about a private 460-file Python project, with Claude Sonnet, 3 runs
+for each question and condition (72 runs), and the prompt cache warm for both conditions. Live
+run of 2026-10-08, commit `91a338e`:
 
 | | Grep and Read | Nexus-MCP |
 |---|---:|---:|
-| Tool result characters | 174,400 | 135,900 |
-| Turns | 42 | 47 |
-| Prompt read on each turn | 13,900 tokens | 19,700 tokens |
-| Cost | $0.553 | $0.587 |
+| Turns (sum of the median of each question) | 55 | 34 (-38%) |
+| Output tokens | 11,917 | 8,881 (-25%) |
+| Cost | $0.571 | $0.459 (**-20%**) |
+| Correct answers | 36 of 36 | 36 of 36 |
+| Prompt on the first turn | 12,700 tokens | 16,300 tokens |
 
-The results were smaller, but the session cost 6% more: the tool definitions add tokens to
-every turn, and some questions still needed a grep or a read after the search. Output tokens
-for each turn were the same with and without nexus, so a tool saves tokens only by saving
-turns. Later changes target that: exact names in `search`, code in `find_symbol`, and a
-smaller tool list. Their effect is recorded in `CHANGELOG.md` and `docs/EVALS.md` when a live
-run has measured it.
+Nexus is cheaper on 7 questions, equal on 3 and dearer on 2 (the two impact questions, by
+$0.005 and $0.004). The saving comes from turns: output tokens for each turn are similar with
+and without nexus (261 and 217), and each turn reads the whole prompt again, so a tool pays only
+if it saves turns. The nexus prompt is still 3,600 tokens larger on every turn. Per question numbers are in
+`docs/EVALS.md`. The same questions on 2026-10-07 (before exact names, code in `find_symbol`,
+the smaller tool list and the warm-up call) gave nexus 6% more cost than Grep and Read.
+The result is for one project and one model; run `benchmarks/` on yours.
 
 ---
 

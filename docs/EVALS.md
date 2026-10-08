@@ -116,5 +116,46 @@ python -m evals.retrieval.run --candidates bge-small-en --label baseline
 ## Benchmark
 
 The token-efficiency benchmark (`benchmarks/`, ADR-018) drives `claude -p` on large repositories
-and counts wasted reads and tokens to answer. The harness is built and tested. It has no
-published numbers yet. See `benchmarks/README.md` for the commands.
+and counts wasted reads and tokens to answer. See `benchmarks/README.md` for the commands.
+The raw traces are in `benchmarks/results/` (git-ignored: the project is private).
+
+### Results (2026-10-08): jobscout, 12 questions, 3 runs each
+
+Conditions `baseline` (Grep, Read, Glob) and `nexus@bge-small-en`. Model `sonnet`.
+`python -m benchmarks.runner --tasks benchmarks/tasks/private/jobscout.yaml --conditions
+baseline,nexus --embedding-models bge-small-en --reps 3 --warm-up --save-raw`. Commit `91a338e`
+(module chunks, exact names, `find_symbol` with code, 8 tools, caps). `--warm-up` sends one
+unrecorded call for a condition when its prompt cache is cold, so no run pays the cache write
+of the prompt. Medians of the 3 runs of a question; the last row adds the medians.
+
+| Task | Turns (Grep and Read / nexus) | Cost $ | Correct |
+|---|---:|---:|---:|
+| needle: caches | 4 / 2 | 0.028 / 0.024 | 3/3 and 3/3 |
+| needle: budget | 3 / 2 | 0.033 / 0.022 | 3/3 and 3/3 |
+| needle: salary floor | 2 / 2 | 0.034 / 0.024 | 3/3 and 3/3 |
+| concept: CV variant | 5 / 3 | 0.047 / 0.041 | 3/3 and 3/3 |
+| concept: ledger lease | 3 / 2 | 0.045 / 0.024 | 3/3 and 3/3 |
+| concept: secret redaction | 4 / 3 | 0.036 / 0.036 | 3/3 and 3/3 |
+| architecture: gateway flow | 8 / 5 | 0.125 / 0.089 | 3/3 and 3/3 |
+| architecture: discovery graph | 3 / 2 | 0.030 / 0.030 | 3/3 and 3/3 |
+| architecture: mail triage | 4 / 3 | 0.087 / 0.054 | 3/3 and 3/3 |
+| impact: ensure_budget | 3 / 3 | 0.022 / 0.027 | 3/3 and 3/3 |
+| impact: score_job | 13 / 5 | 0.063 / 0.067 | 3/3 and 3/3 |
+| impact: wrap_untrusted | 3 / 2 | 0.022 / 0.022 | 3/3 and 3/3 |
+| **Sum of the medians** | **55 / 34** | **0.571 / 0.459** | **36/36 and 36/36** |
+
+- Nexus is cheaper by 19.7% ($0.459 against $0.571), with 38% fewer turns (34 against 55) and
+  25% fewer output tokens. Correct answers: 36 of 36 in both conditions.
+- Output tokens for each turn: 261 with nexus and 217 for Grep and Read (sums of medians
+  divided by the sum of the turns). Output follows the number of turns, so the saving comes
+  from turns.
+- Prompt on the first turn: 16,300 tokens with nexus against 12,700. The 2026-10-07 run had
+  16,900 and 12,300. The smaller tool list took about 600 tokens out of the nexus prompt; the
+  rest of the gap is the tool definitions that Claude Code sends and the skill text.
+- The two dearer questions are the impact questions. `ensure_budget`: the agent called `graph`
+  5 times in 3 runs. `score_job`: the agent used `find_symbol`, Grep and Read together.
+
+Reference, the same questions on 2026-10-07 (1 run each, cold cache in the first task):
+nexus $0.587, Grep and Read $0.553 with the cold-cache write taken out, 47 and 42 turns.
+Before that, the three questions that cost most with nexus were `needle-caches`,
+`secret-redaction` and `mail-triage`; in this run they cost $0.024, $0.036 and $0.054.

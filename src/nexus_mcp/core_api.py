@@ -30,6 +30,12 @@ logger = logging.getLogger(__name__)
 _pipeline = None
 _pipeline_lock = threading.Lock()
 
+# Serialises `restore_session` against itself. An agent often sends `status` and `search` in
+# one turn, so two calls reach restore together. The second must wait for the first and then
+# find the index attached, not answer "not indexed". Restore takes under a few seconds, and it
+# only ever *tries* `_pipeline_lock`, so waiting here cannot wait on a running index.
+_restore_lock = threading.Lock()
+
 
 # --- Background reindex / staleness -----------------------------------------
 
@@ -175,6 +181,138 @@ def validate_query(query: str) -> Optional[dict]:
 
 # --- Shared helpers -------------------------------------------------------
 
+def _stored_root_set(metadata_path: Path) -> Optional[set]:
+    """Resolved project roots named in the index metadata, or None if unreadable."""
+    import json
+
+    try:
+        meta = json.loads(metadata_path.read_text())
+        raw = meta.get("codebase_paths") or [meta.get("codebase_path")]
+        return {str(Path(p).resolve()) for p in raw if isinstance(p, str) and p}
+    except (OSError, ValueError, AttributeError, TypeError):
+        return None
+
+
+def _stored_roots(metadata_path: Path) -> List[Path]:
+    """Project roots named in the stored index metadata, or [] if any of them is unsafe.
+
+    The storage folder can come from a clone or an archive, so its contents are not
+    trusted. A root is accepted only when it is an absolute path to a folder that is the
+    server's working directory or inside it. Otherwise a `.nexus` folder could point the
+    server at any directory on the machine, or at a different project than the one the
+    agent is working in.
+    """
+    import json
+
+    try:
+        meta = json.loads(metadata_path.read_text())
+        raw = meta.get("codebase_paths") or [meta.get("codebase_path")]
+        paths = [Path(p) for p in raw if isinstance(p, str) and p]
+    except (OSError, ValueError, AttributeError, TypeError):
+        return []
+    if not paths or len(paths) != len(raw):
+        return []
+    cwd = Path.cwd().resolve()
+    roots = []
+    for path in paths:
+        if not path.is_absolute() or not path.is_dir():
+            return []
+        resolved = path.resolve()
+        if resolved != cwd and cwd not in resolved.parents:
+            return []
+        roots.append(path)
+    return roots
+
+
+def restore_session() -> bool:
+    """Reattach to the index that is already on disk. Returns True if a codebase is attached.
+
+    Every new server process starts with no codebase in memory, even when the project
+    was indexed in an earlier session. Without this, each session would open with
+    `status` saying "not indexed" and `index` having to run before any real work. This
+    loads the saved graph and opens the stored tables for the root(s) recorded in the
+    index metadata. It does not reparse anything: `status` then reports staleness and
+    starts a background reindex if files changed, exactly as in a session that called
+    `index`. It does nothing when the index is missing, was built by another embedding
+    model, or its root no longer exists, and `index` then builds it as before.
+    """
+    from nexus_mcp.config import get_settings
+    from nexus_mcp.state import get_state
+
+    state = get_state()
+    if state.is_indexed:
+        return True
+    settings = get_settings()
+    if not settings.auto_restore:
+        return False
+    metadata_path = settings.storage_path / "index_metadata.json"
+    if not metadata_path.exists():
+        return False
+    roots = _stored_roots(metadata_path)
+    if not roots:
+        return False
+
+    # Wait for a restore that is already running (see `_restore_lock`), then look again.
+    with _restore_lock:
+        if state.is_indexed:
+            return True
+        return _restore_locked(state, settings, roots)
+
+
+def warm_up() -> bool:
+    """Attach the stored index and load the embedding model before the first tool call.
+
+    The server runs this in a background thread at start. Measured on a 45,000-chunk
+    index: the restore takes about 2 s and the model load about 7 s, and without this the
+    first `search` of every session pays both. Returns True when a search ran. It never
+    raises: a failure only means the first tool call does the work, as before.
+    """
+    from nexus_mcp.state import get_state
+
+    try:
+        if not restore_session():
+            return False
+        engine = get_state().vector_engine
+        if engine is None:
+            return False
+        engine.search("warm up", limit=1)
+        return True
+    except Exception as e:  # noqa: BLE001 - a warm-up must never stop the server
+        logger.warning("Warm-up failed: %s", e)
+        return False
+
+
+def _restore_locked(state, settings, roots) -> bool:
+    """The body of `restore_session`. The caller holds `_restore_lock`."""
+    global _pipeline
+    # Never wait for the index lock: if an index is running, it attaches the codebase when
+    # it finishes and this call reports "not indexed" now.
+    if not _pipeline_lock.acquire(blocking=False):
+        return False
+    try:
+        if state.is_indexed:
+            return True
+        from nexus_mcp.indexing.pipeline import IndexingPipeline
+
+        pipeline = _pipeline or IndexingPipeline(settings)
+        if not pipeline._validate_index() or not pipeline._restore_graph():
+            return False
+        _pipeline = pipeline
+        state.codebase_path = roots[0]
+        state.codebase_paths = roots
+        state.vector_engine = pipeline.vector_engine
+        state.bm25_engine = pipeline.bm25_engine
+        state.graph_engine = pipeline.graph_engine
+        state._staleness_cache = None
+        logger.info("Restored the index of %s from %s", roots[0], settings.storage_path)
+        return True
+    except Exception as e:  # noqa: BLE001 - a bad saved index must not break the tool call
+        logger.warning("Could not restore the saved index: %s", e)
+        return False
+    finally:
+        _pipeline_lock.release()
+
+
 def require_indexed():
     """Check that a codebase is indexed and graph engine is available.
 
@@ -183,8 +321,14 @@ def require_indexed():
     from nexus_mcp.state import get_state
 
     state = get_state()
+    if not state.is_indexed:
+        restore_session()
     if not state.is_indexed or not state.graph_engine:
         return None, {"error": "No codebase indexed. Run 'index' first."}
+    # `status` and `search` already check for changed files. The graph tools did not, so
+    # after a restored session they could serve an old graph. The check is throttled.
+    if _get_staleness(state)["stale"]:
+        _trigger_background_reindex(state.codebase_path, state.codebase_paths)
     return state, None
 
 
@@ -215,6 +359,72 @@ def _serialize_node(node: UniversalNode, codebase_path: Optional[Path] = None) -
         "return_type": node.return_type,
         "parameter_types": node.parameter_types,
     }
+
+
+def _serialize_node_compact(
+    node: UniversalNode, codebase_path: Optional[Path] = None
+) -> dict[str, Any]:
+    """The few fields that name a symbol and say where it is. Used by `graph`."""
+    full = _serialize_node(node, codebase_path)
+    loc = full["location"]
+    return {
+        "name": full["name"],
+        "type": full["type"],
+        "file": loc["file"],
+        "start_line": loc["start_line"],
+        "end_line": loc["end_line"],
+    }
+
+
+def _group_by_file(
+    nodes: List[UniversalNode], codebase_path: Optional[Path] = None
+) -> dict[str, list[str]]:
+    """Symbols as `file -> ["name:line", ...]`, source files before test files.
+
+    A list of one dict for each symbol repeats the file path and the key names for every
+    symbol. This shape holds the same facts in about a third of the characters. A test
+    file keeps its first few symbols and a count of the rest: in the benchmark one file
+    held 40 test functions that call one symbol, and an agent needs the file, not the 40.
+    """
+    grouped: dict[str, list[str]] = {}
+    for node in nodes:
+        short = _serialize_node_compact(node, codebase_path)
+        grouped.setdefault(short["file"], []).append(f"{short['name']}:{short['start_line']}")
+    return _collapse_test_symbols(grouped)
+
+
+def _collapse_test_symbols(grouped: dict[str, list[str]]) -> dict[str, list[str]]:
+    """Source files first. A test file with many symbols keeps a few and a count."""
+    from nexus_mcp.engines.fusion import is_test_path
+
+    out = {}
+    for path in sorted(grouped, key=lambda f: (is_test_path(f), f)):
+        entries = grouped[path]
+        if is_test_path(path) and len(entries) > MAX_TEST_SYMBOLS_PER_FILE:
+            rest = len(entries) - MAX_TEST_SYMBOLS_PER_FILE
+            entries = entries[:MAX_TEST_SYMBOLS_PER_FILE] + [f"+{rest} more"]
+        out[path] = entries
+    return out
+
+
+def _symbol_compact(node: UniversalNode, state) -> dict[str, Any]:
+    """One `find_symbol` entry: where the symbol is, and its callers and callees by name."""
+    entry: dict[str, Any] = _serialize_node_compact(node, state.codebase_path)
+    full = _serialize_node(node, state.codebase_path)
+    if full.get("docstring"):
+        entry["docstring"] = _trim_snippet(full["docstring"], 300)
+    if full.get("complexity"):
+        entry["complexity"] = full["complexity"]
+    for key, related in (
+        ("callers", state.graph_engine.get_callers(node.id)),
+        ("callees", state.graph_engine.get_callees(node.id)),
+    ):
+        if not related:
+            continue
+        entry[key] = _group_by_file(related[:MAX_SYMBOL_RELATIONS], state.codebase_path)
+        if len(related) > MAX_SYMBOL_RELATIONS:
+            entry[f"{key}_total"] = len(related)
+    return entry
 
 
 def _serialize_relationship(rel: UniversalRelationship) -> dict[str, Any]:
@@ -258,6 +468,7 @@ def status() -> dict[str, Any]:
     from nexus_mcp.state import get_state
 
     state = get_state()
+    restore_session()
     rss_raw = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     if sys.platform == "darwin":
         peak_rss_mb = rss_raw / (1024 * 1024)
@@ -291,9 +502,10 @@ def status() -> dict[str, Any]:
             result["staleness_warning"] = None
 
         result["hint"] = (
-            "Codebase is indexed. Use 'search' to find code (preferred over Grep/Glob), "
-            "'find_symbol' for definitions, 'graph' for the call graph, "
-            "'explain' for understanding symbols, 'graph(transitive=True)' before refactoring."
+            "Codebase is indexed. Use 'search' to find code you cannot name, "
+            "'find_symbol' for definitions, 'graph' for who calls what, "
+            "'explain' to understand a symbol, 'map' for the project layout, "
+            "and 'graph(transitive=True)' before changing a shared function."
         )
     else:
         result["hint"] = (
@@ -384,7 +596,12 @@ async def index(
         else:
             codebase_path = validated[0]
             metadata_path = settings.storage_path / "index_metadata.json"
-            if metadata_path.exists():
+            # Incremental only if the stored index belongs to this same project. A shared
+            # storage folder can hold another project's index; diffing against it would
+            # mix the two, so build from scratch instead.
+            if metadata_path.exists() and _stored_root_set(metadata_path) == {
+                str(codebase_path.resolve())
+            }:
                 result = await asyncio.to_thread(
                     _pipeline.incremental_index, codebase_path, _cb
                 )
@@ -408,27 +625,133 @@ async def index(
 
 # --- Search -----------------------------------------------------------------
 
+# The live benchmark measured a median 16,000 characters per `search` result, 62% of it
+# snippet text, and 18,500 per `graph` result. These limits and the compact shape cut that.
+DETAIL_LEVELS = ("compact", "full")
+# The top results carry the whole symbol in most cases (the 90th percentile chunk of a
+# large project is about 1,600 characters), so the agent does not need a file read after
+# the search. In the benchmark traces a read of the top hit followed 9 of 12 searches.
+COMPACT_SNIPPET_CHARS = 2000  # the top COMPACT_TOP_RESULTS results
+COMPACT_TAIL_SNIPPET_CHARS = 160  # the rest: the signature and one docstring line
+COMPACT_TOP_RESULTS = 3
+FULL_SNIPPET_CHARS = 2000
+# Each engine returns this many times `limit`, so that enough source results are left
+# after test files move down (see `fusion.demote_test_files`). Fusion gets 2 x `limit`.
+SEARCH_OVERFETCH = 4
+MAX_REFERENCE_LINES = 60  # source lines with their text; test files are counts only
+MAX_REFERENCE_LINES_PER_FILE = 8
+MAX_TEST_SYMBOLS_PER_FILE = 3  # a test file with more callers shows a count of the rest
+# Fields that help ranking or debugging but not an agent's answer. `signature` and
+# `docstring` are also the first lines of the chunk text, so the snippet carries them.
+# `parent` is part of the qualified `symbol_name`. The extension of `filepath` says the
+# `language`.
+_SEARCH_INTERNAL_FIELDS = (
+    "id", "score", "rrf_score", "rerank_score", "_fusion_sources", "absolute_path",
+    "signature", "docstring", "parent", "language",
+)
+MAX_SYMBOL_RELATIONS = 20
+
+
+def _chunk_code(text: str, signature: str = "", docstring: str = "") -> str:
+    """The code of a chunk text, without the parts that repeat it.
+
+    A chunk text is built for the embedding model: a `# path:line` line, a
+    `type: name` line, the signature, the docstring, the code, then `Imports:` and
+    `Calls:` lines. The code already starts with the signature and the docstring, so
+    an agent that gets the whole text reads them twice. Returns the text without its
+    header when no code part is found.
+    """
+    without_header = _strip_chunk_header(text)
+    rest = without_header
+    first, sep, tail = rest.partition("\n\n")
+    if sep and "\n" not in first and ": " in first:
+        rest = tail
+    for lead in (signature or "", (docstring or "")[:500]):
+        if lead and rest.startswith(lead):
+            rest = rest[len(lead):].lstrip("\n")
+    lines = rest.rstrip().split("\n")
+    while lines and lines[-1].startswith(("Imports: ", "Calls: ")):
+        lines.pop()
+    code = "\n".join(lines).rstrip()
+    return code or without_header
+
+
+def _strip_chunk_header(code: str) -> str:
+    """Drop the `# path:line` first line of a chunk text. `filepath` and `line_start` say it."""
+    first, sep, rest = code.partition("\n")
+    return rest if sep and first.startswith("# ") and ":" in first else code
+
+
+def _trim_snippet(code: str, limit: int) -> str:
+    """Cut ``code`` to at most ``limit`` characters, at a line boundary when one exists."""
+    if len(code) <= limit:
+        return code
+    cut = code[:limit]
+    newline = cut.rfind("\n")
+    if newline > limit // 2:
+        cut = cut[:newline]
+    return cut + "\n... (truncated)"
+
+
+def _tail_snippet(code: str, signature: str = "", docstring: str = "") -> str:
+    """The snippet of a result below the top: the signature and the first docstring line.
+
+    It tells the agent what the symbol is. It has no `(truncated)` mark, because each
+    result below the top is cut and the hint of the response says so.
+    """
+    head = signature.strip() or code.strip().split("\n", 1)[0]
+    doc = docstring.strip().split("\n", 1)[0]
+    text = f"{head}\n{doc}" if doc and doc not in head else head
+    return text[:COMPACT_TAIL_SNIPPET_CHARS].rstrip()
+
+
+def _compact_search_result(r: dict[str, Any]) -> dict[str, Any]:
+    """Drop internal fields and empty values from one search result."""
+    return {
+        k: v
+        for k, v in r.items()
+        if k not in _SEARCH_INTERNAL_FIELDS
+        and v is not None
+        and not (isinstance(v, (str, list, dict)) and not v)
+    }
+
+
 def search(
     query: str,
     limit: int = 10,
     language: str = "",
     symbol_type: str = "",
     mode: str = "hybrid",
-    rerank: bool = True,
+    rerank: bool = False,
     live_grep: bool = False,
+    detail: str = "compact",
 ) -> dict[str, Any]:
     """Primary code discovery: hybrid vector+BM25+graph search with RRF fusion,
-    optional reranking, and an automatic live-grep fallback when results are sparse."""
+    optional reranking, and an automatic live-grep fallback when results are sparse.
+
+    ``detail="compact"`` (default) drops internal fields, gives the whole symbol (up to
+    ``COMPACT_SNIPPET_CHARS``) for the first ``COMPACT_TOP_RESULTS`` results and the
+    signature for the others, and returns only ``total``, ``results``, ``hint`` and a
+    ``warning`` when the index is stale. ``detail="full"`` keeps scores, ids, absolute
+    paths, the query, the engine names and snippets up to ``FULL_SNIPPET_CHARS``."""
     from nexus_mcp.config import get_settings
-    from nexus_mcp.engines.fusion import ReciprocalRankFusion, graph_relevance_search
+    from nexus_mcp.engines.fusion import (
+        ReciprocalRankFusion,
+        demote_test_files,
+        graph_relevance_search,
+    )
     from nexus_mcp.engines.reranker import FlashReranker
     from nexus_mcp.state import get_state
 
     err = validate_query(query)
     if err:
         return err
+    if detail not in DETAIL_LEVELS:
+        return {"error": f"Invalid detail: {detail}. Must be one of {list(DETAIL_LEVELS)}"}
 
     state = get_state()
+    if not state.is_indexed:
+        restore_session()
     if not state.is_indexed or not state.vector_engine:
         return {"error": "No codebase indexed. Run 'index' first."}
 
@@ -451,7 +774,7 @@ def search(
 
     engines_used = []
     ranked_lists: dict[str, list] = {}
-    overfetch = limit * 2
+    overfetch = limit * SEARCH_OVERFETCH
 
     if mode in ("hybrid", "vector"):
         try:
@@ -470,9 +793,11 @@ def search(
         except Exception as e:
             logger.warning("BM25 search failed: %s", e)
 
-    if mode == "hybrid" and state.graph_engine:
+    # The graph list is off by default (weight 0): on four eval suites it never raised
+    # hit@1 and it lowered it on three. A positive NEXUS_FUSION_WEIGHT_GRAPH turns it on.
+    if mode == "hybrid" and state.graph_engine and settings.fusion_weight_graph > 0:
         try:
-            graph_results = graph_relevance_search(state.graph_engine, query, limit=limit * 2)
+            graph_results = graph_relevance_search(state.graph_engine, query, limit=overfetch)
             if graph_results:
                 if language or symbol_type:
                     graph_results = [
@@ -486,6 +811,12 @@ def search(
                     engines_used.append("graph")
         except Exception as e:
             logger.warning("Graph relevance search failed: %s", e)
+
+    # Each list: source before tests, then the same length that fusion always got. A
+    # wider list into fusion lowered hit@1 in the eval; a list of tests only is worse.
+    ranked_lists = {
+        name: demote_test_files(query, found)[: limit * 2] for name, found in ranked_lists.items()
+    }
 
     if len(ranked_lists) > 1:
         fusion = ReciprocalRankFusion(
@@ -501,10 +832,14 @@ def search(
     else:
         results = []
 
+    # Source before tests, both before the cut to `limit` and after a reranker reorders.
+    # `rerank` is off by default: measured on four suites with two FlashRank models, it
+    # lowered hit@1 on two suites (0.72 to 0.44 on one) and added 0.1 to 3 s to a query.
+    results = demote_test_files(query, results)
     if rerank and results:
         if not hasattr(state, "_reranker") or state._reranker is None:
             state._reranker = FlashReranker(model_name=settings.reranker_model)
-        results = state._reranker.rerank(query, results, limit=limit)
+        results = demote_test_files(query, state._reranker.rerank(query, results, limit=limit))
     else:
         results = results[:limit]
 
@@ -549,15 +884,28 @@ def search(
     roots = getattr(state, "codebase_paths", [])
     if not roots and state.codebase_path:
         roots = [state.codebase_path]
-    for r in results:
+    compact = detail == "compact"
+    for rank, r in enumerate(results):
         r.pop("vector", None)
 
+        signature, docstring = r.get("signature") or "", r.get("docstring") or ""
+        tail = compact and rank >= COMPACT_TOP_RESULTS
+        snippet_limit = COMPACT_SNIPPET_CHARS if compact else FULL_SNIPPET_CHARS
         if "text" in r:
             code = r.pop("text")
-            if len(code) > 2000:
-                r["code_snippet"] = code[:2000] + "\n... (truncated)"
-            else:
-                r["code_snippet"] = code
+            if compact:
+                code = _chunk_code(code, signature, docstring)
+            r["code_snippet"] = (
+                _tail_snippet(code, signature, docstring)
+                if tail
+                else _trim_snippet(code, snippet_limit)
+            )
+        elif compact and r.get("code_snippet"):
+            r["code_snippet"] = (
+                _tail_snippet(r["code_snippet"], signature, docstring)
+                if tail
+                else _trim_snippet(r["code_snippet"], snippet_limit)
+            )
 
         abs_path = r.get("absolute_path") or r.get("filepath")
         if not abs_path:
@@ -577,6 +925,23 @@ def search(
 
             r["language"] = get_language_for_file(r["absolute_path"]) or "unknown"
 
+    if compact:
+        # No echo of the query and no engine names: the agent sent the first and does
+        # not use the second. `detail="full"` keeps them.
+        response: dict[str, Any] = {
+            "total": len(results),
+            "results": [_compact_search_result(r) for r in results],
+        }
+        if search_warning:
+            response["warning"] = search_warning
+        if len(results) > COMPACT_TOP_RESULTS:
+            response["hint"] = (
+                f"The first {COMPACT_TOP_RESULTS} results hold the whole symbol unless "
+                "marked (truncated); answer from them without a file read. The others "
+                "show the signature only."
+            )
+        return response
+
     return {
         "query": query,
         "total": len(results),
@@ -584,20 +949,23 @@ def search(
         "engines_used": engines_used,
         "results": results,
         "warning": search_warning,
-        "hint": (
-            "Results include code_snippet — you can often answer "
-            "without needing to Read the file."
-        ),
+        "hint": "Results include code_snippet — you can often answer without a file read.",
     }
 
 
 # --- Graph analysis -----------------------------------------------------------
 
-def find_symbol(symbol_name: str, exact: bool = True) -> dict[str, Any]:
-    """Look up a symbol by name, with its call-graph relationships."""
+def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -> dict[str, Any]:
+    """Look up a symbol by name, with its call-graph relationships.
+
+    ``detail="compact"`` (default) gives file, lines, docstring and the callers and
+    callees by name (`file -> ["name:line"]`, at most ``MAX_SYMBOL_RELATIONS`` each).
+    ``detail="full"`` gives every node field and the raw relationship records."""
     err = validate_symbol_name(symbol_name)
     if err:
         return err
+    if detail not in DETAIL_LEVELS:
+        return {"error": f"Invalid detail: {detail}. Must be one of {list(DETAIL_LEVELS)}"}
 
     state, err = require_indexed()
     if err:
@@ -609,6 +977,9 @@ def find_symbol(symbol_name: str, exact: bool = True) -> dict[str, Any]:
         if exact:
             msg += " Try exact=False for fuzzy matching."
         return {"error": msg}
+
+    if detail == "compact":
+        return {"total": len(matches), "symbols": [_symbol_compact(n, state) for n in matches]}
 
     symbols = []
     for node in matches:
@@ -622,52 +993,111 @@ def find_symbol(symbol_name: str, exact: bool = True) -> dict[str, Any]:
     return {"total": len(symbols), "symbols": symbols}
 
 
-def _graph_immediate(state, symbol_name: str, direction: str) -> dict[str, Any]:
+def _graph_immediate(
+    state, symbol_name: str, direction: str, detail: str = "compact"
+) -> dict[str, Any]:
     matches = _resolve_symbol(state.graph_engine, symbol_name, exact=True)
     if not matches:
-        return {"error": f"Symbol '{symbol_name}' not found."}
+        return _references_only(state, symbol_name, direction)
 
     get_related = (
         state.graph_engine.get_callers if direction == "callers" else state.graph_engine.get_callees
     )
-
-    all_related = []
+    related_nodes = []
     seen: set[str] = set()
     for node in matches:
         for related in get_related(node.id):
             if related.id not in seen:
                 seen.add(related.id)
-                all_related.append(_serialize_node(related, state.codebase_path))
+                related_nodes.append(related)
 
-    return {
+    result = {
         "symbol": symbol_name,
         "direction": direction,
-        "total": len(all_related),
-        direction: all_related,
+        "total": len(related_nodes),
+        direction: (
+            _group_by_file(related_nodes, state.codebase_path)
+            if detail == "compact"
+            else [_serialize_node(n, state.codebase_path) for n in related_nodes]
+        ),
     }
+    if direction == "callers":
+        _add_references(result, state, symbol_name)
+    return result
 
 
-def _graph_transitive_impact(state, symbol_name: str, max_depth: int) -> dict[str, Any]:
+def _references_only(state, symbol_name: str, direction: str) -> dict[str, Any]:
+    """The `graph` answer for a name with no graph node: its text references, or an error.
+
+    A constant, a symbol in a language without graph support, or a name the parser missed
+    still has uses in the text. An error here would send the agent to grep.
+    """
+    not_found = {"error": f"Symbol '{symbol_name}' not found."}
+    if direction != "callers":
+        return not_found
+    result: dict[str, Any] = {
+        "symbol": symbol_name, "direction": direction, "total": 0, direction: {},
+    }
+    _add_references(result, state, symbol_name)
+    if not result.get("references", {}).get("total_lines"):
+        return not_found
+    result["note"] = (
+        "No graph node has this name, so there are no call edges. `references` lists "
+        "every line where the name appears as a whole word (file -> `line: code`)."
+    )
+    return result
+
+
+def _add_references(result: dict[str, Any], state, symbol_name: str) -> None:
+    """Add every whole-word text use of the symbol name to a `graph` callers result.
+
+    Call edges are a lower bound. In the benchmark traces the agent ran its own grep
+    after `graph` in 5 of 6 impact tasks to check them; this list makes that unnecessary.
+    """
+    from nexus_mcp.engines.live_grep import LiveGrepEngine
+
+    try:
+        refs = LiveGrepEngine(str(state.codebase_path)).references(
+            symbol_name,
+            max_lines=MAX_REFERENCE_LINES,
+            max_lines_per_file=MAX_REFERENCE_LINES_PER_FILE,
+        )
+    except Exception as e:  # noqa: BLE001 - references are an addition, never a failure
+        logger.warning("Reference search failed: %s", e)
+        return
+    if refs is None:
+        return
+    result["references"] = refs
+    result["note"] = (
+        "references: every whole-word use of the name. Source files show `line: code`; "
+        "test files show a line count. No grep is needed. Callers are the statically "
+        "resolved calls only."
+    )
+
+
+def _graph_transitive_impact(
+    state, symbol_name: str, max_depth: int, detail: str = "compact"
+) -> dict[str, Any]:
     max_depth = max(1, min(max_depth, 50))
 
     matches = _resolve_symbol(state.graph_engine, symbol_name, exact=True)
     if not matches:
-        return {"error": f"Symbol '{symbol_name}' not found."}
+        return _references_only(state, symbol_name, "callers")
 
+    compact = detail == "compact"
+    serialize = _serialize_node_compact if compact else _serialize_node
     all_impacted = []
+    by_file: dict[str, list[str]] = {}
     seen: set[str] = set()
     for node in matches:
         for caller in state.graph_engine.get_transitive_callers(node.id, max_depth=max_depth):
             if caller.id not in seen:
                 seen.add(caller.id)
-                all_impacted.append(_serialize_node(caller, state.codebase_path))
+                all_impacted.append(serialize(caller, state.codebase_path))
+                short = _serialize_node_compact(caller, state.codebase_path)
+                by_file.setdefault(short["file"], []).append(short["name"])
 
-    by_file: dict[str, list[str]] = {}
-    for item in all_impacted:
-        fp = item["location"]["file"]
-        by_file.setdefault(fp, []).append(item["name"])
-
-    return {
+    result: dict[str, Any] = {
         "symbol": symbol_name,
         "direction": "callers",
         "transitive": True,
@@ -676,6 +1106,13 @@ def _graph_transitive_impact(state, symbol_name: str, max_depth: int) -> dict[st
         "impacted_symbols": all_impacted,
         "impacted_files": by_file,
     }
+    # `impacted_files` already names every symbol, so the compact result leaves the
+    # per-symbol list out. A 46,000-character result was measured on a widely used symbol.
+    if compact:
+        del result["impacted_symbols"]
+        result["impacted_files"] = _collapse_test_symbols(by_file)
+    _add_references(result, state, symbol_name)
+    return result
 
 
 def graph(
@@ -683,12 +1120,17 @@ def graph(
     direction: str = "callers",
     transitive: bool = False,
     max_depth: int = 10,
+    detail: str = "compact",
 ) -> dict[str, Any]:
     """Trace callers/callees of a symbol, or (transitive=True, direction='callers')
-    the full transitive change-impact blast radius. MUST run transitive=True before
-    refactoring a widely-shared symbol."""
+    the full transitive change-impact blast radius.
+
+    ``detail="compact"`` (default) returns name, type, file and lines for each symbol;
+    ``detail="full"`` adds docstring, complexity, signature types and the node id."""
     if direction not in ("callers", "callees"):
         return {"error": "direction must be 'callers' or 'callees'."}
+    if detail not in DETAIL_LEVELS:
+        return {"error": f"Invalid detail: {detail}. Must be one of {list(DETAIL_LEVELS)}"}
     if transitive and direction != "callers":
         return {
             "error": (
@@ -707,8 +1149,8 @@ def graph(
         return err
 
     if transitive:
-        return _graph_transitive_impact(state, symbol_name, max_depth)
-    return _graph_immediate(state, symbol_name, direction)
+        return _graph_transitive_impact(state, symbol_name, max_depth, detail)
+    return _graph_immediate(state, symbol_name, direction, detail)
 
 
 def analyze(path: str = "") -> dict[str, Any]:
@@ -1001,8 +1443,8 @@ def _build_architecture(state) -> dict[str, Any]:
 
 
 def map_(detail: str = "summary") -> dict[str, Any]:
-    """Project orientation, preferred over Glob/ls/manual browsing. 'summary'
-    for a quick look, 'architecture' for design/dependency structure, 'full' for both."""
+    """Project overview. 'summary' for a quick look, 'architecture' for
+    design/dependency structure, 'full' for both."""
     if detail not in ("summary", "architecture", "full"):
         return {"error": "detail must be 'summary', 'architecture', or 'full'."}
 
@@ -1029,14 +1471,13 @@ def _get_memory_store():
     if state.memory_store is None:
         settings = get_settings()
         embedding_svc = get_embedding_service(settings.embedding_model)
-        from nexus_mcp.indexing.embedding_service import EMBEDDING_MODELS
+        from nexus_mcp.indexing.embedding_service import model_dimensions
         from nexus_mcp.memory.memory_store import MemoryStore
 
-        model_config = EMBEDDING_MODELS.get(settings.embedding_model, {})
         state.memory_store = MemoryStore(
             db_path=str(settings.lancedb_path),
             embedding_service=embedding_svc,
-            vector_dims=model_config.get("dimensions", 768),
+            vector_dims=model_dimensions(settings.embedding_model),
         )
     return state.memory_store
 

@@ -168,3 +168,76 @@ def test_thread_local_factory():
     p2 = factory.get_parser()
     assert p1 is p2  # Same thread, same parser
     assert isinstance(p1, TreeSitterParser)
+
+
+def _modules(parser, path):
+    return [s for s in parser.parse_file(str(path)).symbols if s.type == SymbolType.MODULE]
+
+
+def test_extract_module_symbol_python_docstring(parser, tmp_path):
+    f = tmp_path / "cache.py"
+    f.write_text(
+        '"""In-run result cache and the cross-run negative cache.\n\n'
+        'Second paragraph with more words.\n"""\n\n'
+        "import os\n\n\nclass ResultCache:\n    def get(self):\n        return 1\n\n\n"
+        "def helper():\n    return 2\n"
+    )
+    (module,) = _modules(parser, f)
+    assert module.name == "cache"
+    assert module.line_start == 1
+    assert module.line_end == 4
+    assert module.code_snippet.startswith("In-run result cache")
+    assert "Second paragraph" in module.code_snippet
+    assert module.metadata["defines"] == ["ResultCache", "helper"]
+    assert module.calls == ()
+
+
+def test_extract_module_symbol_absent_without_text(parser, tmp_path):
+    f = tmp_path / "plain.py"
+    f.write_text("import os\n\n\ndef helper():\n    return 2\n")
+    assert _modules(parser, f) == []
+
+
+def test_extract_module_symbol_short_text_is_skipped(parser, tmp_path):
+    f = tmp_path / "short.py"
+    f.write_text('"""Helpers."""\n\n\ndef helper():\n    return 2\n')
+    assert _modules(parser, f) == []
+
+
+def test_extract_module_symbol_package_file_uses_folder_name(parser, tmp_path):
+    pkg = tmp_path / "gateway"
+    pkg.mkdir()
+    f = pkg / "__init__.py"
+    f.write_text('"""Provider gateway: one door for every paid call."""\n')
+    (module,) = _modules(parser, f)
+    assert module.name == "gateway"
+
+
+def test_extract_module_symbol_js_header_comment(parser, tmp_path):
+    f = tmp_path / "retry.js"
+    f.write_text(
+        "// Retry helper for flaky network calls.\n"
+        "// Backs off with jitter between tries.\n\n"
+        "function retry(fn) { return fn(); }\n"
+    )
+    (module,) = _modules(parser, f)
+    assert module.code_snippet.startswith("Retry helper for flaky network calls.")
+    assert "Backs off with jitter" in module.code_snippet
+    assert module.line_end == 2
+
+
+def test_extract_module_symbol_licence_header_is_skipped(parser, tmp_path):
+    f = tmp_path / "lib.js"
+    f.write_text(
+        "// Copyright 2026 Example Ltd. All rights reserved.\n"
+        "// Licensed under the Apache License, Version 2.0.\n\n"
+        "function run() { return 1; }\n"
+    )
+    assert _modules(parser, f) == []
+
+
+def test_extract_module_symbol_text_is_capped(parser, tmp_path):
+    f = tmp_path / "long.py"
+    f.write_text('"""' + "word " * 1000 + '"""\n')
+    (module,) = _modules(parser, f)
+    assert len(module.code_snippet) == TreeSitterParser.MAX_MODULE_DOC_CHARS

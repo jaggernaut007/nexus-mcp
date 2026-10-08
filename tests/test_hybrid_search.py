@@ -60,6 +60,7 @@ class TestHybridSearch:
             result = await _call_tool(mcp, "search", {
                 "query": "parse",
                 "mode": "hybrid",
+                "detail": "full",
             })
             assert result["search_mode"] == "hybrid"
             assert "engines_used" in result
@@ -74,6 +75,7 @@ class TestHybridSearch:
             result = await _call_tool(mcp, "search", {
                 "query": "validate input",
                 "mode": "vector",
+                "detail": "full",
             })
             assert result["search_mode"] == "vector"
             assert "vector" in result["engines_used"]
@@ -88,6 +90,7 @@ class TestHybridSearch:
             result = await _call_tool(mcp, "search", {
                 "query": "parse tokens",
                 "mode": "bm25",
+                "detail": "full",
             })
             assert result["search_mode"] == "bm25"
             # BM25 should be present if FTS index was created
@@ -103,6 +106,7 @@ class TestHybridSearch:
             result = await _call_tool(mcp, "search", {
                 "query": "parse",
                 "language": "python",
+                "detail": "full",
             })
             assert "error" not in result
             for r in result["results"]:

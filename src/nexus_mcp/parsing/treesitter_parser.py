@@ -28,6 +28,13 @@ class TreeSitterParser(IParser):
 
     MAX_CODE_SNIPPET_CHARS = 4000
     MAX_FILE_SIZE_MB = 10
+    MAX_MODULE_DOC_CHARS = 1500
+    MIN_MODULE_DOC_CHARS = 20
+    MAX_MODULE_DEFINES = 40
+    # A header comment with one of these words is a licence text, not a description.
+    LICENCE_WORDS = ("copyright", "license", "licence", "spdx")
+    # File names that say nothing: the folder name is the module name.
+    PACKAGE_FILE_STEMS = ("__init__", "index", "mod", "main")
 
     def __init__(self):
         self._parsers: Dict[str, Any] = {}
@@ -89,6 +96,11 @@ class TreeSitterParser(IParser):
             symbols = self._extract_symbols(
                 tree.root_node, content, filepath, language, config
             )
+            module = self._extract_module_symbol(
+                tree.root_node, content, filepath, language, symbols
+            )
+            if module:
+                symbols.append(module)
             imports = self._extract_imports(tree.root_node, content, config)
             parse_time = time.time() - start_time
             return ParsedFile(
@@ -181,6 +193,72 @@ class TreeSitterParser(IParser):
 
         traverse(root_node)
         return symbols
+
+    def _extract_module_symbol(
+        self, root_node, content: bytes, filepath: str, language: str, symbols: List[Symbol]
+    ) -> Optional[Symbol]:
+        """One symbol for the file itself, from the docstring or comment at its top.
+
+        The text at the top of a file often says what the file is for, in words that
+        no class or function in it repeats. Without this symbol a search by concept
+        cannot find such a file. A file with no such text gets no module symbol.
+        """
+        doc, end_line = self._module_doc(root_node, content)
+        if len(doc) < self.MIN_MODULE_DOC_CHARS:
+            return None
+        path = Path(filepath)
+        name = path.parent.name if path.stem in self.PACKAGE_FILE_STEMS else path.stem
+        defines = [
+            s.name for s in symbols
+            if s.parent is None and s.type in (SymbolType.CLASS, SymbolType.FUNCTION)
+        ]
+        return Symbol(
+            name=name or path.stem,
+            type=SymbolType.MODULE,
+            filepath=filepath,
+            line_start=1,
+            line_end=end_line,
+            language=language,
+            signature="",
+            code_snippet=doc[: self.MAX_MODULE_DOC_CHARS],
+            metadata={"defines": defines[: self.MAX_MODULE_DEFINES]},
+        )
+
+    def _module_doc(self, root_node, content: bytes) -> tuple[str, int]:
+        """The docstring or the comment block at the top of a file, and its last line."""
+        comments: List[str] = []
+        end_line = 1
+        for child in root_node.children:
+            if "comment" in child.type:
+                text = self._get_node_text(child, content)
+                if text.startswith("#!") or "coding:" in text[:30]:
+                    continue
+                comments.append(text)
+                end_line = child.end_point[0] + 1
+                continue
+            if child.type == "expression_statement" and not comments:
+                for sc in child.children:
+                    if sc.type in ("string", "string_literal"):
+                        raw = self._get_node_text(sc, content).strip()
+                        return self._strip_quotes(raw), child.end_point[0] + 1
+            break
+        if not comments:
+            return "", 1
+        lines = []
+        for line in "\n".join(comments).split("\n"):
+            lines.append(line.strip().lstrip("/#*!-").rstrip("*/").strip())
+        doc = "\n".join(lines).strip()
+        if any(word in doc.lower() for word in self.LICENCE_WORDS):
+            return "", 1
+        return doc, end_line
+
+    @staticmethod
+    def _strip_quotes(raw: str) -> str:
+        text = raw.lstrip("rRbBuUfF")
+        for q in ('"""', "'''", '"', "'"):
+            if text.startswith(q) and text.endswith(q) and len(text) >= 2 * len(q):
+                return text[len(q):-len(q)].strip()
+        return text.strip()
 
     def _extract_class_symbol(
         self, node, content: bytes, filepath: str, language: str, config: Dict

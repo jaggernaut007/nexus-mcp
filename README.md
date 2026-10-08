@@ -7,13 +7,13 @@
 [![CI](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml/badge.svg)](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml)
 [![Glama MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 
-**Hybrid search + code graph + semantic memory in a single local MCP server — under 350 MB RAM.**
+**Hybrid search + code graph + semantic memory in a single local MCP server. About 90 MB idle and 460 MB with the embedding model loaded ([measurements](docs/MEMORY.md)).**
 
 Nexus-MCP is a code intelligence server for the [Model Context Protocol](https://modelcontextprotocol.io). It gives AI agents precise, token-efficient answers about your codebase without cloud dependencies: no API keys, no data egress, no subscriptions.
 
 ```
 pip install nexus-mcp-ci
-claude mcp add nexus-mcp-ci -- nexus-mcp-ci
+claude mcp add nexus-mcp -- nexus-mcp-ci
 ```
 
 ---
@@ -30,7 +30,7 @@ AI coding agents are token-inefficient by default. An agent trying to understand
 
 With Nexus-MCP:
 
-1. `explain("verify_credentials")` → symbol definition + related code + quality metrics (callers and callees once call edges are extracted) → **~1,500 tokens, 1 tool call**
+1. `explain("verify_credentials")` → symbol definition + related code + quality metrics (plus callers and callees) → **~1,500 tokens, 1 tool call**
 
 Or for discovery:
 
@@ -47,25 +47,47 @@ Or for discovery:
 pip install nexus-mcp-ci
 
 # 2. Register with Claude Code
-claude mcp add nexus-mcp-ci -- nexus-mcp-ci
+claude mcp add nexus-mcp -- nexus-mcp-ci
 
-# 3. Verify (in any Claude Code session)
-# Claude will automatically use nexus-mcp-ci tools when CLAUDE.md instructs it
+# 3. Verify: start Claude Code in your project and run /mcp
+#    nexus-mcp should be listed as connected
 ```
 
-Then drop a `CLAUDE.md` in your project root:
+The server sends its own usage instructions when it connects, so Claude knows which tool
+answers which question without any extra setup. Ask something like "where do we retry
+failed payments?" and it will call `search` (and `index` once, the first time in a project).
+
+### Claude Code plugin (recommended)
+
+The plugin registers the server and adds a short routing skill that teaches Claude when to
+reach for each tool. Install the Python package first, then:
+
+```
+/plugin marketplace add jaggernaut007/Nexus-MCP
+/plugin install nexus-mcp@nexus-mcp
+```
+
+Do not register the server twice. If you use the plugin, skip the `claude mcp add` line.
+Tool names differ by route: `mcp__nexus-mcp__search` after `claude mcp add nexus-mcp`,
+`mcp__plugin_nexus-mcp_nexus-mcp__search` through the plugin. The rest of this README
+writes bare names (`search`) and you do not need the prefix in prompts.
+
+### Optional: project instructions
+
+If you want the rules in your own project file, a short block is enough:
 
 ```markdown
 ## Code Navigation
 
-Use nexus-mcp-ci tools before built-in file tools:
-- Start sessions with `mcp__nexus-mcp__status`; run `index` if needed
-- `search` before `Read/Grep`
-- `explain` instead of reading a file to understand a symbol
-- `graph(..., transitive=True)` before any refactor (the graph has no `CALLS` edges yet, so also use `search` to find call sites)
+The nexus-mcp server is connected. For questions about how this codebase works:
+- No setup call is needed; run `index` only if a tool says the project is not indexed.
+- Use `search` to find code, `find_symbol` or `explain` for one symbol, `map` for structure.
+- Use `graph` with `transitive=true` before you change a shared function. The call graph
+  is static, so also use `search` for dynamic call sites.
+- Use plain grep or read when you already know the file or the exact string.
 ```
 
-That's it. Claude will index your project on first use and use Nexus-MCP tools automatically.
+The full routing guide is in [docs/AGENT_ROUTING.md](docs/AGENT_ROUTING.md).
 
 ---
 
@@ -94,7 +116,7 @@ Source files
     │           deterministic IDs: SHA256(file_path + symbol_name + line)
     │           avoids duplicate inserts on incremental reindex
     │
-    ├─ Step 6: Embed ──────────── bge-small-en: 384-dim (default) or jina-code: 768-dim via ONNX
+    ├─ Step 6: Embed ──────────── bge-small-en: 384-dim
     │           lazy-loaded, unloaded after indexing (try/finally)
     │           GPU/MPS auto-detected; falls back to CPU
     │
@@ -112,7 +134,7 @@ Source files
 ```
 search("how does auth work")
          │
-         ├─► vector_engine.search(query, n=30)  ← cosine similarity on 384-dim (bge-small-en) or 768-dim (jina-code) embeddings
+         ├─► vector_engine.search(query, n=30)  ← cosine similarity on 384-dim (bge-small-en) embeddings
          │                                         "auth" finds "verify_credentials", "token_check"
          │
          ├─► bm25_engine.search(query, n=30)    ← Tantivy FTS on same LanceDB table
@@ -126,7 +148,7 @@ search("how does auth work")
                   │  Reciprocal Rank Fusion: score = Σ weight_i / (k + rank_i)
                   │  default weights: vector=0.5, bm25=0.3, graph=0.2
                   │
-                  ├─► reranker.rerank(top_20)   ← FlashRank (optional, 4MB ONNX model, <10ms)
+                  ├─► reranker.rerank(top_20)   ← FlashRank (only with rerank=True)
                   │
                   └─► token_budget.truncate()   ← summary / detailed / full
                            │
@@ -138,12 +160,12 @@ search("how does auth work")
 | Layer | Technology | Decision Rationale |
 |-------|-----------|-------------------|
 | **Vector store** | LanceDB | mmap disk-backed → ~20–50 MB overhead vs ChromaDB's in-memory model. Native Tantivy FTS means one store for both vector and BM25. ([ADR-002](docs/adr/ADR-002-lancedb-over-chromadb.md)) |
-| **Embeddings** | bge-small-en (default) or ONNX Runtime + jina-code | bge-small-en is lightweight (384-dim, no trust_remote_code). jina-code is code-specific (161M params, 8192 seq len) on ONNX (~50 MB vs PyTorch ~500 MB). Lazy-load/unload keeps RAM flat after indexing. ([ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md)) |
+| **Embeddings** | bge-small-en | Lightweight (384-dim, no trust_remote_code). Lazy-load/unload keeps RAM flat after indexing. ([ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md)) |
 | **Graph engine** | rustworkx PyDiGraph | Rust-backed, O(1) node lookup, PageRank + centrality algorithms. Thread-safe with RLock. ([ADR-006](docs/adr/ADR-006-rustworkx-graph-engine.md)) |
 | **Symbol parser** | tree-sitter 0.21.3 | 25+ languages, incremental parsing, AST-level symbol extraction with metadata. Parallel via ThreadPool. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
-| **Graph parser** | ast-grep | Structural matching for containment and import edges (call and inheritance edges are not extracted yet). Sequential run for graph consistency. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
+| **Graph parser** | ast-grep | Structural matching for containment and import edges (call edges are resolved after indexing; inheritance edges are not extracted yet). Sequential run for graph consistency. ([ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)) |
 | **Chunking** | Symbol-based | One chunk per function/class. Deterministic SHA256 IDs prevent duplicate inserts. ([ADR-008](docs/adr/ADR-008-code-chunk-strategy.md)) |
-| **Re-ranker** | FlashRank (optional) | 4 MB ONNX cross-encoder, <10 ms on CPU for top-20. Graceful passthrough if not installed. |
+| **Re-ranker** | FlashRank (optional, off by default) | ONNX cross-encoder, used when `search` gets `rerank=True`. Measured 2026-10-06: it lowered hit@1 on two of four eval suites and added 0.1 to 3 s to a query, so it is opt-in. Passthrough if not installed. |
 | **Persistence** | SQLite + LanceDB | Graph in SQLite (warm-start recovery), vectors+FTS in LanceDB, mtimes in JSON. Zero-config. |
 | **MCP framework** | FastMCP 2.0 | Stdio transport, automatic tool registration, schema generation. |
 
@@ -196,14 +218,14 @@ better under MCP Tool Search than many thin ones.
 
 | Tool | Use When |
 |------|----------|
-| `search(query, limit, language, symbol_type, mode, rerank, live_grep)` | Primary code discovery. `mode`: `hybrid` (default), `vector`, or `bm25`. Falls back to live grep if results are sparse. Returns a non-null `warning` if the index looked stale (a background reindex is triggered automatically; results still return immediately). |
+| `search(query, limit, language, symbol_type, mode, rerank, live_grep, detail)` | Primary code discovery. `mode`: `hybrid` (default), `vector`, or `bm25`. `detail`: `compact` (default, short snippets) or `full`. Falls back to live grep if results are sparse. Returns a non-null `warning` if the index looked stale (a background reindex is triggered automatically; results still return immediately). |
 
 ### Graph Analysis
 
 | Tool | Use When |
 |------|----------|
-| `find_symbol(symbol_name, exact)` | Look up a specific symbol. `exact=False` for fuzzy matching. |
-| `graph(symbol_name, direction, transitive, max_depth)` | `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True`** (was `impact()`) is meant to give the transitive change blast radius before a refactor. It requires `direction="callers"`; `direction="callees"` with `transitive=True` returns an error. **Call edges are not extracted yet, so callers, callees and impact results are empty today** — use `search` to find call sites (see [Known Limitations](#known-limitations)). |
+| `find_symbol(symbol_name, exact, detail)` | Look up a specific symbol, with its callers and callees by name. `exact=False` for fuzzy matching. `detail`: `compact` (default) or `full`. |
+| `graph(symbol_name, direction, transitive, max_depth, detail)` | `detail`: `compact` (default: name, file, lines) or `full`. `direction="callers"` (who calls this, was `find_callers`) or `"callees"` (what this calls, was `find_callees`). **`transitive=True`** (was `impact()`) gives the transitive change blast radius before a refactor (a lower bound: static edges only). It requires `direction="callers"`; `direction="callees"` with `transitive=True` returns an error. Call edges are static and name-based, so use `search` for call sites the graph cannot see (see [Known Limitations](#known-limitations)). |
 | `explain(symbol_name, verbosity)` | **Replaces `Read` for understanding code.** Graph relationships + semantic context + quality metrics in one call. |
 | `analyze(path)` | Code quality: cyclomatic complexity, cognitive complexity, code smells, dependency metrics. |
 
@@ -225,7 +247,7 @@ pip install nexus-mcp-ci
 # GPU (CUDA) support — adds ONNX CUDA execution provider
 pip install nexus-mcp-ci[gpu]
 
-# FlashRank reranker — adds ~4MB cross-encoder for better search quality
+# FlashRank reranker — used only when a search passes rerank=True (off by default)
 pip install nexus-mcp-ci[reranker]
 
 # Both
@@ -244,7 +266,7 @@ pip install -e ".[dev]"
 
 **Python 3.10–3.12 supported.** Python 3.13+ is not yet supported by the current dependency stack, and the packaged Glama/Docker build uses Python 3.12 for compatibility. Optional: `rg` (ripgrep) for 100% search coverage fallback on unindexed files.
 
-> The optional `jina-code` model requires ONNX Runtime. If you see ONNX/Optimum errors:
+> The deprecated `jina-code` model requires ONNX Runtime. If you see ONNX/Optimum errors:
 > ```bash
 > pip install "sentence-transformers[onnx]" "optimum[onnxruntime]>=1.19.0"
 > ```
@@ -258,16 +280,13 @@ pip install -e ".[dev]"
 
 ```bash
 # Minimal
-claude mcp add nexus-mcp-ci -- nexus-mcp-ci
-
-# With the code-specific embedding model (requires trust_remote_code)
-claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_MODEL=jina-code -- nexus-mcp-ci
+claude mcp add nexus-mcp -- nexus-mcp-ci
 
 # GPU embeddings
-claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_DEVICE=cuda -- nexus-mcp-ci
+claude mcp add nexus-mcp -e NEXUS_EMBEDDING_DEVICE=cuda -- nexus-mcp-ci
 
 # Virtualenv install — pass the full binary path
-claude mcp add nexus-mcp-ci -- /path/to/.venv/bin/nexus-mcp-ci
+claude mcp add nexus-mcp -- /path/to/.venv/bin/nexus-mcp-ci
 ```
 
 ### Claude Desktop
@@ -277,11 +296,11 @@ claude mcp add nexus-mcp-ci -- /path/to/.venv/bin/nexus-mcp-ci
 ```json
 {
   "mcpServers": {
-    "nexus-mcp-ci": {
+    "nexus-mcp": {
       "command": "nexus-mcp-ci",
       "args": [],
       "env": {
-        "NEXUS_EMBEDDING_MODEL": "jina-code"
+        "NEXUS_EMBEDDING_DEVICE": "cpu"
       }
     }
   }
@@ -292,7 +311,7 @@ claude mcp add nexus-mcp-ci -- /path/to/.venv/bin/nexus-mcp-ci
 
 ```json
 {
-  "nexus-mcp-ci": {
+  "nexus-mcp": {
     "command": "nexus-mcp-ci",
     "transport": "stdio"
   }
@@ -306,15 +325,14 @@ claude mcp add nexus-mcp-ci -- /path/to/.venv/bin/nexus-mcp-ci
 ### CLAUDE.md boilerplate (drop into project root)
 
 ```markdown
-## Code Intelligence — nexus-mcp-ci
+## Code Intelligence — nexus-mcp
 
-Every code task in this project MUST follow this workflow:
-
-1. **Session start**: `mcp__nexus-mcp__status` → if not indexed, `mcp__nexus-mcp__index`
-2. **Before any file read**: `mcp__nexus-mcp__search` to locate relevant code
-3. **To understand a symbol**: `mcp__nexus-mcp__explain` (not Read)
-4. **Before refactoring**: `mcp__nexus-mcp__graph` with `transitive=True` to assess blast radius. The current graph has no `CALLS` edges, so use `mcp__nexus-mcp__search` to find call sites.
-5. **For project orientation**: `mcp__nexus-mcp__map` with `detail="summary"` or `detail="architecture"`
+1. **Session start**: no setup call. Run `index` only if a tool says "No codebase indexed"
+2. **To find code you cannot name**: `search`, before reading files one by one
+3. **To understand one symbol**: `explain`
+4. **Before refactoring**: `graph` with `transitive=true` to assess blast radius. The call graph is static (no dynamic dispatch), so also use `search` to find call sites.
+5. **For project orientation**: `map` with `detail="summary"` or `detail="architecture"`
+6. **When you know the exact file or string**: plain grep or read is fine
 ```
 
 ### Typical agent tool-call sequence
@@ -332,11 +350,11 @@ search("JWT token validation", mode="hybrid", limit=10)
 # Deep symbol understanding
 explain("validate_token")
   → definition, location, related code
-  → callers: [], callees: []   # empty until call edges are extracted (see Known Limitations)
+  → callers: [post_order, ...], callees: [...]
 
 # Pre-refactor safety check
 graph("validate_token", direction="callers", transitive=True)
-  → total_impacted: 0          # no CALLS edges on a real index yet, so this is NOT proof of no callers
+  → total_impacted: N          # a lower bound: dynamic calls are not visible
 
 # Locate call sites with search instead
 search("validate_token(", mode="bm25")
@@ -362,33 +380,39 @@ All settings via `NEXUS_` environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | `bge-small-en` (384-dim, lightweight) or `jina-code` (768-dim, code-optimized) |
+| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | `bge-small-en` (384-dim). `jina-code` is deprecated |
 | `NEXUS_EMBEDDING_DEVICE` | `auto` | `auto` (CUDA → MPS → CPU), `cuda`, `mps`, `cpu` |
 | `NEXUS_STORAGE_DIR` | `.nexus` | Index storage directory |
 | `NEXUS_AUTO_WATCH` | `true` | Auto-reindex on file change via a debounced watcher, started after `index()` |
+| `NEXUS_AUTO_RESTORE` | `true` | A new server process reattaches to the stored index, so `status` is already `indexed: true` |
+| `NEXUS_WARM_START` | `true` | Attach the index and load the embedding model in the background while the server starts, so the first `search` does not wait about 7 s. The model then uses its memory (about 370 MB) from the start of each session |
 | `NEXUS_STALENESS_CHECK_INTERVAL` | `15` | Seconds between `status()`/`search()` staleness checks (throttled, not per-call) |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max chars per code chunk |
+| `NEXUS_EMBEDDING_BATCH_SIZE` | `32` | Chunks per embedding batch. Lower it to cut peak RAM while indexing |
+| `NEXUS_INDEX_FILE_BATCH_SIZE` | `50` | Files per streaming indexing batch |
+| `NEXUS_GRAPH_MAX_DEPTH` | `10` | Max depth for transitive graph queries |
+| `NEXUS_RERANKER_MODEL` | `ms-marco-MiniLM-L-12-v2` | FlashRank reranker model (optional) |
 | `NEXUS_MAX_MEMORY_MB` | `350` | Memory budget target |
 | `NEXUS_SEARCH_MODE` | `hybrid` | `hybrid`, `vector`, or `bm25` |
 | `NEXUS_FUSION_WEIGHT_VECTOR` | `0.5` | Vector score weight in RRF |
 | `NEXUS_FUSION_WEIGHT_BM25` | `0.3` | BM25 score weight in RRF |
-| `NEXUS_FUSION_WEIGHT_GRAPH` | `0.2` | Graph score weight in RRF |
+| `NEXUS_FUSION_WEIGHT_GRAPH` | `0` | Graph score weight in RRF. `0` leaves the graph list out of hybrid search (it did not raise hit@1 on any eval suite) |
 | `NEXUS_PERMISSION_LEVEL` | `full` | `full`, `read`, or `restricted` |
 | `NEXUS_RATE_LIMIT_ENABLED` | `false` | Enable per-tool token-bucket rate limiting |
 | `NEXUS_AUDIT_ENABLED` | `true` | Structured audit logging with correlation IDs |
-| `NEXUS_TRUST_REMOTE_CODE` | `true` | Required for jina-code; set `false` with bge-small-en |
+| `NEXUS_TRUST_REMOTE_CODE` | `true` | Needed only by the deprecated jina-code; set `false` with bge-small-en |
 | `NEXUS_LOG_LEVEL` | `INFO` | Logging level |
 | `NEXUS_LOG_FORMAT` | `text` | `text` or `json` |
 
-The Python package defaults to `bge-small-en`. The `Dockerfile` and `smithery.yaml` set `jina-code` explicitly, so those deployments use `jina-code` unless you override it.
+The Python package defaults to `bge-small-en`. The `Dockerfile`, `smithery.yaml` and `glama.json` use the same default. `jina-code` still loads, with a warning, so an existing index keeps working. It is deprecated and will be removed in a future major release.
 
 ### Embedding Models
 
 | Model | Key | Dims | Max Seq | Backend | `trust_remote_code` |
 |-------|-----|:----:|:-------:|---------|:-------------------:|
 | BGE Small EN v1.5 (default) | `bge-small-en` | 384 | 512 | PyTorch | No |
-| Jina Embeddings v2 Code | `jina-code` | 768 | 8,192 | ONNX | Yes |
+| Jina Embeddings v2 Code (deprecated) | `jina-code` | 768 | 8,192 | ONNX | Yes |
 
 **After changing model, re-index.** Embeddings from different models are incompatible.
 
@@ -404,10 +428,10 @@ The Python package defaults to `bge-small-en`. The `Dockerfile` and `smithery.ya
 | Semantic (vector) search | ✅ | ❌ keyword only | ✅ LLM-based | ❌ | ❌ |
 | Keyword (BM25) search | ✅ | ✅ | — | ✅ | ❌ |
 | Hybrid fusion (RRF) | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Code graph (call/import) | partial: containment + imports (call edges planned) | ✅ SCIP | ❌ | ❌ | ❌ |
+| Code graph (call/import) | static: containment, imports, calls | ✅ SCIP | ❌ | ❌ | ❌ |
 | Re-ranking | ✅ FlashRank | ❌ | — | ❌ | ❌ |
 | Semantic memory (persistent) | ✅ 6 types | ❌ | ❌ | ❌ | ❌ |
-| Change impact analysis | planned (needs call edges) | partial | ❌ | ❌ | ❌ |
+| Change impact analysis | static callers only | partial | ❌ | ❌ | ❌ |
 | Token-budgeted responses | ✅ 3 levels | ❌ | ❌ | ❌ | ❌ |
 | Languages | 25+ | 30+ | many | many | many |
 | Cost | **Free noncommercial; paid commercial license** | $$$ | $40/mo | $10–39/mo | Free |
@@ -436,7 +460,7 @@ git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 pip install -e ".[dev]"
 
-pytest -v                    # 607 tests
+pytest -v                    # 843 tests (831 without slow)
 pytest -m "not slow"         # skip performance benchmarks
 pytest tests/test_hybrid_search.py  # single module
 ruff check .                 # lint
@@ -524,12 +548,12 @@ Expected output: all 10 tools exercised with pass/fail per tool and a summary.
 ## Known Limitations
 
 - **Sequential graph parsing**: ast-grep runs sequentially (not parallel) to keep the call graph consistent. This is the main indexing bottleneck on large codebases.
-- **bge-small-en uses PyTorch**: The lightweight model uses PyTorch instead of ONNX, so it doesn't benefit from the same ~50 MB footprint as jina-code.
+- **bge-small-en uses PyTorch**: The default model runs on PyTorch, not ONNX.
 - **No incremental graph updates**: Graph is rebuilt in full on incremental reindex (only vector/BM25 are incremental at the chunk level).
 - **No SSE transport**: Only stdio transport is currently supported.
 - **Language coverage**: 25+ languages get tree-sitter symbol extraction. ast-grep structure (functions, classes, imports) covers Python, JavaScript, TypeScript, Go, Java, and Rust; other languages have no graph structure.
-- **Call edges are not populated yet**: the graph holds `CONTAINS` and `IMPORTS` edges only. No parser creates `CALLS` edges, so `graph(direction="callers"/"callees")`, `graph(transitive=True)` and the `callers`/`callees` fields of `explain` return empty lists today. Use `search` to locate call sites until call-edge extraction lands. `find_symbol` returns definitions, not callers. Function complexity and docstring fields on graph nodes are also empty, so `analyze` complexity scores are not yet meaningful.
-- **Static call graph only (once populated)**: call edges will come from static parsing, not runtime tracing — dynamic dispatch, monkey-patching, and calls made through callbacks/closures/reflection won't show up. Treat `graph(transitive=True)` as a lower bound on blast radius in highly dynamic code.
+- **Call edges are static and name-based.** `graph()` and the `callers`/`callees` fields of `explain()` come from parsing, not runtime tracing. Edges exist for Python, JavaScript, TypeScript, Go, Java and Rust. A call resolves only when the callee is in the same file, in an imported file, or has a unique name in the index. A name shared by several definitions gets no edge, so results are a lower bound. Dynamic dispatch, monkey-patching, callbacks and reflection do not show up, so treat `graph(transitive=True)` as a lower bound on blast radius.
+- **Complexity is approximate**: cyclomatic complexity counts branch points per function. Only Python counts `and`/`or`, and only Python functions get docstrings on graph nodes.
 - **Auto-reindex has a detection lag**: with the file watcher enabled (default), edits are picked up after a short debounce, and `status()`/`search()` run a throttled staleness check as a backstop — not an instant, per-call guarantee of freshness.
 
 ---

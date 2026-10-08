@@ -25,7 +25,19 @@ python -m benchmarks.runner --tasks benchmarks/tasks/django.yaml --smoke   # 2 t
 python -m benchmarks.report benchmarks/results/runs-*.jsonl
 ```
 
-Default model is `claude-sonnet-5`; override with `--model <id>` on `runner.py`.
+Default model is the `sonnet` alias; override with `--model <id>` on `runner.py`.
+
+**Permissions.** Runs are headless, so nothing can answer a prompt. The harness uses
+`--permission-mode dontAsk` with an explicit `--allowedTools` list (`Read`, `Grep`, `Glob`,
+`ToolSearch` and the nexus tools). A tool outside the list is denied, and the denial is
+recorded. It does not use `bypassPermissions` or `--dangerously-skip-permissions`.
+
+**Auth and limits.** The isolated config directory has no login. Export
+`CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`) or `ANTHROPIC_API_KEY` first. On a
+subscription, a long run can hit the usage limit; the runner stops with exit code 3 and keeps
+its records. Run the same command again later and it skips what already finished. The default
+output file is `results/runs-<repo>.jsonl`, so reruns find it. `--save-raw` keeps each run's raw
+stream under `results/raw/` so a number can be recomputed if the parser changes.
 
 Full run (all tasks, both conditions, 3 reps — expect **$20-50** in API spend
 and tens of minutes of wall time):
@@ -36,10 +48,36 @@ python -m benchmarks.runner --tasks benchmarks/tasks/home-assistant.yaml
 python -m benchmarks.report benchmarks/results/runs-*.jsonl --out benchmarks/results/report.md --csv benchmarks/results/report.csv
 ```
 
+### Comparing embedding models, or benchmarking your own project
+
+The `nexus` conditions can run once per embedding model. Each model needs its own index of
+the repo, built first and outside the measured runs:
+
+```bash
+PYTHONPATH=src:. python -m benchmarks.preindex_models --repo django \
+    --models bge-small-en,granite-97m-r2-int8
+python -m benchmarks.runner --tasks benchmarks/tasks/django.yaml --smoke \
+    --conditions baseline,nexus --embedding-models bge-small-en,granite-97m-r2-int8
+```
+
+Each record's condition is then `nexus@<model>` (for example `nexus@granite-97m-r2-int8`), so the report
+shows one row per model beside `baseline`. `baseline` runs once, because it has no server.
+`nexus-plugin` takes no model: the plugin starts its own server with the default model.
+The models that are not in the shipped registry (the granite candidates, see
+`evals/retrieval/candidates.py`) load through `benchmarks/nexus_server.py`, which registers
+the model in memory only. This is the same code path as the shipped server.
+
+For your own project, put the code in `benchmarks/repos/<name>` (a clone is fine; check out only
+the code, so no `CLAUDE.md` or docs leak a hint into the runs), write a task file in the format
+below, and keep a private one under `benchmarks/tasks/private/` (git-ignored). Ground truth must
+be checked with grep against the pinned commit.
+
 ## Methodology
 
 **Conditions:**
 - `baseline` — `claude -p --tools Read,Grep,Glob` (no MCP servers, no skill).
+- `mcp-only` — same built-in tools, plus the `nexus-mcp` MCP server and nothing else: no
+  skill. It measures the tool descriptions and the server instructions alone.
 - `nexus` — same built-in tools, plus the `nexus-mcp` MCP server
   (`benchmarks/mcp-configs/nexus.json`) and the shipped
   `plugin/skills/nexus-mcp/SKILL.md` body injected via `--append-system-prompt`.
@@ -67,6 +105,14 @@ overview, needle-in-haystack symbol lookup. Each task specifies
 `must_mention_files` (the subset an answer must cite by name — used for
 file-recall scoring, falls back to `relevant_files` when empty), and `facts`
 (groups of acceptable phrasings, at least one of which must appear).
+
+An answer names a file well enough when it writes the full path, a shorter path
+(`gateway/gateway.py`) or the bare file name (`gateway.py`) as a separate word. A generic
+name such as `__init__.py` needs its parent folder. When a question has two valid answers, put
+both paths in one inner list, for example
+`must_mention_files: [["src/a/one.py", "src/a/two.py"]]`: naming either one counts.
+After a change to the scoring rules, `python -m benchmarks.rescore --tasks <suite.yaml> --runs
+<runs.jsonl>` rescores recorded runs from their stored answers, without a Claude call.
 
 Full task-suite YAML schema:
 
@@ -135,7 +181,7 @@ files; home-assistant/core: ~26,000) that no single conversation could read
 the whole thing, but the model may have memorized parts of django from
 training. Mitigations: home-assistant/core is pinned to a commit dated at
 model training-cutoff or later (check the `pinned_date` field in its task
-YAML against the **default model's** — `claude-sonnet-5`, or whatever
+YAML against the training cutoff of the model that `--model` resolved to — or whatever
 `--model` you actually ran with — training cutoff before publishing);
 wasted-read ratio is contamination-resistant by construction since it
 measures *reads*, not recalled knowledge; needle tasks ask for exact line
@@ -155,6 +201,8 @@ numbers, which models don't reliably memorize even for famous code.
 - `runner.py` — orchestrates real `claude` subprocess runs, writes JSONL
 - `report.py` — aggregates JSONL into markdown + CSV
 - `setup_repos.sh` / `_preindex_one.py` — one-time repo clone + pre-index
+- `preindex_models.py` — one index per embedding model (`<repo>/.nexus-<model>`)
+- `nexus_server.py` — starts the server with a candidate model that is not in the registry
 - `repos/`, `results/`, `.claude-bench/` — gitignored, generated locally
 
 ## Known gotchas

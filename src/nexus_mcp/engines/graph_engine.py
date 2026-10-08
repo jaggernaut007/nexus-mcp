@@ -15,6 +15,7 @@ from nexus_mcp.core.graph_models import (
     RelationshipType,
     UniversalNode,
     UniversalRelationship,
+    identifier_search_terms,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,8 @@ class RustworkxCodeGraph:
         self._nodes_by_type: Dict[NodeType, Set[str]] = defaultdict(set)
         self._nodes_by_language: Dict[str, Set[str]] = defaultdict(set)
         self._file_nodes: Dict[str, Set[str]] = defaultdict(set)
+        # word -> ids of nodes whose name contains it, for query matching in O(words)
+        self._word_index: Dict[str, Set[str]] = defaultdict(set)
 
     def add_node(self, node: UniversalNode) -> int:
         """Add node to graph. Returns rustworkx index."""
@@ -57,6 +60,9 @@ class RustworkxCodeGraph:
 
             if node.location:
                 self._file_nodes[node.location.file_path].add(node.id)
+
+            for term in identifier_search_terms(node.name):
+                self._word_index[term].add(node.id)
 
             return idx
 
@@ -91,6 +97,25 @@ class RustworkxCodeGraph:
         """Return all nodes for the given language."""
         with self._lock:
             ids = self._nodes_by_language.get(language, set())
+            return [self.nodes[nid] for nid in ids if nid in self.nodes]
+
+    def find_node_ids_by_words(self, words) -> Set[str]:
+        """Ids of nodes whose name contains any of `words` as a whole identifier word."""
+        with self._lock:
+            ids: Set[str] = set()
+            for word in words:
+                ids |= self._word_index.get(word, set())
+            return ids
+
+    def find_nodes_by_words(self, words) -> List[UniversalNode]:
+        """Nodes whose name contains any of `words` as a whole identifier word.
+
+        Answers from the word index, so the cost does not grow with the size of the graph.
+        """
+        with self._lock:
+            ids: Set[str] = set()
+            for word in words:
+                ids |= self._word_index.get(word, set())
             return [self.nodes[nid] for nid in ids if nid in self.nodes]
 
     def find_nodes_by_name(self, name: str, exact: bool = True) -> List[UniversalNode]:
@@ -247,12 +272,35 @@ class RustworkxCodeGraph:
                     except Exception as e:
                         logger.debug("Failed to remove node %s from file mapping: %s", nid, e)
                         pass
-                self.nodes.pop(nid, None)
+                node = self.nodes.pop(nid, None)
+                if node is not None:
+                    for term in identifier_search_terms(node.name):
+                        self._word_index[term].discard(nid)
                 for type_set in self._nodes_by_type.values():
                     type_set.discard(nid)
                 for lang_set in self._nodes_by_language.values():
                     lang_set.discard(nid)
             return len(node_ids)
+
+    def remove_relationships_by_type(self, rel_type: RelationshipType) -> int:
+        """Remove every relationship of one type. Returns the number removed.
+
+        The call resolver uses this to rebuild all CALLS edges after an
+        incremental reindex, so no edge points at a node that changed.
+        """
+        with self._lock:
+            doomed = {
+                rid for rid, rel in self.relationships.items()
+                if rel.relationship_type == rel_type
+            }
+            if not doomed:
+                return 0
+            for edge_idx, (_src, _tgt, rel_id) in list(self.graph.edge_index_map().items()):
+                if rel_id in doomed:
+                    self.graph.remove_edge_from_index(edge_idx)
+            for rid in doomed:
+                del self.relationships[rid]
+            return len(doomed)
 
     def get_node_degree(self, node_id: str) -> tuple:
         """Return (in_degree, out_degree) for a node, or (0, 0) if not found."""
@@ -289,3 +337,4 @@ class RustworkxCodeGraph:
             self._nodes_by_type = defaultdict(set)
             self._nodes_by_language = defaultdict(set)
             self._file_nodes = defaultdict(set)
+            self._word_index = defaultdict(set)

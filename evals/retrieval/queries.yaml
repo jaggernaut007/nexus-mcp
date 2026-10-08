@@ -1,0 +1,76 @@
+# Retrieval eval queries. Each query has the files that a good answer must reach.
+# Paths are relative to the suite root.
+#
+# Queries describe what the code does in plain words. They avoid the exact
+# identifier names, so a model has to match meaning, not spelling.
+
+suites:
+  nexus_mcp:
+    root: src/nexus_mcp
+    queries:
+      - {id: ttl-expiry, query: "delete notes after they get too old", relevant: [memory/memory_store.py]}
+      - {id: rank-merge, query: "merge several ranked result lists into one ordering", relevant: [engines/fusion.py]}
+      - {id: stale-index, query: "notice that files changed on disk since the last scan", relevant: [indexing/pipeline.py, core_api.py]}
+      - {id: debounce, query: "wait for edits to settle before starting a rescan", relevant: [parsing/file_watcher.py, core_api.py]}
+      - {id: throttle, query: "refill tokens over time to limit how often a tool can be called", relevant: [security/rate_limiter.py]}
+      - {id: access-levels, query: "decide whether a tool may run under read-only or full access", relevant: [security/permissions.py]}
+      - {id: log-scrub, query: "hide passwords and secrets before writing an invocation record", relevant: [middleware/audit.py]}
+      - {id: model-table, query: "which neural network models can turn text into vectors", relevant: [indexing/embedding_service.py]}
+      - {id: split-code, query: "cut a function into pieces with stable identifiers for storage", relevant: [indexing/chunker.py]}
+      - {id: save-graph, query: "write the relationship graph to a database file and read it back", relevant: [persistence/store.py]}
+      - {id: structure-parse, query: "find function and class definitions and what a file imports", relevant: [parsing/astgrep_parser.py]}
+      - {id: symbol-parse, query: "pull out symbols with their doc comments and signatures from source", relevant: [parsing/treesitter_parser.py]}
+      - {id: quality-score, query: "measure how tangled a function is and flag long classes", relevant: [analysis/code_analyzer.py]}
+      - {id: text-fallback, query: "scan files for a string when the index has too few answers", relevant: [engines/live_grep.py]}
+      - {id: second-pass, query: "re-score the top candidates with a small cross-encoder", relevant: [engines/reranker.py]}
+      - {id: keyword-search, query: "keyword search over stored chunks with an inverted index", relevant: [engines/bm25_engine.py]}
+      - {id: vector-store, query: "nearest neighbour lookup over stored embeddings with column filters", relevant: [engines/vector_engine.py]}
+      - {id: size-limit, query: "estimate how many tokens a reply uses and cut it down to fit", relevant: [formatting/token_budget.py]}
+      - {id: stop-cleanly, query: "write everything to disk and stop watchers when the process is told to quit", relevant: [state.py, server.py]}
+      - {id: unsafe-input, query: "reject paths that climb out of the project and strings with null bytes", relevant: [core_api.py]}
+      - {id: file-types, query: "map a file name ending to a programming language", relevant: [parsing/language_registry.py]}
+      - {id: env-config, query: "read configuration values from environment variables", relevant: [config.py]}
+      - {id: link-calls, query: "connect each call site to the function that it invokes", relevant: [indexing/call_resolver.py]}
+      - {id: parallel-parse, query: "parse many files at the same time with worker threads", relevant: [indexing/parallel_indexer.py]}
+      - {id: graph-lock, query: "thread safe directed graph that answers who points at a node", relevant: [engines/graph_engine.py]}
+  shop_repo:
+    root: evals/fixtures/shop_repo
+    queries:
+      - {id: retry, query: "try again after a pause that gets longer each time", relevant: [shop/payments/gateway.py]}
+      - {id: webhook, query: "prove that an incoming notification really came from the payment provider", relevant: [shop/payments/webhooks.py]}
+      - {id: throttle, query: "refuse callers who ask too often in a short window", relevant: [shop/cache.py]}
+      - {id: promo, query: "lower the price when the customer enters a promotional code", relevant: [shop/pricing.py]}
+      - {id: stock, query: "take units off the shelf for a purchase", relevant: [shop/inventory.py]}
+      - {id: confirm, query: "tell the customer that the purchase went through", relevant: [shop/notifications.py]}
+      - {id: admin-only, query: "only staff with the admin role may do this", relevant: [shop/auth.py]}
+      - {id: cart, query: "put an item into the basket shown in the browser", relevant: [web/src/cart.ts]}
+
+  # Public suite: pallets/flask. Clone it first (shallow, no history):
+  #   git clone --depth 1 https://github.com/pallets/flask.git benchmarks/repos/flask
+  # Ground truth was checked against d73fa1cdcbd8b1465c151db8924ba58b1dd14e35 (2026-09-08).
+  # A query with `kind: identifier` names code symbols on purpose, to give bm25 a fair test.
+  flask:
+    root: benchmarks/repos/flask/src/flask
+    queries:
+      - {id: per-request-hooks, query: "run some code before every view and again after the response is built", relevant: [sansio/scaffold.py, app.py]}
+      - {id: request-scope, query: "keep data about the current request available everywhere without passing it around", relevant: [ctx.py, globals.py]}
+      - {id: cookie-session, query: "remember the user between page loads by storing signed data in a cookie", relevant: [sessions.py]}
+      - {id: load-settings, query: "read application options from a Python file or an environment variable", relevant: [config.py]}
+      - {id: json-types, query: "turn dates and UUIDs into JSON text when answering", relevant: [json/provider.py]}
+      - {id: jinja-loader, query: "find HTML template files in the app and in its modules", relevant: [templating.py]}
+      - {id: modular-routes, query: "split an application into reusable parts that each own some URLs", relevant: [blueprints.py, sansio/blueprints.py]}
+      - {id: class-views, query: "write a handler as a class with one method per HTTP verb", relevant: [views.py]}
+      - {id: shell-commands, query: "list the URL rules and start the development server from a terminal", relevant: [cli.py]}
+      - {id: fake-client, query: "send fake requests to the app in unit tests without opening a socket", relevant: [testing.py]}
+      - {id: error-output, query: "write error messages to the console unless a handler already exists", relevant: [logging.py]}
+      - {id: redirect-body, query: "explain why a form post lost its data after a redirect during debugging", relevant: [debughelpers.py]}
+      - {id: download-file, query: "send a file to the browser with caching headers and safe path handling", relevant: [helpers.py]}
+      - {id: body-limits, query: "limit upload size and parse a JSON request body", relevant: [wrappers.py]}
+      - {id: event-hooks, query: "notify other code when a template is rendered or a request starts", relevant: [signals.py]}
+      - {id: register-route, query: "attach a function to a URL pattern and a set of HTTP methods", relevant: [sansio/app.py, sansio/scaffold.py]}
+      - {id: next-page-notice, query: "show a one-time message on the following page", relevant: [helpers.py]}
+      - {id: id-dispatch, kind: identifier, query: "full_dispatch_request preprocess_request", relevant: [app.py]}
+      - {id: id-cookie, kind: identifier, query: "SecureCookieSession SecureCookieSessionInterface", relevant: [sessions.py]}
+      - {id: id-loader, kind: identifier, query: "DispatchingJinjaLoader", relevant: [templating.py]}
+      - {id: id-config, kind: identifier, query: "from_pyfile from_envvar from_prefixed_env", relevant: [config.py]}
+      - {id: id-group, kind: identifier, query: "FlaskGroup routes_command", relevant: [cli.py]}

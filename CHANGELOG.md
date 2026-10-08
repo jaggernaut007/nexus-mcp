@@ -4,11 +4,148 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Module chunks.** A file that starts with a docstring (Python) or a comment block gets
+  one more chunk: that text and a `Defines:` line with its top-level classes and functions.
+  `search` returns it with `symbol_type: "module"`. Before, a file that only its top
+  docstring describes was not found by a search by concept. hit@1 in production mode:
+  `jobscout` 0.70 to 0.81, `nexus_mcp` 0.72 to 0.80, `shop_repo` 0.38 to 0.50, `flask`
+  0.59 (no change). A licence header and a text of less than 20 characters give no chunk.
+  The index records `chunk_format`; an index of an older version is rebuilt on the next
+  `index` call.
+- Benchmark scoring accepts a short path (`gateway/gateway.py` or `gateway.py`) as naming a
+  file, and a task can list more than one valid answer. `python -m benchmarks.rescore` rescores
+  recorded runs from their stored answers, with no Claude call. The first jobscout run went
+  from 33/36 to 36/36 correct: all three misses were scoring or ground-truth problems.
+- **`CALLS` edges.** `graph()` (callers, callees, `transitive=True`) and the
+  `callers`/`callees` fields of `explain()` now return real results for Python,
+  JavaScript, TypeScript, Go, Java and Rust. Edges are static and name-based, so
+  results are a lower bound. See ADR-019.
+- `evals/routing`: a tool-routing eval that measures whether Claude Code calls the
+  nexus tools unprompted, with a synthetic `shop_repo` fixture.
+- `evals/retrieval`: compares embedding models on file-level search quality
+  (docs/research/embedding-models-2026-10.md).
+- Server `instructions` sent on connect (issue #5): which tool answers which question.
+- Tool annotations (`readOnlyHint` and others) and a title on every tool, and enum
+  schemas for `mode`, `direction`, `verbosity`, `detail`, `action` and `ttl`.
+- The index records its embedding model and rebuilds when the model changes. An older
+  index with a different vector width is also detected and rebuilt. Stored memories are
+  re-embedded with the new model; a JSON backup is written first
+  (`memories-before-model-change.json`).
+- A new server process reattaches to the index on disk (`NEXUS_AUTO_RESTORE`, default on):
+  `status` reports `indexed: true` at the start of a session, and the graph tools work, without
+  calling `index` first. It is skipped when the stored index is missing, built by another model,
+  or its project folder is gone, or the stored root is not the server's working directory or
+  inside it (the storage folder is not trusted: it can come from a clone or an archive). The
+  `status` tool is now async and starts the file watcher for a restored index.
+- The saved graph is loaded on restart, so `graph()` works after a restart without a
+  full reindex.
+- Cyclomatic complexity and Python docstrings on graph nodes, so `analyze` is no longer
+  all zeros.
+- `docs/AGENT_ROUTING.md`, `docs/EVALS.md` and `docs/BACKLOG.md` (replaces `todo.md`).
+
 ### Changed
+
+- **Fewer model turns in a session.** The benchmark traces showed that a nexus run took 5
+  turns against 3 for grep and read, and that every turn costs the whole cached prompt again.
+  Four changes remove the extra turns. They are measured offline; a live rerun is still to do.
+  - The server `instructions`, the `status` description and the skill no longer ask for a
+    `status` call first. Every benchmark run spent one turn on it.
+  - Compact `search` gives the whole symbol for the top 3 results (up to 2,000 characters) and
+    about 240 characters for the rest. A file read of the top hit followed 9 of 12 searches.
+  - A `graph` callers result has a new `references` field: every file and line where the name
+    appears as a whole word, with the code of each source line, and a line count for each test
+    file. A test file with more than 3 callers shows 3 and `+N more` in the caller lists (a file
+    of 40 test functions took 40 entries before) (ripgrep, or grep when ripgrep is missing). The agent ran its own
+    grep after `graph` in 5 of 6 impact tasks, because call edges are a lower bound. On django,
+    `MaxLengthValidator` has 1 call edge and 18 reference lines in 10 files. A name with no
+    graph node now returns its references and not an error.
+  - The server attaches the index and loads the embedding model in a background thread at
+    start (`NEXUS_WARM_START`, default on). The first `search` of a session waited about 7 s
+    for the model; later searches take about 0.1 s. The model memory is then in use from the
+    start of each session.
+- **Smaller results, same ranking.** Measured on a 460-file project:
+  - `find_symbol` has a `detail` parameter. Compact (default) gives the callers and callees by
+    name as `file -> ["name:line"]`, not raw relationship records with node ids: 8,400 to
+    2,800 characters for a symbol with many callers.
+  - Compact `graph` groups callers and callees by file (9,600 to 3,700 characters), and the
+    transitive result names each impacted symbol once, in `impacted_files` (12,200 to 6,000).
+  - A compact `search` snippet is the code only. The stored chunk text also holds a copy of
+    the signature and the docstring and `Imports:` and `Calls:` lines; they are left out, with
+    `parent` and `rerank_score`. The tail results get 160 characters, not 240.
+  - A compact `search` result below the top 3 shows the signature and the first docstring
+    line, with no `(truncated)` mark. Compact results have no `language` field (the file
+    extension says it), and the response has only `total`, `results`, `hint` and, when the
+    index is stale, `warning`. `detail="full"` keeps `query`, `search_mode`,
+    `engines_used` and `language`. On 27 queries that an agent sent in the live benchmark
+    the mean result went from 5,089 to 4,311 characters (15% less) with the same result
+    order.
+- **`search(rerank=...)` is now `False` by default.** With `flashrank` installed, both
+  FlashRank models lowered hit@1 on two of four eval suites (`nexus_mcp` 0.72 to 0.44,
+  `jobscout` 0.70 to 0.59) and added 0.1 to 3 s to a query. Pass `rerank=True` to use it.
+- **`search` ranks source files before test files**, unless the query asks for tests. No
+  result is removed. On a 45,744-chunk index of django (70% of the chunks are tests), hit@1 on
+  the 12 benchmark task queries went from 6 to 8 and test files in the top 5 from 14 of 60 to 0.
+- **The graph list is no longer part of hybrid search by default**
+  (`NEXUS_FUSION_WEIGHT_GRAPH` is now `0`, was `0.2`). It raised hit@1 on none of the four
+  eval suites and lowered it on three. Hybrid hit@1 without it: `flask` 0.50 to 0.59,
+  `nexus_mcp` 0.60 to 0.72, `shop_repo` 0.25 to 0.38, `jobscout` 0.70 unchanged. Set the
+  variable above 0 to turn it on again.
+- **`search` and `graph` return a compact result by default** (new `detail` parameter,
+  `"compact"` or `"full"`). The first live benchmark measured a median 16,000-character `search`
+  result and a 46,000-character `graph` result. Compact `search` trims the snippets (see above), and leaves out `id`, `score`,
+  `rrf_score`, `_fusion_sources`, `absolute_path` and the fields that repeat the snippet. Compact
+  `graph` returns name, type, file and lines, and `transitive=True` lists at most 40 symbols
+  (`truncated: true` when there are more; `impacted_files` always names all of them). On a
+  460-file project the results are about 40% (`search`) and 20% (transitive `graph`) of the
+  full size, with the same files in the same order. Pass `detail="full"` for the old shape.
+- `fastmcp` is now `>=3.1,<5` (the new APIs were verified on 4.0.5). New optional extra
+  `onnx` (`pip install nexus-mcp-ci[onnx]`) for the ONNX backend on optimum 2.x.
+- Memory use is measured and documented (`docs/MEMORY.md`): about 90 MB idle, 460 MB with the
+  embedding model loaded. The old "under 350 MB" claim is removed from the docs and the site.
+- Calls that the tool schema rejects (for example an invalid enum value) now leave an audit
+  record with the status `invalid_arguments`.
+- The graph tools check for changed files (throttled) and start a background reindex, as
+  `status` and `search` already did.
+- Indexing project B over a storage folder that holds project A now rebuilds the index instead of
+  diffing against A.
+- Memory migration after a model change goes through a temp table, and an interrupted migration is
+  finished on the next open.
+- Graph relevance in hybrid search keeps a word index (no scan of every node), splits digits and
+  joined words (`OAuth2Token` matches `oauth`), and scores at most 1,000 candidates.
+- Graph relevance in hybrid search now matches whole identifier words and ignores stop words,
+  so short query words no longer match every node whose name contains those letters.
+- **Tool descriptions rewritten** (issues #5, #6, #8). In the routing eval (25 prompts, Claude Sonnet,
+  Tool Search on) the pass rate went from 56% to 88% and a nexus tool was called first 86% of
+  the time instead of 27%. Each description now opens with the question it
+  answers, says what comes back and when not to use it. The "preferred over Grep" and "MUST"
+  wording is gone. The `memory` action no longer mentions the old tool names.
+- **Invalid enum values are now rejected by the tool schema** (a validation error from the
+  server) instead of an `{"error": ...}` result. `core_api` still returns the error dict.
+- One registration name, `nexus-mcp`, in every doc and on the site. The binary is still
+  `nexus-mcp-ci`.
+- `Dockerfile`, `smithery.yaml` and `glama.json` default to `bge-small-en` (issue #7).
+- `analyze` dead-code entries now say "No static caller found" instead of
+  "Never called", and are far fewer now that call edges exist.
+- The benchmark harness no longer uses `--permission-mode bypassPermissions`. It
+  runs with `dontAsk` and an explicit allowlist.
 
 - `find_symbol`'s keyword parameter was renamed from `name` to `symbol_name`, to
   match `graph()` and `explain()`. Callers that pass `find_symbol(name=...)` must
   switch to `find_symbol(symbol_name=...)`.
+
+### Fixed
+
+- With `flashrank` installed, the default `search` raised `ValueError` (and the result was not
+  JSON-serializable): the reranker returned numpy scores. The scores are plain floats now.
+
+### Deprecated
+
+- **`jina-code` embedding model.** It still loads, with a warning, so an existing index keeps
+  working. It is no longer offered in `smithery.yaml` or `glama.json` or recommended in the
+  docs, and it will be removed in a future major release (it also needs `trust_remote_code`).
+  Use `bge-small-en`, then re-index. See the amendment in ADR-004.
 
 ### Documentation
 

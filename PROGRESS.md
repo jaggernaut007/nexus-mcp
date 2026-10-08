@@ -3,6 +3,17 @@
 [![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 [![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/score.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 
+## North star
+
+Lower token use for an agent, with the same accuracy. Set by the owner on 2026-10-08.
+
+- **Measure:** the tokens and the cost of a task in the live benchmark (`benchmarks/`),
+  against the Grep and Read condition.
+- **Gate:** accuracy must not fall. Check hit@1 on the four retrieval suites
+  (`python -m evals.retrieval.run`) and the answer score of the benchmark.
+- Keep a change only when it lowers the measure and passes the gate. Record the two
+  numbers, before and after, in `CHANGELOG.md`.
+
 ## Phase 1: Scaffold + Port Core Modules — COMPLETE
 - [x] Project structure created
 - [x] pyproject.toml with all dependencies
@@ -130,14 +141,14 @@
 
 ## Phase 8: Advanced Intelligence & Visualization — SUPERSEDED
 - [x] 8a: Ripgrep fallback for search reliability (100% coverage)
-- [ ] ~~8b: Visual graph export (Mermaid.js)~~ — was falsely marked complete; never implemented. See [todo.md](todo.md) for viability verdict.
-- [ ] ~~8c: Global semantic memory (cross-repository)~~ — reframed, see [todo.md](todo.md)
-- [ ] ~~8d: Dynamic awareness (Log ingestion/linking)~~ — deferred, see [todo.md](todo.md)
+- [ ] ~~8b: Visual graph export (Mermaid.js)~~ — was falsely marked complete; never implemented. See [docs/BACKLOG.md](docs/BACKLOG.md) for viability verdict.
+- [ ] ~~8c: Global semantic memory (cross-repository)~~ — reframed, see [docs/BACKLOG.md](docs/BACKLOG.md)
+- [ ] ~~8d: Dynamic awareness (Log ingestion/linking)~~ — deferred, see [docs/BACKLOG.md](docs/BACKLOG.md)
 
 Superseded 2026-07-02 by [docs/ROADMAP-2026.md](docs/ROADMAP-2026.md), which sets the
 current P0/P1/P2 priorities (P0/P1 complete — see ADR-015, ADR-016, ADR-017 below).
 Remaining 8b/8c/8d items were evaluated against the v2.0.0 architecture; see
-[todo.md](todo.md) for per-item verdicts.
+[docs/BACKLOG.md](docs/BACKLOG.md) for per-item verdicts.
 
 ## Phase 9: Token-Efficiency Benchmark (ROADMAP-2026 P2 item 9) — HARNESS BUILT
 - [x] `benchmarks/` harness: nexus-mcp vs. baseline Claude Code on 1,000+ file repos
@@ -165,11 +176,36 @@ Remaining 8b/8c/8d items were evaluated against the v2.0.0 architecture; see
   `group_by`/`main`/`load_task_suite`/`repo_dir_for`/`normalize_path`'s
   precondition). 128 harness tests total, full suite 585 passing, ruff clean.
 - [ ] Live run against real repos + published report — requires `bash
-  benchmarks/setup_repos.sh` (clones ~2 large repos) and a `claude` CLI invocation
-  with `--permission-mode bypassPermissions`/`--dangerously-skip-permissions` for
-  headless execution, plus real API spend (~$2 smoke, ~$20-50 full run). Not run yet
-  — needs explicit user go-ahead before spending or using that flag. See
-  `benchmarks/README.md` for the exact commands.
+  benchmarks/setup_repos.sh` (clones ~2 large repos) and headless `claude` runs
+  (now `--permission-mode dontAsk` plus an allowlist, no bypass flag), plus usage
+  or spend (~$2 smoke, ~$20-50 full run). Not run yet — needs explicit user go-ahead.
+  See `benchmarks/README.md` for the exact commands.
+
+## Routing Evals, Embedding Eval, Call Edges — started 2026-10-02
+Plan: `~/.claude/plans/go-through-the-docs-glistening-sketch.md` (phases A-F).
+- [x] Phase A code: `evals/routing/` (prompts, scoring, runner, report), `shop_repo`
+  fixture, benchmark harness moved from bypass flag to `dontAsk` + allowlist, new
+  `mcp-only` condition, Tool Search on/off switch.
+- [ ] Phase A live run 1 — blocked: the isolated config dir has no login. Needs
+  `claude setup-token` and `CLAUDE_CODE_OAUTH_TOKEN` in the shell.
+- [x] Phase D (done before B so the eval can run first on the unchanged descriptions):
+  `CALLS` edges from `indexing/call_resolver.py`, ADR-019, docs and site updated,
+  `self_test/demo_mcp.py` now fails on an empty call graph.
+- [x] Phase C code (2026-10-03): `evals/retrieval/` (metrics, queries, candidates, runner),
+  model name stored in index metadata with automatic rebuild on a change, `onnx_file`
+  registry key, `max_seq_length` applied, one `model_dimensions()` helper, packaging
+  defaults set to `bge-small-en` (issue #7), `_has_optimum` guard fixed (issue #9).
+- [x] Phase C live comparison (2026-10-03): 3 ONNX int8 candidates against the shipped model.
+  Result: keep `bge-small-en`; no candidate cleared the 5-point bar and all used more
+  memory. Findings on fusion and memory are in
+  [docs/research/embedding-models-2026-10.md](docs/research/embedding-models-2026-10.md).
+- [x] Phase F: [docs/BACKLOG.md](docs/BACKLOG.md) replaces `todo.md`.
+- [x] Phase B (2026-10-03): server `instructions`, rewritten descriptions, enums, annotations,
+  one registration name, plugin and Codex docs, `docs/AGENT_ROUTING.md`, tool contract tests
+  (`tests/test_tool_contract.py`).
+- [x] Routing eval live runs (2026-10-05): pass rate 56% -> 88%, nexus tool called first 27% -> 86%
+  (25 prompts, `mcp-only`, Tool Search on, one run each). See docs/EVALS.md.
+- [ ] Phase E: benchmark smoke run, then the full run (needs a second go-ahead).
 
 ## Discoverability & Setup Audit — 2026-09-23
 - [x] Audited agent-facing surfaces (tool descriptions, README, `llms.txt`,
@@ -200,11 +236,8 @@ Remaining 8b/8c/8d items were evaluated against the v2.0.0 architecture; see
   source docs instead of hand-copied. `embedding_service.py` docstring named the wrong default.
 - [x] Historical docs left as written: `docs/adr/`, `IMPLEMENTATION_PLAN.md`,
   `RESEARCH.md`, `ROADMAP-2026.md`, `FUTURE_CONTRIBUTIONS.md`, `docs/plans/`, `CHANGELOG.md`.
-- [ ] **Code gap found, docs now say so:** nothing creates `CALLS` edges. Real indexes
-  hold `CONTAINS`/`IMPORTS` only, so `graph()` and the `callers`/`callees` fields of
-  `explain()` return empty lists, and ast-grep nodes have zero complexity and no
-  docstrings. Tests hide it because they build `CALLS` edges by hand, and
-  `self_test/demo_mcp.py` passes on empty results. Same finding as `todo.md` item 8b.
+- [x] **Code gap found:** nothing created `CALLS` edges. Fixed 2026-10-02 (ADR-019).
+  Cyclomatic complexity and Python docstrings on ast-grep nodes added 2026-10-03.
 - [ ] Not changed (behavior, not docs): `Dockerfile`, `smithery.yaml`, `glama.json`
   default to `jina-code` while the package defaults to `bge-small-en` (issue #7).
 
@@ -229,3 +262,4 @@ Remaining 8b/8c/8d items were evaluated against the v2.0.0 architecture; see
 | 2026-07-02 | Remove unused Pydantic schemas | Dead code never wired into any tool at runtime | [ADR-016](docs/adr/ADR-016-remove-unused-pydantic-schemas.md) |
 | 2026-07-02 | Tool consolidation 15→10 | Fewer richer tools route better under Tool Search | [ADR-017](docs/adr/ADR-017-tool-consolidation.md) |
 | 2026-07-03 | Token-efficiency benchmark | Drive real `claude` CLI; wasted-read ratio + tokens-to-answer; honest, reproducible | [ADR-018](docs/adr/ADR-018-token-efficiency-benchmark.md) |
+| 2026-10-02 | Static call-edge resolution | Empty `graph()` hid the main value claim; resolve names after the last batch, skip ambiguous names | [ADR-019](docs/adr/ADR-019-call-edge-resolution.md) |

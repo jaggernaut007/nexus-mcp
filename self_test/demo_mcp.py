@@ -308,6 +308,16 @@ def _run_demo(project_path: Path, cleanup: bool):
             failed += 1
             return None
 
+    def check(label, condition):
+        """Count a content assertion. Unlike run(), it fails on an empty result."""
+        nonlocal passed, failed
+        if condition:
+            ok(label)
+            passed += 1
+        else:
+            fail(label)
+            failed += 1
+
     # ------------------------------------------------------------------
     # 1. Health & Status
     # ------------------------------------------------------------------
@@ -425,6 +435,24 @@ def _run_demo(project_path: Path, cleanup: bool):
     if callees_result:
         pp(callees_result)
 
+    # Call edges must be real. An empty graph() result used to pass this demo.
+    console.print()
+    sum_callers = run(
+        'graph("calculate_sum", direction="callers")',
+        tools["graph"], "calculate_sum", direction="callers",
+    )
+    check(
+        "graph finds run_calculations as a caller of calculate_sum",
+        bool(sum_callers) and "run_calculations" in {c["name"] for c in sum_callers["callers"]},
+    )
+    user_callers = run(
+        'graph("User", direction="callers")', tools["graph"], "User", direction="callers"
+    )
+    check(
+        "graph finds create_user as a caller of User",
+        bool(user_callers) and "create_user" in {c["name"] for c in user_callers["callers"]},
+    )
+
     # Fuzzy search
     console.print()
     fuzzy_result = run(
@@ -461,6 +489,16 @@ def _run_demo(project_path: Path, cleanup: bool):
     )
     if impact_result:
         pp(impact_result)
+
+    sum_impact = run(
+        'graph("calculate_sum", transitive=True)',
+        tools["graph"], "calculate_sum", transitive=True,
+    )
+    check(
+        "transitive graph reports run_calculations as impacted by calculate_sum",
+        bool(sum_impact)
+        and "run_calculations" in {s["name"] for s in sum_impact["impacted_symbols"]},
+    )
 
     # ------------------------------------------------------------------
     # 9. Explain

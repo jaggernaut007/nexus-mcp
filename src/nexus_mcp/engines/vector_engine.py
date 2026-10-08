@@ -13,7 +13,7 @@ import lancedb
 import pyarrow as pa
 
 from nexus_mcp.core.interfaces import IEngine
-from nexus_mcp.indexing.embedding_service import EmbeddingService
+from nexus_mcp.indexing.embedding_service import EmbeddingService, model_dimensions
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class LanceDBVectorEngine(IEngine):
         self._db_path = str(db_path)
         self._embedding_service = embedding_service
         self._table_name = table_name
-        self._vector_dims = vector_dims or 384  # bge-small-en default
+        self._vector_dims = vector_dims or model_dimensions(embedding_service.model_name)
         self._lock = threading.RLock()
         self._db = lancedb.connect(self._db_path)
         self._table = None
@@ -184,6 +184,17 @@ class LanceDBVectorEngine(IEngine):
                 logger.warning(
                     "Schema mismatch: expected %s, got %s",
                     sorted(expected_names), sorted(actual_names),
+                )
+                return False
+
+            # Same column names can hide a different vector width (an index built with
+            # another embedding model). Adding to such a table fails, and a query fails
+            # quietly, so treat it as invalid and let the caller rebuild.
+            actual_width = getattr(table.schema.field("vector").type, "list_size", None)
+            if actual_width is not None and actual_width != self._vector_dims:
+                logger.warning(
+                    "Vector width mismatch: table has %s, model needs %s; rebuild required.",
+                    actual_width, self._vector_dims,
                 )
                 return False
 

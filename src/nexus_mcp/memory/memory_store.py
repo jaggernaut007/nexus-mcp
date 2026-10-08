@@ -8,14 +8,16 @@ from the `chunks` table used by vector/BM25 engines.
 import json
 import logging
 import threading
+import time
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import lancedb
 import pyarrow as pa
 
 from nexus_mcp.core.models import Memory, MemoryType
-from nexus_mcp.indexing.embedding_service import EmbeddingService
+from nexus_mcp.indexing.embedding_service import EmbeddingService, model_dimensions
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +58,7 @@ class MemoryStore:
         self._embedding_service = embedding_service
         self._table_name = table_name
         if vector_dims is None:
-            from nexus_mcp.indexing.embedding_service import EMBEDDING_MODELS
-            config = EMBEDDING_MODELS.get(embedding_service.model_name, {})
-            vector_dims = config.get("dimensions", 768)
+            vector_dims = model_dimensions(embedding_service.model_name)
         self._vector_dims = vector_dims
         self._lock = threading.RLock()
         self._db = lancedb.connect(self._db_path)
@@ -77,12 +77,90 @@ class MemoryStore:
             table_names = tables.tables if hasattr(tables, "tables") else list(tables)
 
             if self._table_name in table_names:
-                self._table = self._db.open_table(self._table_name)
+                self._table = self._open_or_migrate(self._db.open_table(self._table_name))
+            elif self._migration_table in table_names:
+                self._table = self._finish_interrupted_migration()
             else:
                 schema = _make_memory_schema(self._vector_dims)
                 self._table = self._db.create_table(self._table_name, schema=schema)
 
             return self._table
+
+    @property
+    def _migration_table(self) -> str:
+        return f"{self._table_name}__migrating"
+
+    def _table_names(self) -> List[str]:
+        tables = self._db.list_tables()
+        return tables.tables if hasattr(tables, "tables") else list(tables)
+
+    def _finish_interrupted_migration(self):
+        """Rebuild the memories table from the temp table of a migration that was cut off.
+
+        The temp table already holds every row, embedded at the new width. It exists
+        without the main table only if the process died between dropping the old table
+        and filling the new one.
+        """
+        temp = self._db.open_table(self._migration_table)
+        rows = temp.to_arrow().to_pylist()
+        table = self._db.create_table(
+            self._table_name, schema=_make_memory_schema(self._vector_dims)
+        )
+        if rows:
+            table.add(rows)
+        self._db.drop_table(self._migration_table)
+        logger.warning("Finished an interrupted memory migration (%d memories)", len(rows))
+        return table
+
+    def _open_or_migrate(self, table):
+        """Return `table`, re-embedding its rows first if its vector width is wrong.
+
+        A memory is user data and cannot be rebuilt from source, unlike a code chunk.
+        When the embedding model changes, the old vectors no longer fit the table that
+        the new model needs, so every row is embedded again with the current model.
+        The rows are written to a JSON backup before the old table is dropped.
+        """
+        old_width = getattr(table.schema.field("vector").type, "list_size", None)
+        if old_width is None or old_width == self._vector_dims:
+            if self._migration_table in self._table_names():
+                self._db.drop_table(self._migration_table)  # a finished migration's leftover
+            return table
+
+        rows = table.to_arrow().to_pylist()
+        backup = Path(self._db_path).parent / f"{self._table_name}-before-model-change.json"
+        if backup.exists():  # keep the earlier backup; it may hold rows this one lacks
+            backup = backup.with_name(f"{backup.stem}-{int(time.time())}.json")
+        backup.write_text(json.dumps(
+            [{k: v for k, v in row.items() if k != "vector"} for row in rows], indent=2
+        ))
+        logger.warning(
+            "Re-embedding %d memories: vector width %s -> %s (backup: %s)",
+            len(rows), old_width, self._vector_dims, backup,
+        )
+        vectors = self._embedding_service.embed_batch([r["content"] for r in rows]) if rows else []
+
+        # Fill a temp table first. The old table is dropped only after every row is safe in
+        # the temp table, and the temp table is dropped only after the new table is full. A
+        # failure at any step leaves the data in at least one table (and in the backup).
+        schema = _make_memory_schema(self._vector_dims)
+        temp = self._db.create_table(self._migration_table, schema=schema, mode="overwrite")
+        try:
+            if rows:
+                temp.add([{**row, "vector": vec} for row, vec in zip(rows, vectors)])
+        except Exception:
+            self._db.drop_table(self._migration_table)
+            raise  # the old table is untouched
+        self._db.drop_table(self._table_name)
+        new_table = self._db.create_table(self._table_name, schema=schema)
+        try:
+            if rows:
+                new_table.add(temp.to_arrow().to_pylist())
+        except Exception:
+            logger.error("Memory migration stopped after the old table was dropped. The "
+                         "memories are in table %r and in %s", self._migration_table, backup)
+            raise
+        self._db.drop_table(self._migration_table)
+        return new_table
 
     def _memory_to_row(self, memory: Memory, vector: List[float]) -> Dict[str, Any]:
         """Convert a Memory object to a LanceDB row dict."""

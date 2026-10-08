@@ -204,3 +204,38 @@ class TestCodeChunkToDict:
         }
         assert set(d.keys()) == expected_keys
         assert d["vector"] == [0.1, 0.2]
+
+
+class TestModuleChunk:
+    def _module(self, **overrides) -> Symbol:
+        values = {
+            "name": "cache",
+            "type": SymbolType.MODULE,
+            "line_start": 1,
+            "line_end": 4,
+            "signature": "",
+            "docstring": "",
+            "code_snippet": "In-run result cache and the cross-run negative cache.",
+            "metadata": {"defines": ["ResultCache", "NegativeCache"]},
+        }
+        values.update(overrides)
+        return _make_symbol(**values)
+
+    def test_create_chunk_text_module_has_text_and_defines(self):
+        text = create_chunk_text(self._module())
+        assert "module: cache" in text
+        assert "In-run result cache" in text
+        assert text.endswith("Defines: ResultCache, NegativeCache")
+
+    def test_create_chunk_text_module_without_defines(self):
+        text = create_chunk_text(self._module(metadata={"defines": []}))
+        assert "Defines:" not in text
+
+    def test_create_chunk_module_fields(self):
+        chunk = create_chunk(self._module())
+        assert chunk.symbol_type == "module"
+        assert chunk.symbol_name == "cache"
+        assert chunk.line_start == 1
+
+    def test_create_chunk_text_function_has_no_defines_line(self):
+        assert "Defines:" not in create_chunk_text(_make_symbol())

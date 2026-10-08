@@ -35,12 +35,16 @@ class Settings:
     reranker_model: str = "ms-marco-MiniLM-L-12-v2"
     fusion_weight_vector: float = 0.5
     fusion_weight_bm25: float = 0.3
-    fusion_weight_graph: float = 0.2
+    # 0 = the graph list is not used in hybrid search (the default since 2026-10-06: it
+    # lowered hit@1 on three of four eval suites and raised it on none). Was 0.2.
+    fusion_weight_graph: float = 0.0
 
     # Memory limits
     max_memory_mb: int = 350
 
     # Auto-watch / staleness
+    auto_restore: bool = True  # reattach to the index on disk when a new process starts
+    warm_start: bool = True  # load the index and the embedding model while the server starts
     auto_watch_enabled: bool = True
     staleness_check_interval_s: float = 15.0
 
@@ -82,6 +86,8 @@ class Settings:
             "NEXUS_FUSION_WEIGHT_BM25": ("fusion_weight_bm25", float),
             "NEXUS_FUSION_WEIGHT_GRAPH": ("fusion_weight_graph", float),
             "NEXUS_MAX_MEMORY_MB": ("max_memory_mb", int),
+            "NEXUS_AUTO_RESTORE": ("auto_restore", _bool),
+            "NEXUS_WARM_START": ("warm_start", _bool),
             "NEXUS_AUTO_WATCH": ("auto_watch_enabled", _bool),
             "NEXUS_STALENESS_CHECK_INTERVAL": ("staleness_check_interval_s", float),
             "NEXUS_LOG_LEVEL": ("log_level", str),

@@ -1,10 +1,21 @@
 # Nexus-MCP
 
-Unified MCP server: hybrid search + code graph + semantic memory. Target: <350MB RAM.
+Unified MCP server: hybrid search + code graph + semantic memory. Memory (measured, docs/MEMORY.md): ~90MB idle, ~460MB with the embedding model loaded, ~500MB while indexing a small project. The old <350MB target is not met once the model is loaded.
+
+## North star
+
+Lower token use for an agent, with the same accuracy. Set by the owner on 2026-10-08.
+
+- **Measure:** the tokens and the cost of a task in the live benchmark (`benchmarks/`),
+  against the Grep and Read condition.
+- **Gate:** accuracy must not fall. Check hit@1 on the four retrieval suites
+  (`python -m evals.retrieval.run`) and the answer score of the benchmark.
+- Keep a change only when it lowers the measure and passes the gate. Record the two
+  numbers, before and after, in `CHANGELOG.md`.
 
 ## Use Nexus-MCP Tools Before Built-in Tools
 
-Nexus-MCP is registered as an MCP server (`nexus-mcp-ci`) with 10 tools: `index`,
+Nexus-MCP is registered as an MCP server (`nexus-mcp`) with 10 tools: `index`,
 `status`, `health`, `search`, `find_symbol`, `graph`, `explain`, `analyze`, `map`,
 `memory`. Prefer these over Read/Grep/Glob for exploring an indexed codebase — start
 with `status`, index if needed, then `search`/`find_symbol`/`graph` before falling
@@ -25,15 +36,8 @@ repo to read the skill content directly.
 
 ### Known limitations
 
-- **Call edges are not populated yet.** Real indexes hold `CONTAINS` and `IMPORTS`
-  edges only: `astgrep_parser.py` emits nothing else, and the tree-sitter parser records
-  call names on symbols but never creates `CALLS` edges. `graph()` (callers, callees and
-  `transitive=True`) and the `callers`/`callees` fields of `explain()` therefore return
-  empty lists today, and `analyze` shows zero complexity and no docstrings for
-  ast-grep nodes. Tests pass because they build `CALLS` edges by hand
-  (`tests/test_graph_tools.py`, `tests/test_impact_tool.py`). An empty `graph()` result
-  does not mean a symbol is unused — use `search` to find call sites.
-- **The call graph will only see static edges once populated.** `graph()` is built from
+- **Call edges are static and name-based.** `graph()` and the `callers`/`callees` fields of `explain()` come from parsing, not runtime tracing. Edges exist for Python, JavaScript, TypeScript, Go, Java and Rust. A call gets an edge only when exactly one callee fits: in the same file, in an imported file, or with a unique name in the index. A name shared by several definitions gets no edge, so results are a lower bound. Python is covered best; see ADR-019 for the other languages. `analyze` complexity is cyclomatic and approximate (only Python counts `and`/`or`); only Python functions carry docstrings.
+- **The call graph only sees static edges.** `graph()` is built from
   parsing, not runtime tracing. It will **miss**: dynamic dispatch (Python monkey-patching, Ruby
   metaprogramming), calls made through callbacks/closures/lambdas (e.g.
   `.map(lambda x: foo(x))` shows no edge to `foo`), and reflection-based calls. Treat
@@ -89,7 +93,7 @@ src/nexus_mcp/
 ├── memory/
 │   └── memory_store.py    # LanceDB-backed memory with TTL
 ├── indexing/
-│   ├── embedding_service.py   # Multi-model embeddings: jina-code, bge-small-en (ONNX + GPU/MPS)
+│   ├── embedding_service.py   # Embeddings: bge-small-en (jina-code deprecated); GPU/MPS
 │   ├── parallel_indexer.py    # ThreadPool
 │   ├── pipeline.py            # discover → parse → chunk → embed → store + corrupt index detection + multi-folder
 │   └── chunker.py             # Symbol → CodeChunk
@@ -122,7 +126,7 @@ plugin/
 pip install nexus-mcp-ci   # Install from PyPI
 pip install -e ".[dev]"    # Install from source with dev deps
 ./setup.sh                 # Setup script (venv + install + verify)
-pytest -v                  # Run tests (607 tests)
+pytest -v                  # Run tests (843 tests, 831 without slow)
 pytest -m "not slow"       # Skip performance benchmarks
 ruff check .               # Lint
 nexus-mcp-ci               # Run server
@@ -134,7 +138,7 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 
 - LanceDB replaces ChromaDB (mmap, disk-backed vectors) — [ADR-002](docs/adr/ADR-002-lancedb-over-chromadb.md)
 - ONNX Runtime replaces PyTorch (~50MB vs ~500MB) — [ADR-003](docs/adr/ADR-003-onnx-runtime-over-pytorch.md)
-- bge-small-en default; jina-code alternative — [ADR-004](docs/adr/ADR-004-bge-small-default-model.md)
+- bge-small-en default; jina-code deprecated (still loads, warns) — [ADR-004](docs/adr/ADR-004-bge-small-default-model.md)
 - Dual parsing: tree-sitter (symbols) + ast-grep (graph) — [ADR-005](docs/adr/ADR-005-dual-parser-strategy.md)
 - rustworkx for graph algorithms (Rust-backed) — [ADR-006](docs/adr/ADR-006-rustworkx-graph-engine.md)
 - LanceDB schema: 12-column PyArrow, flat search — [ADR-007](docs/adr/ADR-007-lancedb-schema-design.md)
@@ -151,7 +155,10 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 
 ## Gotchas
 
-1. State is global singleton in state.py
+1. State is global singleton in state.py. A new process attaches the stored index through
+   `core_api.restore_session()` (`NEXUS_AUTO_RESTORE`, default `true`; tests set it `false`).
+   `server.main()` also runs `core_api.warm_up()` in a background thread (`NEXUS_WARM_START`,
+   default `true`): it attaches the index and loads the embedding model before the first call
 2. Models lazy-loaded, unloaded after indexing (try/finally ensures cleanup)
 3. LanceDB tables: `chunks` (vectors), `memories` (memory layer)
 4. Graph engine is thread-safe with RLock
@@ -164,7 +171,7 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 11. Permission default is `full` (backward compat); set `NEXUS_PERMISSION_LEVEL=read` for restricted
 12. Audit logging is on by default; set `NEXUS_AUDIT_ENABLED=false` to disable
 13. Rate limiting is off by default (stdio); enable via `NEXUS_RATE_LIMIT_ENABLED=true`
-14. `trust_remote_code` defaults to `true` (required only for the jina-code model; the default bge-small-en does not need it); set `NEXUS_TRUST_REMOTE_CODE=false` to disable
+14. `trust_remote_code` defaults to `true` (needed only by the deprecated jina-code model; the default bge-small-en does not need it); set `NEXUS_TRUST_REMOTE_CODE=false` to disable
 15. `schemas/` was removed (dead code, never wired into any tool); FastMCP tool signatures + the `validate_*` helpers in core_api.py are the only validation
 16. New exceptions (AuthenticationError, AuthorizationError, RateLimitError) in exceptions.py
 17. Only registered embedding models are supported; custom model names raise ConfigurationError
@@ -179,21 +186,18 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 | Model | Key | Dims | Seq Len | Backend | trust_remote_code | Notes |
 |-------|-----|------|---------|---------|-------------------|-------|
 | BGE Small EN v1.5 | `bge-small-en` | 384 | 512 | PyTorch | No | **Default**. Lightweight general-purpose |
-| Jina Embeddings v2 Code | `jina-code` | 768 | 8192 | ONNX | Yes | Code-specific, 161M params |
+| Jina Embeddings v2 Code | `jina-code` | 768 | 8192 | ONNX | Yes | **Deprecated.** Still loads, with a warning. Removal in a future major release |
 
 ### Changing the embedding model
 
 Set the `NEXUS_EMBEDDING_MODEL` environment variable:
 
 ```bash
-# Use jina-code (code-specific, requires trust_remote_code)
-NEXUS_EMBEDDING_MODEL=jina-code nexus-mcp-ci
-
-# Or set in your shell profile
-export NEXUS_EMBEDDING_MODEL=jina-code
+# The default is bge-small-en. Another registered model is chosen like this:
+NEXUS_EMBEDDING_MODEL=<model> nexus-mcp-ci
 
 # For Claude Code MCP config
-claude mcp add nexus-mcp-ci -e NEXUS_EMBEDDING_MODEL=jina-code -- nexus-mcp-ci
+claude mcp add nexus-mcp -e NEXUS_EMBEDDING_MODEL=<model> -- nexus-mcp-ci
 ```
 
 ### GPU / MPS acceleration

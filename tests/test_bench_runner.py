@@ -27,6 +27,13 @@ def _suite():
     }
 
 
+@pytest.fixture(autouse=True)
+def _no_real_login_check(request, monkeypatch):
+    """main() checks the login with `claude auth status`; tests must not start the CLI."""
+    if "login" not in request.node.name:
+        monkeypatch.setattr(runner, "require_login", lambda *a, **k: None)
+
+
 class _FakePopen:
     """Stand-in for subprocess.Popen that never spawns a real process.
 
@@ -167,7 +174,7 @@ def test_write_record_creates_parent_dir(tmp_path):
 def test_run_suite_writes_each_record_incrementally(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, "repo_dir_for", lambda suite: tmp_path)
 
-    def fake_run_once(task, condition, repo, repo_dir, model, config_dir):
+    def fake_run_once(task, condition, repo, repo_dir, model, config_dir, **kwargs):
         return {"task_id": task["id"], "condition": condition, "ok": True}
 
     monkeypatch.setattr(runner, "run_once", fake_run_once)
@@ -184,7 +191,7 @@ def test_run_suite_writes_each_record_incrementally(tmp_path, monkeypatch):
 def test_run_suite_captures_run_error_and_continues(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, "repo_dir_for", lambda suite: tmp_path)
 
-    def flaky_run_once(task, condition, repo, repo_dir, model, config_dir):
+    def flaky_run_once(task, condition, repo, repo_dir, model, config_dir, **kwargs):
         if task["id"] == "t1":
             raise RuntimeError("claude blew up")
         return {"task_id": task["id"], "condition": condition, "ok": True}
@@ -227,6 +234,113 @@ def test_repo_dir_for_joins_repo_name():
     assert runner.repo_dir_for(suite) == runner.REPOS_DIR / "home-assistant-core"
 
 
+def test_run_suite_skips_runs_that_already_have_a_record(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "repo_dir_for", lambda suite: tmp_path)
+    monkeypatch.setattr(runner, "claude_version", lambda: "test")
+    out = tmp_path / "runs.jsonl"
+    runner.write_record({"task_id": "t1", "condition": "baseline", "rep": 0, "model": "m"}, out)
+    seen = []
+
+    def fake_run_once(task, condition, repo, repo_dir, model, config_dir, **kwargs):
+        seen.append(task["id"])
+        return {"task_id": task["id"], "condition": condition}
+
+    monkeypatch.setattr(runner, "run_once", fake_run_once)
+    runner.run_suite(_suite(), ["baseline"], 1, "m", tmp_path, out)
+    assert seen == ["t2"]
+
+
+def test_run_suite_does_not_skip_runs_recorded_for_another_model(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "repo_dir_for", lambda suite: tmp_path)
+    monkeypatch.setattr(runner, "claude_version", lambda: "test")
+    out = tmp_path / "runs.jsonl"
+    runner.write_record(
+        {"task_id": "t1", "condition": "baseline", "rep": 0, "model": "sonnet"}, out
+    )
+    seen = []
+
+    def fake_run_once(task, condition, repo, repo_dir, model, config_dir, **kwargs):
+        seen.append(task["id"])
+        return {"task_id": task["id"], "condition": condition, "model": model}
+
+    monkeypatch.setattr(runner, "run_once", fake_run_once)
+    runner.run_suite(_suite(), ["baseline"], 1, "opus", tmp_path, out)
+    assert seen == ["t1", "t2"]
+
+
+def test_a_plain_api_rate_limit_error_is_a_failed_run_not_a_usage_limit(tmp_path, monkeypatch):
+    line = json.dumps({"type": "result", "subtype": "error", "is_error": True,
+                       "result": "API error 429: rate limit exceeded, retry later"})
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: _FakePopen(line + "\n"))
+    record = runner.run_once(_task(), "baseline", _repo(), tmp_path, "sonnet", tmp_path)
+    assert record["is_error"] is True
+
+
+def test_run_suite_retries_a_run_whose_record_was_an_error(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "repo_dir_for", lambda suite: tmp_path)
+    monkeypatch.setattr(runner, "claude_version", lambda: "test")
+    out = tmp_path / "runs.jsonl"
+    runner.write_record(
+        {"task_id": "t1", "condition": "baseline", "rep": 0, "run_error": "boom"}, out
+    )
+    seen = []
+
+    def fake_run_once(task, condition, repo, repo_dir, model, config_dir, **kwargs):
+        seen.append(task["id"])
+        return {"task_id": task["id"], "condition": condition}
+
+    monkeypatch.setattr(runner, "run_once", fake_run_once)
+    runner.run_suite(_suite(), ["baseline"], 1, "m", tmp_path, out)
+    assert seen == ["t1", "t2"]
+
+
+def test_run_suite_usage_limit_stops_the_batch_and_keeps_earlier_records(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "repo_dir_for", lambda suite: tmp_path)
+    monkeypatch.setattr(runner, "claude_version", lambda: "test")
+
+    def fake_run_once(task, condition, repo, repo_dir, model, config_dir, **kwargs):
+        if task["id"] == "t2":
+            raise runner.UsageLimitReached("limit")
+        return {"task_id": task["id"], "condition": condition}
+
+    monkeypatch.setattr(runner, "run_once", fake_run_once)
+    out = tmp_path / "runs.jsonl"
+    with pytest.raises(runner.UsageLimitReached):
+        runner.run_suite(_suite(), ["baseline"], 1, "m", tmp_path, out)
+    assert len(out.read_text().strip().splitlines()) == 1
+
+
+def test_run_once_stamps_version_and_saves_raw_output(tmp_path, monkeypatch):
+    stdout = (FIXTURES / "baseline_run.jsonl").read_text()
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: _FakePopen(stdout))
+    raw = tmp_path / "raw"
+    record = runner.run_once(
+        _task(), "baseline", _repo(), tmp_path, "sonnet", tmp_path,
+        version="2.1.280", raw_dir=raw, rep=2,
+    )
+    assert record["claude_version"] == "2.1.280"
+    assert (raw / "t1-baseline-2.jsonl").read_text() == stdout
+
+
+def test_run_once_raises_usage_limit_when_the_cli_reports_it(tmp_path, monkeypatch):
+    line = json.dumps({"type": "result", "subtype": "error", "is_error": True,
+                       "result": "Claude usage limit reached"})
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: _FakePopen(line + "\n"))
+    with pytest.raises(runner.UsageLimitReached):
+        runner.run_once(_task(), "baseline", _repo(), tmp_path, "sonnet", tmp_path)
+
+
+def test_main_returns_3_when_the_usage_limit_stops_the_run(tmp_path, monkeypatch):
+    suite_path = tmp_path / "suite.yaml"
+    suite_path.write_text("repo:\n  name: django\n  pin: abc\ntasks:\n  - id: t1\n    prompt: a\n")
+
+    def fake_run_suite(*args, **kwargs):
+        raise runner.UsageLimitReached("limit")
+
+    monkeypatch.setattr(runner, "run_suite", fake_run_suite)
+    assert runner.main(["--tasks", str(suite_path)]) == 3
+
+
 class TestMain:
     def test_main_smoke_limits_tasks_and_reps(self, tmp_path, monkeypatch):
         suite_path = tmp_path / "suite.yaml"
@@ -237,7 +351,8 @@ class TestMain:
         )
         captured = {}
 
-        def fake_run_suite(suite, condition_names, reps, model, config_dir, out_path, task_ids):
+        def fake_run_suite(suite, condition_names, reps, model, config_dir, out_path, task_ids,
+                           **kw):
             captured["reps"] = reps
             captured["task_ids"] = task_ids
             captured["condition_names"] = condition_names
@@ -257,7 +372,8 @@ class TestMain:
         )
         captured = {}
 
-        def fake_run_suite(suite, condition_names, reps, model, config_dir, out_path, task_ids):
+        def fake_run_suite(suite, condition_names, reps, model, config_dir, out_path, task_ids,
+                           **kw):
             captured["condition_names"] = condition_names
             return []
 
@@ -273,10 +389,37 @@ class TestMain:
         )
         out_path = tmp_path / "custom.jsonl"
 
-        def fake_run_suite(suite, condition_names, reps, model, config_dir, out, task_ids):
+        def fake_run_suite(suite, condition_names, reps, model, config_dir, out, task_ids, **kw):
             assert out == out_path
             return [{"task_id": "t1"}]
 
         monkeypatch.setattr(runner, "run_suite", fake_run_suite)
         rc = runner.main(["--tasks", str(suite_path), "--out", str(out_path)])
         assert rc == 0
+
+
+class TestRequireLogin:
+    def _run(self, monkeypatch, stdout):
+        calls = []
+
+        def fake_run(argv, **kwargs):
+            calls.append((argv, kwargs["env"]["CLAUDE_CONFIG_DIR"]))
+            return subprocess.CompletedProcess(argv, 0, stdout=stdout, stderr="")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        return calls
+
+    def test_login_check_passes_when_logged_in(self, monkeypatch, tmp_path):
+        calls = self._run(monkeypatch, '{"loggedIn": true}')
+        runner.require_login(tmp_path)
+        assert calls == [(["claude", "auth", "status"], str(tmp_path))]
+
+    def test_login_check_exits_with_instructions_when_logged_out(self, monkeypatch, tmp_path):
+        self._run(monkeypatch, '{"loggedIn": false}')
+        with pytest.raises(SystemExit) as exc:
+            runner.require_login(tmp_path)
+        assert "CLAUDE_CODE_OAUTH_TOKEN" in str(exc.value)
+
+    def test_login_check_does_not_block_when_the_status_is_unreadable(self, monkeypatch, tmp_path):
+        self._run(monkeypatch, "not json")
+        runner.require_login(tmp_path)  # no exception: the first run will report it

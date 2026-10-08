@@ -72,6 +72,9 @@ def create_chunk_text(symbol: Symbol) -> str:
 
         Imports: ...
         Calls: ...
+
+    A module symbol has the text from the top of its file as the code, and a
+    `Defines:` line with the names of its top-level classes and functions.
     """
     settings = get_settings()
     parts = []
@@ -97,6 +100,10 @@ def create_chunk_text(symbol: Symbol) -> str:
         snippet = symbol.code_snippet[: settings.chunk_max_chars]
         parts.append(snippet)
         parts.append("")
+
+    defines = symbol.metadata.get("defines") if symbol.metadata else None
+    if defines:
+        parts.append(f"Defines: {', '.join(defines)}")
 
     # Imports
     if symbol.imports:

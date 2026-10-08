@@ -132,14 +132,15 @@ class TestSearch:
 
         result = asyncio.run(run())
         assert "error" not in result
-        assert result["query"] == "hello"
         assert result["total"] > 0
         assert len(result["results"]) > 0
 
     def test_search_result_format(self, mini_codebase, tmp_path):
         async def run():
             mcp, _, _ = await _setup_indexed(mini_codebase, tmp_path / ".nexus")
-            return await _call_tool(mcp, "search", {"query": "test"})
+            # The default shape is compact since 2.1.0 (tests/test_compact_results.py).
+            # This test pins the full shape, which is now opt-in.
+            return await _call_tool(mcp, "search", {"query": "test", "detail": "full"})
 
         result = asyncio.run(run())
         r = result["results"][0]
@@ -212,7 +213,7 @@ class TestStaleness:
             return await _call_tool(mcp, "search", {"query": "hello"})
 
         result = asyncio.run(run())
-        assert result["warning"] is None
+        assert "warning" not in result
 
     def test_staleness_check_is_throttled(self, mini_codebase, tmp_path):
         """Two status() calls within the throttle window should only recompute

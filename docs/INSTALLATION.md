@@ -134,6 +134,43 @@ python self_test/demo_mcp.py
 
 ### Claude Code (CLI)
 
+### Tool names by client
+
+Use one server name everywhere: `nexus-mcp`. The prefix that a client adds to each tool
+name comes from that name, so it differs by route:
+
+| Route | Tool name the agent sees |
+|---|---|
+| `claude mcp add nexus-mcp -- nexus-mcp-ci` | `mcp__nexus-mcp__search` |
+| Claude Code plugin (`/plugin install nexus-mcp@nexus-mcp`) | `mcp__plugin_nexus-mcp_nexus-mcp__search` |
+| Claude Desktop, Cursor, Cline (`"nexus-mcp"` key) | `search`, shown under the server name |
+| Codex (`[mcp_servers.nexus-mcp]`) | `search`, called through the server `nexus-mcp` |
+
+Project files and prompts should name tools without the prefix (`search`, `graph`).
+
+### Claude Code plugin (recommended)
+
+The plugin registers the server and adds a routing skill. Install the package, then run
+`/plugin marketplace add jaggernaut007/Nexus-MCP` and `/plugin install nexus-mcp@nexus-mcp`.
+Do not also run `claude mcp add`; that registers the server twice.
+
+### Codex CLI
+
+```bash
+codex mcp add nexus-mcp -- nexus-mcp-ci
+```
+
+or in `~/.codex/config.toml` (or a trusted project's `.codex/config.toml`):
+
+```toml
+[mcp_servers.nexus-mcp]
+command = "nexus-mcp-ci"
+startup_timeout_sec = 60   # the first start loads the embedding model; the default is 10
+```
+
+Codex reads the server instructions on connect. Add the short block from the README to
+your `AGENTS.md` if you want the rules in the project too.
+
 **If installed via pip (recommended):**
 
 ```bash
@@ -334,7 +371,7 @@ All settings use the `NEXUS_` environment variable prefix:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NEXUS_STORAGE_DIR` | `.nexus` | Storage directory for indexes and graph DB |
-| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | Embedding model: `bge-small-en`, `jina-code` |
+| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | Embedding model: `bge-small-en` (`jina-code` is deprecated) |
 | `NEXUS_EMBEDDING_DEVICE` | `auto` | Device: `auto` (CUDA > MPS > CPU), `cuda`, `mps`, `cpu` |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max characters per code chunk |
@@ -345,7 +382,7 @@ All settings use the `NEXUS_` environment variable prefix:
 | `NEXUS_PERMISSION_LEVEL` | `full` | Permission level: `full` or `read` |
 | `NEXUS_AUDIT_ENABLED` | `true` | Enable audit logging |
 | `NEXUS_RATE_LIMIT_ENABLED` | `false` | Enable per-tool rate limiting |
-| `NEXUS_TRUST_REMOTE_CODE` | `true` | Allow `trust_remote_code` in models. Only `jina-code` needs it; set `false` with `bge-small-en` |
+| `NEXUS_TRUST_REMOTE_CODE` | `true` | Allow `trust_remote_code` in models. Only the deprecated `jina-code` needs it; set `false` with `bge-small-en` |
 | `NEXUS_AUTO_WATCH` | `true` | Auto-reindex on file change (debounced watcher started after `index`) |
 | `NEXUS_STALENESS_CHECK_INTERVAL` | `15` | Seconds between `status()`/`search()` staleness checks |
 
@@ -360,7 +397,7 @@ NEXUS_LOG_LEVEL=DEBUG NEXUS_SEARCH_MODE=vector nexus-mcp
 ## Running Tests
 
 ```bash
-# All tests (607)
+# All tests (843)
 pytest -v
 
 # Skip slow performance benchmarks

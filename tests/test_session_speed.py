@@ -1,0 +1,408 @@
+"""Tests for the in-session changes: source before tests, text references, warm start."""
+
+import shutil
+from pathlib import Path
+
+import pytest
+
+from nexus_mcp import core_api
+from nexus_mcp.engines import fusion, live_grep
+from nexus_mcp.engines.live_grep import LiveGrepEngine
+from nexus_mcp.server import SERVER_INSTRUCTIONS
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "tests/test_orders.py",
+        "src/app/tests/helpers.py",
+        "pkg/orders_test.go",
+        "web/src/cart.test.ts",
+        "web/__tests__/cart.js",
+        "django/dispatch/tests.py",
+        "conftest.py",
+        "C:\\repo\\tests\\test_a.py",
+    ],
+)
+def test_is_test_path_test_files(path):
+    assert fusion.is_test_path(path)
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["src/orders.py", "src/contest.py", "src/latest/api.py", "src/attestation.py", "testing.md"],
+)
+def test_is_test_path_source_files(path):
+    assert not fusion.is_test_path(path)
+
+
+@pytest.mark.parametrize("query", ["test_login", "the fixture for orders", "pytest setup", "Tests"])
+def test_query_mentions_tests_true(query):
+    assert fusion.query_mentions_tests(query)
+
+
+@pytest.mark.parametrize("query", ["where is the latest order", "contest rules", "attest a key"])
+def test_query_mentions_tests_false(query):
+    assert not fusion.query_mentions_tests(query)
+
+
+def _results(*paths):
+    return [{"filepath": p, "id": i} for i, p in enumerate(paths)]
+
+
+def test_demote_test_files_moves_tests_last_and_keeps_order():
+    results = _results("tests/test_a.py", "src/a.py", "tests/test_b.py", "src/b.py")
+    out = fusion.demote_test_files("how are orders priced", results)
+    assert [r["filepath"] for r in out] == [
+        "src/a.py", "src/b.py", "tests/test_a.py", "tests/test_b.py",
+    ]
+
+
+def test_demote_test_files_keeps_order_when_query_asks_for_tests():
+    results = _results("tests/test_a.py", "src/a.py")
+    assert fusion.demote_test_files("test for order pricing", results) == results
+
+
+def test_demote_test_files_empty_and_no_path():
+    assert fusion.demote_test_files("orders", []) == []
+    assert fusion.demote_test_files("orders", [{"id": 1}]) == [{"id": 1}]
+
+
+@pytest.fixture
+def ref_repo(tmp_path):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "src" / "budget.py").write_text(
+        "def ensure_budget(n):\n    return n\n\n\ndef ensure_budget_strict(n):\n    return n\n"
+    )
+    (tmp_path / "src" / "runtime.py").write_text(
+        "from budget import ensure_budget\n\nCHECK = ensure_budget\nensure_budget(1)\n"
+    )
+    (tmp_path / "tests" / "test_budget.py").write_text("ensure_budget(2)\n")
+    return tmp_path
+
+
+def _engines(root):
+    """One engine per available backend, so both command lines are tested."""
+    engines = []
+    full = LiveGrepEngine(str(root))
+    if full.rg_path:
+        engines.append(full)
+    if shutil.which("grep"):
+        grep_only = LiveGrepEngine(str(root))
+        grep_only.rg_path = None
+        engines.append(grep_only)
+    return engines
+
+
+def test_references_whole_word_source_text_then_test_counts(ref_repo):
+    engines = _engines(ref_repo)
+    assert engines, "ripgrep or grep must exist on the test machine"
+    for engine in engines:
+        refs = engine.references("ensure_budget")
+        assert list(refs["files"]) == ["src/budget.py", "src/runtime.py"]
+        # `ensure_budget_strict` on line 5 is another word and must not match.
+        assert refs["files"]["src/budget.py"] == ["1: def ensure_budget(n):"]
+        assert refs["files"]["src/runtime.py"] == [
+            "1: from budget import ensure_budget",
+            "3: CHECK = ensure_budget",
+            "4: ensure_budget(1)",
+        ]
+        # Requirement change: an agent ran grep to see the code on each line, and ran it
+        # on test files it did not need. Source lines carry their text; tests are counts.
+        assert refs["test_files"] == {"tests/test_budget.py": 1}
+        assert refs["total_files"] == 3
+        assert refs["total_lines"] == 5
+        assert refs["truncated"] is False
+        assert "more_files" not in refs
+
+
+def test_references_caps_and_reports_totals(ref_repo):
+    for engine in _engines(ref_repo):
+        refs = engine.references("ensure_budget", max_lines_per_file=2)
+        assert len(refs["files"]["src/runtime.py"]) == 2
+        assert refs["truncated"] is True
+        # The line budget runs out in the first file: the next source file is a count.
+        refs = engine.references("ensure_budget", max_lines=1, max_lines_per_file=2)
+        assert list(refs["files"]) == ["src/budget.py"]
+        assert refs["more_files"] == {"src/runtime.py": 3}
+        assert refs["total_files"] == 3
+        assert refs["total_lines"] == 5
+        assert refs["truncated"] is True
+
+
+def test_references_text_is_cut_to_a_short_line(ref_repo):
+    (ref_repo / "src" / "long.py").write_text("ensure_budget(" + "x" * 400 + ")\n")
+    for engine in _engines(ref_repo):
+        line = engine.references("ensure_budget")["files"]["src/long.py"][0]
+        assert line.startswith("1: ensure_budget(xxx")
+        assert len(line) <= len("1: ") + live_grep.REFERENCE_TEXT_CHARS
+
+
+def test_references_qualified_name_and_option_like_name(ref_repo):
+    for engine in _engines(ref_repo):
+        assert engine.references("budget.ensure_budget")["total_lines"] == 5
+        # A name that looks like an option must be searched, not parsed as a flag.
+        assert engine.references("--files")["total_lines"] == 0
+        assert engine.references("  ") is None
+
+
+def test_references_no_backend_returns_none(ref_repo):
+    engine = LiveGrepEngine(str(ref_repo))
+    engine.rg_path = engine.grep_path = None
+    assert engine.references("ensure_budget") is None
+
+
+@pytest.fixture
+def priced_repo(tmp_path):
+    """One source function and three tests that repeat its words."""
+    (tmp_path / "src").mkdir()
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "src" / "pricing.py").write_text(
+        'def price_order(order):\n    """Price an order with its discount."""\n'
+        "    return order.total - order.discount\n"
+    )
+    tests = "\n\n".join(
+        f"def test_price_order_discount_{i}():\n"
+        f'    """Price an order with its discount, case {i}."""\n'
+        f"    assert price_order(order_{i}) == {i}"
+        for i in range(3)
+    )
+    (tmp_path / "tests" / "test_pricing.py").write_text(tests + "\n")
+    return tmp_path
+
+
+def _search_tool(codebase, tmp_path, query, graph_calls, detail="compact"):
+    import asyncio
+
+    from tests.conftest import _call_tool, _setup_indexed
+
+    async def run():
+        mcp, _, _ = await _setup_indexed(codebase, tmp_path / ".nexus")
+        get_graph = get_state().graph_engine
+        graph_calls.append(get_graph is not None)
+        return await _call_tool(mcp, "search", {"query": query, "detail": detail})
+
+    from nexus_mcp.state import get_state
+
+    return asyncio.run(run())
+
+
+def test_search_puts_source_before_tests(priced_repo, tmp_path):
+    out = _search_tool(priced_repo, tmp_path, "price an order with its discount", [])
+    paths = [r["filepath"] for r in out["results"]]
+    assert paths[0] == "src/pricing.py"
+    first_test = next(i for i, p in enumerate(paths) if p.startswith("tests/"))
+    assert all(p.startswith("tests/") for p in paths[first_test:])
+    assert len(paths) == 4, "no result may be removed"
+
+
+def test_search_keeps_engine_order_when_the_query_asks_for_tests(priced_repo, tmp_path):
+    out = _search_tool(priced_repo, tmp_path, "test for price order discount", [])
+    assert out["results"][0]["filepath"] == "tests/test_pricing.py"
+
+
+def test_search_does_not_use_the_graph_list_by_default(priced_repo, tmp_path, monkeypatch):
+    has_graph = []
+    out = _search_tool(priced_repo, tmp_path, "price_order", has_graph, detail="full")
+    assert has_graph == [True]
+    assert "graph" not in out["engines_used"]
+
+
+def test_search_uses_the_graph_list_when_its_weight_is_positive(
+    priced_repo, tmp_path, monkeypatch
+):
+    monkeypatch.setenv("NEXUS_FUSION_WEIGHT_GRAPH", "0.2")
+    from nexus_mcp.config import reset_settings
+
+    reset_settings()
+    out = _search_tool(priced_repo, tmp_path, "price_order", [], detail="full")
+    assert "graph" in out["engines_used"]
+
+
+class _State:
+    def __init__(self, root):
+        self.codebase_path = root
+
+
+def test_references_only_for_a_name_without_graph_node(ref_repo):
+    out = core_api._references_only(_State(ref_repo), "CHECK", "callers")
+    assert out["total"] == 0 and out["callers"] == {}
+    assert out["references"]["files"] == {"src/runtime.py": ["3: CHECK = ensure_budget"]}
+    assert "No graph node" in out["note"]
+
+
+def test_references_only_unknown_name_and_callees_stay_errors(ref_repo):
+    state = _State(ref_repo)
+    assert "error" in core_api._references_only(state, "no_such_name_anywhere", "callers")
+    assert "error" in core_api._references_only(state, "ensure_budget", "callees")
+
+
+def test_add_references_survives_a_failing_search(ref_repo, monkeypatch):
+    def boom(self, *a, **k):
+        raise RuntimeError("no grep")
+
+    monkeypatch.setattr(LiveGrepEngine, "references", boom)
+    result = {"symbol": "x"}
+    core_api._add_references(result, _State(ref_repo), "x")
+    assert result == {"symbol": "x"}
+
+
+def test_warm_up_without_index_returns_false():
+    # conftest sets NEXUS_AUTO_RESTORE=false, so there is nothing to attach.
+    assert core_api.warm_up() is False
+
+
+def test_warm_up_never_raises(monkeypatch):
+    def boom():
+        raise RuntimeError("bad index")
+
+    monkeypatch.setattr(core_api, "restore_session", boom)
+    assert core_api.warm_up() is False
+
+
+def test_warm_up_runs_one_search(monkeypatch):
+    calls = []
+
+    class _Engine:
+        def search(self, query, limit):
+            calls.append((query, limit))
+            return []
+
+    from nexus_mcp.state import get_state
+
+    monkeypatch.setattr(core_api, "restore_session", lambda: True)
+    monkeypatch.setattr(get_state(), "vector_engine", _Engine())
+    assert core_api.warm_up() is True
+    assert calls == [("warm up", 1)]
+
+
+CHUNK = (
+    "# /repo/src/pricing.py:1\n"
+    "function: price_order\n\n"
+    "def price_order(order):\n\n"
+    "Price an order with its discount.\n\n"
+    'def price_order(order):\n    """Price an order with its discount."""\n'
+    "    return order.total - order.discount\n\n"
+    "Imports: decimal\n"
+    "Calls: round"
+)
+
+
+def test_chunk_code_keeps_only_the_code():
+    code = core_api._chunk_code(
+        CHUNK, "def price_order(order):", "Price an order with its discount."
+    )
+    assert code == (
+        'def price_order(order):\n    """Price an order with its discount."""\n'
+        "    return order.total - order.discount"
+    )
+
+
+def test_chunk_code_without_signature_and_docstring_fields():
+    assert core_api._chunk_code("# /r/a.py:3\nvariable: LIMIT\n\nLIMIT = 10") == "LIMIT = 10"
+
+
+def test_chunk_code_falls_back_when_there_is_no_code_part():
+    text = "# /r/a.py:3\nfunction: f\n\ndef f():\n\nDoc."
+    assert core_api._chunk_code(text, "def f():", "Doc.") == "function: f\n\ndef f():\n\nDoc."
+
+
+def test_chunk_code_keeps_text_that_is_not_a_chunk():
+    text = "return x\nCalls: y is not a tail here\nz"
+    assert core_api._chunk_code(text) == text
+
+
+def test_compact_search_result_accepts_array_like_values():
+    # A numpy score from the reranker made `v not in ("", None, [], {})` raise.
+    class _ArrayLike:
+        def __eq__(self, other):
+            raise ValueError("ambiguous truth value")
+
+    out = core_api._compact_search_result({"filepath": "a.py", "weight": _ArrayLike(), "x": ""})
+    assert set(out) == {"filepath", "weight"}
+
+
+def test_reranker_scores_are_plain_floats():
+    import json
+
+    from nexus_mcp.engines.reranker import FlashReranker
+
+    ranker = FlashReranker()
+    if not ranker.available:
+        pytest.skip("flashrank is not installed")
+    out = ranker.rerank(
+        "price an order",
+        [{"id": "1", "text": "def price_order(order): ..."}, {"id": "2", "text": "import os"}],
+    )
+    assert all(type(r["score"]) is float and type(r["rerank_score"]) is float for r in out)
+    json.dumps(out)
+
+
+def test_find_symbol_compact_names_callers_and_callees(priced_repo, tmp_path):
+    import asyncio
+
+    from tests.conftest import _call_tool, _setup_indexed
+
+    (priced_repo / "src" / "checkout.py").write_text(
+        "from pricing import price_order\n\n\ndef checkout(order):\n    return price_order(order)\n"
+    )
+
+    async def run():
+        mcp, _, _ = await _setup_indexed(priced_repo, tmp_path / ".nexus")
+        compact = await _call_tool(mcp, "find_symbol", {"symbol_name": "price_order"})
+        full = await _call_tool(
+            mcp, "find_symbol", {"symbol_name": "price_order", "detail": "full"}
+        )
+        return compact, full, core_api.find_symbol("price_order", detail="verbose")
+
+    compact, full, bad = asyncio.run(run())
+    symbol = compact["symbols"][0]
+    assert (symbol["name"], symbol["file"], symbol["start_line"]) == (
+        "price_order", "src/pricing.py", 1,
+    )
+    assert symbol["callers"]["src/checkout.py"] == ["checkout:4"]
+    assert "relationships_in" not in symbol and "id" not in symbol
+    assert "relationships_in" in full["symbols"][0]
+    assert "error" in bad
+
+
+def test_instructions_do_not_ask_for_a_status_call_first():
+    text = SERVER_INSTRUCTIONS.lower()
+    assert "no setup call is needed" in text
+    assert "call `status`" not in text
+    assert len(SERVER_INSTRUCTIONS) <= 2048
+
+
+def test_group_by_file_collapses_a_long_list_of_test_callers():
+    from nexus_mcp.core.graph_models import NodeType, UniversalLocation, UniversalNode
+
+    def node(i, path):
+        return UniversalNode(
+            id=f"{path}:{i}", name=f"test_case_{i}" if "test" in path else f"fn_{i}",
+            node_type=NodeType.FUNCTION,
+            location=UniversalLocation(file_path=path, start_line=i, end_line=i + 1),
+            language="python",
+        )
+
+    nodes = [node(i, "/p/tests/test_a.py") for i in range(1, 41)]
+    nodes += [node(1, "/p/src/a.py"), node(2, "/p/src/a.py")]
+    out = core_api._group_by_file(nodes, Path("/p"))
+    assert list(out) == ["src/a.py", "tests/test_a.py"]  # source first
+    assert out["src/a.py"] == ["fn_1:1", "fn_2:2"]  # source files are never cut
+    tests = out["tests/test_a.py"]
+    assert len(tests) == core_api.MAX_TEST_SYMBOLS_PER_FILE + 1
+    assert tests[-1] == f"+{40 - core_api.MAX_TEST_SYMBOLS_PER_FILE} more"
+
+
+def test_collapse_test_symbols_keeps_every_source_symbol():
+    grouped = {
+        "tests/test_a.py": [f"t{i}" for i in range(10)],
+        "src/a.py": [f"f{i}" for i in range(10)],
+        "tests/test_b.py": ["t1", "t2"],
+    }
+    out = core_api._collapse_test_symbols(grouped)
+    assert list(out) == ["src/a.py", "tests/test_a.py", "tests/test_b.py"]
+    assert out["src/a.py"] == grouped["src/a.py"]
+    assert out["tests/test_a.py"] == ["t0", "t1", "t2", "+7 more"]
+    assert out["tests/test_b.py"] == ["t1", "t2"]  # below the limit: unchanged

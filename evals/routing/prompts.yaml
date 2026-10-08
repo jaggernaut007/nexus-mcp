@@ -1,0 +1,152 @@
+# Routing eval prompts. Each prompt runs in the shop_repo fixture with nexus-mcp
+# connected and NO hint about which tool to use.
+#
+# Fields:
+#   id             unique id
+#   category       search | symbol | graph | map | analyze | memory | negative
+#   prompt         the user message, in plain words
+#   expected_any_of  nexus tool names (bare, no mcp__ prefix). The run passes when
+#                    one of them is called within the first 3 effective calls.
+#   expected_args  optional. Each key must equal (case-insensitive) the argument of
+#                  the matching call.
+#   expect         negative prompts only. "native": the first effective call must be
+#                  Read, Grep or Glob. "none": the model must call no tool.
+#
+# "Effective" calls exclude ToolSearch and the nexus set-up tools (status, index,
+# health). An agent that checks status and runs index first is doing what the server
+# instructions say, so those calls do not use up the 3-call window.
+
+repo: shop_repo
+
+prompts:
+  - id: search-retry
+    category: search
+    prompt: Where in this codebase do we retry failed payment calls?
+    expected_any_of: [search, find_symbol, explain]
+
+  - id: search-discount
+    category: search
+    prompt: How does the discount code logic work?
+    expected_any_of: [search, find_symbol, explain]
+
+  - id: search-webhook
+    category: search
+    prompt: Find the code that checks webhook signatures.
+    expected_any_of: [search, find_symbol]
+
+  - id: search-ratelimit
+    category: search
+    prompt: Which part of the code limits how often the API can be called?
+    expected_any_of: [search, find_symbol, explain]
+
+  - id: search-email
+    category: search
+    prompt: How do customers get their order confirmation email?
+    expected_any_of: [search, explain, graph]
+
+  - id: symbol-charge
+    category: symbol
+    prompt: Show me the definition of PaymentGateway.charge.
+    expected_any_of: [find_symbol, search, explain]
+
+  - id: symbol-reserve
+    category: symbol
+    prompt: Where is reserve_stock defined?
+    expected_any_of: [find_symbol, search]
+
+  - id: symbol-cancel
+    category: symbol
+    prompt: Explain what cancel_order does and how it fits into the order flow.
+    expected_any_of: [explain, find_symbol, graph]
+
+  - id: symbol-ttlcache
+    category: symbol
+    prompt: What is the TTLCache class and where is it used?
+    expected_any_of: [find_symbol, explain, search, graph]
+
+  - id: graph-callers
+    category: graph
+    prompt: Who calls reserve_stock?
+    expected_any_of: [graph]
+    expected_args: {direction: callers}
+
+  - id: graph-callees
+    category: graph
+    prompt: What functions does create_order call?
+    expected_any_of: [graph]
+    expected_args: {direction: callees}
+
+  - id: graph-signature
+    category: graph
+    prompt: I want to change the signature of calculate_total. What could break?
+    expected_any_of: [graph]
+    expected_args: {transitive: "true"}
+
+  - id: graph-blast
+    category: graph
+    prompt: What is the blast radius if I change check_stock?
+    expected_any_of: [graph]
+    expected_args: {transitive: "true"}
+
+  - id: map-overview
+    category: map
+    prompt: Give me an overview of this project's structure.
+    expected_any_of: [map]
+
+  - id: map-modules
+    category: map
+    prompt: What are the main modules here and how do they depend on each other?
+    expected_any_of: [map]
+
+  - id: map-onboard
+    category: map
+    prompt: I am new to this repo. Where should I start reading?
+    expected_any_of: [map, search]
+
+  - id: analyze-complex
+    category: analyze
+    prompt: Which functions in this code are the most complex?
+    expected_any_of: [analyze]
+
+  - id: analyze-quality
+    category: analyze
+    prompt: Review the code quality of the shop/payments directory.
+    expected_any_of: [analyze]
+
+  - id: analyze-dead
+    category: analyze
+    prompt: Is there any dead code in this project?
+    expected_any_of: [analyze]
+
+  - id: memory-store-decision
+    category: memory
+    prompt: Remember that we decided to use HMAC-SHA256 for webhook signatures.
+    expected_any_of: [memory]
+    expected_args: {action: store}
+
+  - id: memory-search-decision
+    category: memory
+    prompt: What did we decide earlier about webhook signatures?
+    expected_any_of: [memory]
+    expected_args: {action: search}
+
+  - id: memory-store-note
+    category: memory
+    prompt: Save a note that refunds must only go through PaymentGateway.refund.
+    expected_any_of: [memory]
+    expected_args: {action: store}
+
+  - id: negative-read-file
+    category: negative
+    prompt: Show me the exact contents of shop/config.py.
+    expect: native
+
+  - id: negative-literal
+    category: negative
+    prompt: Use plain text matching to find every line that contains the string WELCOME10.
+    expect: native
+
+  - id: negative-no-code
+    category: negative
+    prompt: What is 17 times 23?
+    expect: none

@@ -5,7 +5,8 @@ dict (see benchmarks/tasks/*.yaml for the schema). No I/O, no CLI calls —
 runner.py wires this to real transcripts; tests exercise it directly.
 """
 
-from typing import Any, Dict, Optional, Sequence
+import re
+from typing import Any, Dict, Optional, Sequence, Union
 
 MECHANICAL_PASS_THRESHOLD = 0.75
 
@@ -70,16 +71,50 @@ def fact_score(facts: Sequence[Dict[str, Any]], answer_text: str) -> float:
     return matched / len(facts)
 
 
-def file_recall(answer_text: str, target_files: Sequence[str]) -> float:
-    """Fraction of `target_files` whose path substring appears in the answer.
+# A bare file name that many files share. An answer that names only `__init__.py` has not
+# named a particular file, so these need at least their parent folder to count.
+GENERIC_BASENAMES = frozenset({
+    "__init__.py", "index.js", "index.ts", "index.tsx", "main.py", "main.go", "mod.rs",
+    "lib.rs", "utils.py", "types.py", "models.py", "config.py", "base.py", "app.py",
+    "setup.py", "conftest.py",
+})
 
+
+def mentions_path(answer_lower: str, target: str) -> bool:
+    """True when the (lower-case) answer names `target` by its full path or by a shorter one.
+
+    Real answers write `src/pkg/mod/gateway.py`, `mod/gateway.py` or just `gateway.py`, and
+    the first scorer accepted only the first form. Every trailing part of the path counts,
+    down to the bare file name, when it stands alone: `my_gateway.py` or `gateway.pyc` do not
+    match `gateway.py`. A generic file name (`GENERIC_BASENAMES`) needs its parent folder.
+    The bare name can match a same-named file in another folder; the fact check in
+    `mechanical_score` is the guard for that.
+    """
+    parts = target.lower().replace("\\", "/").strip("/").split("/")
+    least = 2 if len(parts) > 1 and parts[-1] in GENERIC_BASENAMES else 1
+    for start in range(len(parts) - least + 1):
+        suffix = re.escape("/".join(parts[start:]))
+        if re.search(rf"(?<![\w.-]){suffix}(?!\w)", answer_lower):
+            return True
+    return False
+
+
+def file_recall(answer_text: str, target_files: Sequence[Union[str, Sequence[str]]]) -> float:
+    """Fraction of `target_files` that the answer names (see `mentions_path`).
+
+    A target is a path, or a list of paths when the question has more than one valid
+    answer: the target counts when the answer names any one of them.
     Returns 1.0 (trivially satisfied) when `target_files` is empty.
     """
     if not target_files:
         return 1.0
 
     answer_lower = answer_text.lower()
-    matched = sum(1 for f in target_files if f.lower() in answer_lower)
+    matched = 0
+    for target in target_files:
+        alternatives = [target] if isinstance(target, str) else list(target)
+        if any(mentions_path(answer_lower, f) for f in alternatives):
+            matched += 1
     return matched / len(target_files)
 
 

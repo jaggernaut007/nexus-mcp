@@ -4,13 +4,87 @@ Combines results from vector search, BM25, and graph relevance
 into a single ranked list using Reciprocal Rank Fusion (RRF).
 """
 
+import heapq
 import logging
-import re
+from collections import Counter
 from typing import Any, Dict, List, Optional
 
+from nexus_mcp.core.graph_models import identifier_words
 from nexus_mcp.indexing.chunker import _generate_chunk_id
 
 logger = logging.getLogger(__name__)
+
+
+MIN_TOKEN_LENGTH = 3
+MAX_GRAPH_CANDIDATES = 1000
+STOP_WORDS = frozenset({
+    "the", "and", "for", "with", "that", "this", "from", "when", "where", "what", "which",
+    "who", "how", "does", "are", "was", "were", "not", "any", "all", "into", "over", "than",
+    "then", "them", "they", "its", "our", "out", "has", "have", "had", "can", "will", "you",
+    "your", "use", "uses", "used", "one", "each", "per", "via", "get", "gets",
+})
+# Query words that show the user wants test code.
+TEST_QUERY_WORDS = frozenset({
+    "test", "tests", "testing", "tested", "spec", "specs", "fixture", "fixtures", "mock",
+    "mocks", "pytest", "unittest", "conftest", "jest",
+})
+_TEST_DIRS = frozenset({"test", "tests", "testing", "__tests__", "spec", "specs", "e2e"})
+_TEST_SUFFIXES = (
+    "_test.py", "_test.go", "_test.rs", ".test.ts", ".test.tsx", ".test.js", ".test.jsx",
+    ".spec.ts", ".spec.tsx", ".spec.js", ".spec.jsx", "test.java", "tests.java",
+)
+
+
+def is_test_path(path: str) -> bool:
+    """True when ``path`` is test code by its folder or file name."""
+    parts = str(path).replace("\\", "/").lower().split("/")
+    name = parts[-1]
+    if any(part in _TEST_DIRS for part in parts[:-1]):
+        return True
+    return name.startswith("test_") or name in ("conftest.py", "tests.py") or name.endswith(
+        _TEST_SUFFIXES
+    )
+
+
+def query_mentions_tests(query: str) -> bool:
+    """True when the query asks for test code (`test_login`, "the fixture for orders")."""
+    words = set()
+    for token in query.replace("/", " ").replace(".", " ").split():
+        words.update(identifier_words(token))
+        words.add(token.lower())
+    return bool(words & TEST_QUERY_WORDS)
+
+
+def demote_test_files(query: str, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Move results in test files after all other results, in the same relative order.
+
+    A test repeats the words of the code it tests, so tests outrank the source they
+    cover (measured: 70% of the chunks of a large project were tests, and a prose
+    query returned five tests before the function). The order is unchanged when the
+    query itself asks for tests. No result is removed.
+    """
+    if query_mentions_tests(query):
+        return results
+    source, tests = [], []
+    for r in results:
+        path = r.get("absolute_path") or r.get("filepath") or ""
+        (tests if is_test_path(path) else source).append(r)
+    return source + tests
+
+
+def _name_words(name: str) -> List[str]:
+    """Lowercase words of an identifier: `create_order` and `CreateOrder` -> create, order."""
+    return list(identifier_words(name))
+
+
+def _word_forms(word: str) -> set:
+    """The word and its plain singular and plural, so `order` finds `orders` and back."""
+    forms = {word, word + "s"}
+    if word.endswith("es") and len(word) > 4:
+        forms.add(word[:-2])
+    if word.endswith("s") and len(word) > 3:
+        forms.add(word[:-1])
+    return forms
 
 
 def graph_relevance_search(
@@ -31,20 +105,25 @@ def graph_relevance_search(
     Returns:
         List of result dicts with id, symbol_name, filepath, score, etc.
     """
-    # Tokenize query into words (alphanumeric, 2+ chars)
-    tokens = [t.lower() for t in re.split(r'\W+', query) if len(t) >= 2]
+    # Whole words only. Substring matching let "to", "in" or "an" hit every node whose
+    # name contained those letters, and centrality then ranked the noise by hub score.
+    # Split the query like an identifier, so `order_total` finds `compute_order_total`.
+    tokens = [
+        w for w in identifier_words(query)
+        if len(w) >= MIN_TOKEN_LENGTH and w not in STOP_WORDS
+    ]
     if not tokens:
         return []
-
-    # Find matching nodes across all tokens
-    seen_ids: set = set()
-    candidates: list = []
+    # Count how many query words each node matches, and keep the best few. A common word
+    # such as "handle" can match thousands of nodes; scoring all of them costs time and
+    # adds nothing, because a node that matches several words is the better candidate.
+    hits: Counter = Counter()
     for token in tokens:
-        matches = graph_engine.find_nodes_by_name(token, exact=False)
-        for node in matches:
-            if node.id not in seen_ids:
-                seen_ids.add(node.id)
-                candidates.append(node)
+        hits.update(graph_engine.find_node_ids_by_words(_word_forms(token)))
+    best = heapq.nsmallest(MAX_GRAPH_CANDIDATES, hits.items(), key=lambda kv: (-kv[1], kv[0]))
+    candidates = [n for n in (graph_engine.get_node(nid) for nid, _ in best) if n is not None]
+    # A set has no order; sort so equal scores always come back in the same order.
+    candidates.sort(key=lambda n: (n.location.file_path, n.location.start_line, n.name))
 
     if not candidates:
         return []

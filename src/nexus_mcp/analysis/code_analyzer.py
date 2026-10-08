@@ -194,7 +194,10 @@ class CodeAnalyzer:
                     dead.append({
                         "name": func.name,
                         "location": f"{func.location.file_path}:{func.location.start_line}",
-                        "reason": "Never called",
+                        "reason": (
+                            "No static caller found (may be called dynamically "
+                            "or from outside the index)"
+                        ),
                     })
         return dead
 

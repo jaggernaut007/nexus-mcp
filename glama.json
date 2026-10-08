@@ -43,8 +43,8 @@
       },
       "NEXUS_EMBEDDING_MODEL": {
         "type": "string",
-        "description": "Embedding model (jina-code, bge-small-en)",
-        "default": "jina-code"
+        "description": "Embedding model (bge-small-en)",
+        "default": "bge-small-en"
       },
       "NEXUS_EMBEDDING_DEVICE": {
         "type": "string",

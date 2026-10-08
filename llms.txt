@@ -1,6 +1,6 @@
 # Nexus-MCP
 
-> Unified, local-first MCP server combining hybrid search (vector + BM25 + graph), structural code graph analysis, and persistent semantic memory in a single process. Designed for AI coding agents via the Model Context Protocol. <350MB RAM, no API keys, no cloud dependencies. Source-available under PolyForm Noncommercial 1.0.0.
+> Unified, local-first MCP server combining hybrid search (vector + BM25 + graph), structural code graph analysis, and persistent semantic memory in a single process. Designed for AI coding agents via the Model Context Protocol. about 90MB RAM idle and 460MB with the embedding model loaded, no API keys, no cloud dependencies. Source-available under PolyForm Noncommercial 1.0.0.
 
 Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexes codebases into three engines (vector embeddings, BM25 keyword index, rustworkx code graph) and fuses results via Reciprocal Rank Fusion with FlashRank re-ranking. Agents get the code they need in 500-2000 tokens instead of reading entire files (5000-15000 tokens). Supports 25+ programming languages via dual parsing (tree-sitter + ast-grep).
 
@@ -11,7 +11,7 @@ Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexe
 - [health](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Liveness/readiness probe.
 - [search](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Hybrid code search — vector semantic + BM25 keyword + graph structural, fused via RRF, re-ranked with FlashRank. Language/type filters, live-grep fallback.
 - [find_symbol](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Look up a symbol by name — definition, location, relationships. Exact or fuzzy matching.
-- [graph](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Callers or callees of a symbol; `transitive=True` for change-impact analysis. Replaces find_callers, find_callees and impact. Call edges are not extracted yet, so results are empty today.
+- [graph](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Callers or callees of a symbol; `transitive=True` for change-impact analysis. Replaces find_callers, find_callees and impact. Call edges are static and name-based, so results are a lower bound.
 - [explain](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Combined graph + semantic + metrics explanation of a symbol, with `verbosity` summary/detailed/full.
 - [analyze](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Code complexity, dependencies, smells, and quality metrics.
 - [map](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/USAGE_GUIDE.md): Project overview (`detail="summary"`), architecture (`"architecture"`), or both (`"full"`). Replaces overview and architecture.
@@ -21,7 +21,7 @@ Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexe
 
 - PyPI: `pip install nexus-mcp-ci` (or `pip install nexus-mcp-ci[gpu,reranker]` for all extras)
 - From source: `git clone https://github.com/jaggernaut007/Nexus-MCP && cd Nexus-MCP && ./setup.sh`
-- Add to Claude Code: `claude mcp add nexus-mcp-ci -- nexus-mcp-ci`
+- Add to Claude Code: `claude mcp add nexus-mcp -- nexus-mcp-ci`
 
 ## Getting Started
 
@@ -40,10 +40,10 @@ Nexus-MCP gives AI agents precise, token-efficient code understanding. It indexe
 
 ## Key Technical Details
 
-- **Search pipeline**: query -> [vector, BM25, graph] parallel -> RRF fusion (weights 0.5/0.3/0.2) -> FlashRank re-rank -> token budget truncation
+- **Search pipeline**: query -> [vector, BM25] -> source files before test files -> RRF fusion (weights 0.5/0.3; the graph list is off by default) -> FlashRank re-rank (only with `rerank=True`; off by default) -> token budget truncation
 - **Storage**: LanceDB (vectors + FTS, mmap disk-backed), SQLite (graph persistence), no ChromaDB
-- **Embedding**: bge-small-en-v1.5 default (384d), optional jina-code (768d, ONNX Runtime)
-- **Graph**: rustworkx PyDiGraph — containment and import edges today; caller/callee and impact traversal are implemented but call edges are not extracted yet
+- **Embedding**: bge-small-en-v1.5 default (384d); jina-code is deprecated
+- **Graph**: rustworkx PyDiGraph — containment, import and static call edges; caller/callee and impact traversal
 - **Parsing**: tree-sitter (symbol extraction for embeddings) + ast-grep (containment and import structure for the graph)
 - **Memory**: LanceDB-backed semantic memory with 6 types, TTL expiration, tag filtering
 - **Token budgets**: responses are truncated to a token budget; `explain` takes a `verbosity` of summary (~500 tok), detailed (~2000 tok) or full (~8000 tok)

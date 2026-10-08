@@ -17,11 +17,13 @@ from nexus_mcp.core.graph_models import UniversalGraph
 from nexus_mcp.engines.bm25_engine import LanceDBBM25Engine
 from nexus_mcp.engines.graph_engine import RustworkxCodeGraph
 from nexus_mcp.engines.vector_engine import LanceDBVectorEngine
+from nexus_mcp.indexing.call_resolver import resolve_calls
 from nexus_mcp.indexing.chunker import create_chunks
-from nexus_mcp.indexing.embedding_service import get_embedding_service
+from nexus_mcp.indexing.embedding_service import get_embedding_service, model_dimensions
 from nexus_mcp.indexing.parallel_indexer import parallel_parse_files
 from nexus_mcp.parsing.astgrep_parser import AstGrepParser
 from nexus_mcp.parsing.language_registry import get_supported_extensions
+from nexus_mcp.persistence.store import GraphPersistence
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,11 @@ SKIP_DIRS: Set[str] = {
     ".tox", ".mypy_cache", ".pytest_cache", "dist", "build", ".eggs",
     ".ruff_cache", ".hg", ".svn",
 }
+
+
+# Raise this when the set of chunks for a file changes, so that an index of an older
+# version is rebuilt. 2: one module chunk for a file that starts with a docstring.
+CHUNK_FORMAT = 2
 
 
 @dataclass
@@ -175,12 +182,10 @@ class IndexingPipeline:
             batch_size=self._settings.embedding_batch_size,
             device=self._settings.embedding_device,
         )
-        from nexus_mcp.indexing.embedding_service import EMBEDDING_MODELS
-        model_config = EMBEDDING_MODELS.get(self._settings.embedding_model, {})
         self._vector_engine = LanceDBVectorEngine(
             db_path=str(self._settings.lancedb_path),
             embedding_service=self._embedding_service,
-            vector_dims=model_config.get("dimensions", 768),
+            vector_dims=model_dimensions(self._settings.embedding_model),
         )
         self._bm25_engine = LanceDBBM25Engine(
             db_path=str(self._settings.lancedb_path),
@@ -279,6 +284,7 @@ class IndexingPipeline:
                     batch_start, batch_start + len(batch_files), len(batch_files),
                 )
 
+            resolve_calls(self._graph_engine)
             graph_stats = self._graph_engine.get_statistics()
 
             if total_chunks > 0:
@@ -286,8 +292,9 @@ class IndexingPipeline:
                 self._bm25_engine.clear()
                 self._bm25_engine.ensure_fts_index()
 
-            # Save metadata
+            # Save metadata, then the graph: the graph file must be the newer of the two.
             self._save_metadata(codebase_path, files)
+            self._persist_graph()
         finally:
             # Always unload model to free RAM
             self._embedding_service.unload()
@@ -308,6 +315,56 @@ class IndexingPipeline:
             time_seconds=elapsed,
         )
 
+    def _embedding_metadata(self) -> Dict[str, Any]:
+        """Model name and vector width, stored with the index to detect a model change."""
+        model = self._settings.embedding_model
+        return {
+            "embedding_model": model,
+            "embedding_dimensions": model_dimensions(model),
+            "chunk_format": CHUNK_FORMAT,
+        }
+
+    def _persist_graph(self) -> None:
+        """Save the graph after a full build, so a restart can load it.
+
+        Incremental reindexes do not save: the state shutdown handler does. If
+        the process dies first, the saved file is older than the index metadata
+        and _restore_graph() rejects it.
+        """
+        try:
+            GraphPersistence(str(self._settings.graph_path)).save(self._graph_engine)
+        except Exception as e:  # noqa: BLE001 - persistence must not fail an index
+            logger.warning("Could not save graph: %s", e)
+
+    def _restore_graph(self) -> bool:
+        """Make sure the graph engine holds the graph that matches the stored index.
+
+        Returns True when the engine already has nodes, or when the graph saved at
+        shutdown was loaded into it. Returns False when no saved graph exists or
+        when it is older than the index metadata (a crash left a stale file), so
+        the caller falls back to a full rebuild.
+        """
+        if self._graph_engine.nodes:
+            return True
+        graph_path = self._settings.graph_path
+        try:
+            if not graph_path.exists() or not self._metadata_path.exists():
+                return False
+            if graph_path.stat().st_mtime < self._metadata_path.stat().st_mtime:
+                return False
+            loaded = GraphPersistence(str(graph_path)).load()
+        except Exception as e:  # noqa: BLE001 - a bad graph file must not block indexing
+            logger.warning("Could not load saved graph: %s", e)
+            return False
+        if loaded is None or not loaded.nodes:
+            return False
+        for node in loaded.nodes.values():
+            self._graph_engine.add_node(node)
+        for rel in loaded.relationships.values():
+            self._graph_engine.add_relationship(rel)
+        logger.info("Restored saved graph: %d nodes", len(loaded.nodes))
+        return True
+
     def _validate_index(self) -> bool:
         """Validate that stored index artifacts are intact.
 
@@ -319,6 +376,23 @@ class IndexingPipeline:
         try:
             data = json.loads(self._metadata_path.read_text())
             if "mtimes" not in data:
+                return False
+            # Vectors from different models are not comparable, even at equal width.
+            # An index without these keys predates the check and is accepted.
+            stored = data.get("embedding_model")
+            if stored and stored != self._settings.embedding_model:
+                logger.warning(
+                    "Index was built with embedding model %r but %r is configured; "
+                    "rebuilding the index.", stored, self._settings.embedding_model,
+                )
+                return False
+            # An index of an older chunk format has no module chunks: search by
+            # concept would miss files that only their top docstring describes.
+            if data.get("chunk_format", 1) != CHUNK_FORMAT:
+                logger.warning(
+                    "Index has chunk format %s but this version writes format %s; "
+                    "rebuilding the index.", data.get("chunk_format", 1), CHUNK_FORMAT,
+                )
                 return False
         except (json.JSONDecodeError, OSError):
             logger.warning("Corrupt index metadata file.")
@@ -352,6 +426,12 @@ class IndexingPipeline:
         # Load stored metadata
         stored_mtimes = self._load_metadata()
         if not stored_mtimes:
+            return self.index(codebase_path, progress_callback)
+
+        # A new process starts with an empty graph. Load the one saved at shutdown,
+        # or rebuild when none is usable, so graph() is not empty after a restart.
+        if not self._restore_graph():
+            logger.info("No usable saved graph; performing full rebuild.")
             return self.index(codebase_path, progress_callback)
 
         # Discover current files
@@ -413,7 +493,9 @@ class IndexingPipeline:
             self._bm25_engine.clear()
             self._bm25_engine.ensure_fts_index()
 
-            # Save updated metadata
+            # Resolve call edges before the metadata is saved, so a graph saved at
+            # shutdown is never newer than the metadata yet missing the new edges.
+            resolve_calls(self._graph_engine)
             self._save_metadata(codebase_path, files)
         finally:
             self._embedding_service.unload()
@@ -515,6 +597,7 @@ class IndexingPipeline:
             self._bm25_engine.ensure_fts_index()
 
             all_files = [Path(f) for f in current_mtimes.keys()]
+            resolve_calls(self._graph_engine)
             self._save_multi_metadata(resolved_paths, all_files)
         finally:
             self._embedding_service.unload()
@@ -573,7 +656,11 @@ class IndexingPipeline:
             raw_meta = self._load_metadata_raw() or {}
             stored_mtimes = raw_meta.get("mtimes")
             stored_roots = set(raw_meta.get("codebase_paths", []))
-            if stored_mtimes and stored_roots == {str(p) for p in resolved_paths}:
+            if (
+                stored_mtimes
+                and stored_roots == {str(p) for p in resolved_paths}
+                and self._restore_graph()
+            ):
                 return self._incremental_multi_index(
                     resolved_paths, stored_mtimes, start, progress_callback
                 )
@@ -655,6 +742,8 @@ class IndexingPipeline:
             # Always unload model to free RAM
             self._embedding_service.unload()
 
+        resolve_calls(self._graph_engine)
+        self._persist_graph()
         graph_stats = self._graph_engine.get_statistics()
         elapsed = time.time() - start
         logger.info(
@@ -685,6 +774,7 @@ class IndexingPipeline:
             "codebase_paths": [str(p) for p in codebase_paths],
             "codebase_path": str(codebase_paths[0]),
             "mtimes": mtimes,
+            **self._embedding_metadata(),
         }
         self._metadata_path.parent.mkdir(parents=True, exist_ok=True)
         self._metadata_path.write_text(json.dumps(metadata))
@@ -701,6 +791,7 @@ class IndexingPipeline:
         metadata = {
             "codebase_path": str(codebase_path),
             "mtimes": mtimes,
+            **self._embedding_metadata(),
         }
         self._metadata_path.parent.mkdir(parents=True, exist_ok=True)
         self._metadata_path.write_text(json.dumps(metadata))

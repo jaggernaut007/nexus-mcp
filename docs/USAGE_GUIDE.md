@@ -8,7 +8,7 @@
 # Install from PyPI
 pip install nexus-mcp-ci
 
-# Optional: with FlashRank reranker for better search quality
+# Optional: the FlashRank reranker, used only when a search passes rerank=True
 pip install nexus-mcp-ci[reranker]
 
 # Optional: with GPU (CUDA) support
@@ -36,7 +36,7 @@ The server starts on stdio (the default MCP transport). Configure your MCP clien
 **Claude Code:**
 
 ```bash
-claude mcp add nexus-mcp-ci -- nexus-mcp-ci
+claude mcp add nexus-mcp -- nexus-mcp-ci
 ```
 
 **Claude Desktop** (add to `~/Library/Application Support/Claude/claude_desktop_config.json`):
@@ -44,7 +44,7 @@ claude mcp add nexus-mcp-ci -- nexus-mcp-ci
 ```json
 {
   "mcpServers": {
-    "nexus-mcp-ci": {
+    "nexus-mcp": {
       "command": "nexus-mcp-ci",
       "args": []
     }
@@ -56,7 +56,7 @@ claude mcp add nexus-mcp-ci -- nexus-mcp-ci
 
 ```json
 {
-  "nexus-mcp-ci": {
+  "nexus-mcp": {
     "command": "nexus-mcp-ci",
     "transport": "stdio"
   }
@@ -110,7 +110,7 @@ health()
 ```
 
 #### `map`
-Project orientation. Use it instead of `ls` or manual browsing.
+Project overview: files, languages, modules and structure. Use it before you list directories or open files one by one.
 
 ```
 map(detail="summary")        # files, languages, symbol counts, quality, top modules
@@ -123,7 +123,7 @@ map(detail="full")           # both
 ### Search
 
 #### `search`
-Preferred over Grep/Glob for finding code. Semantic + keyword + graph search with code snippets.
+Finds code by meaning or keyword: semantic + keyword + graph search, with code snippets.
 
 ```
 search(query="authentication middleware", limit=10, language="python", mode="hybrid")
@@ -133,23 +133,27 @@ Parameters:
 - `query` — Natural language or code query
 - `limit` — Max results (1-100, default 10)
 - `language` — Filter by language (e.g., "python", "javascript")
-- `symbol_type` — Filter by type (e.g., "function", "class")
+- `symbol_type` — Filter by type: "function", "class", "method", "variable" or "module"
+  (a module result is the docstring at the top of a file and the names it defines)
 - `mode` — "hybrid" (default), "vector", or "bm25"
-- `rerank` — Enable FlashRank reranking (default True)
+- `rerank` — Enable FlashRank reranking (default False; needs the `reranker` extra). In the retrieval eval it lowered hit@1 on two of four suites and added 0.1 to 3 s to each query, so it is opt-in
 - `live_grep` — Force the live-grep fallback (`rg`, then `grep`) (default False)
+- `detail` — "compact" (default) or "full"
 
-Returns results with `filepath` (relative), `absolute_path`, `code_snippet` (truncated to 2000 chars), `score`, `symbol_name`, `line_start`/`line_end`, and a `hint` field. Raw embedding vectors are stripped from results. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a non-null `warning`. A background reindex starts, and the results still return at once.
+Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `symbol_type`, `line_start`/`line_end`, and a `hint` field. A compact response has only `total`, `results`, `hint` and, when the index is stale, `warning`; `detail="full"` adds `query`, `search_mode`, `engines_used` and the `language` of each result. With `detail="compact"` each of the top 3 results carries its whole symbol, up to 2000 characters (cut at a line boundary and marked `(truncated)` when longer), so the agent can answer without a file read. The other results show the signature and the first docstring line (160 characters at most, with no `(truncated)` mark). The snippet is the code only: the stored chunk text also has a `# path:line` line, a `type: name` line, a copy of the signature and docstring, and `Imports:` and `Calls:` lines, and compact mode leaves those out. The fields that repeat the snippet (`signature`, `docstring`, `parent`), the internal fields (`id`, `score`, `rrf_score`, `rerank_score`, `_fusion_sources`, `absolute_path`) and empty values are also left out. Measured on a 460-file project, a compact result is about 7,000 characters, 40% of a full one.
+
+Results in test files come after results in source files, unless the query itself asks for tests (a word such as "test", "fixture" or "mock", or a name such as `test_login`). No result is removed. On a 45,000-chunk index of django, where 70% of the chunks are tests, this raised hit@1 from 6 of 12 to 8 of 12 task queries. Hybrid mode fuses vector and keyword results; the graph list is off by default (`NEXUS_FUSION_WEIGHT_GRAPH=0`). With `detail="full"` the snippet is up to 2000 characters and those fields are present. Raw embedding vectors are always stripped. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a `warning` (in full mode the field is always there and is null when the index is fresh). A background reindex starts, and the results still return at once.
 
 ### Graph Analysis
 
 #### `find_symbol`
-Preferred over Grep for finding symbol definitions. Returns file path, line numbers, docstring, type annotations and the graph relationships of the symbol.
+Finds a symbol definition by name. Returns file path, line numbers, docstring, type, and the callers and callees of the symbol.
 
 ```
 find_symbol(symbol_name="UserService", exact=True)
 ```
 
-Use `exact=False` for fuzzy substring matching.
+Use `exact=False` for fuzzy substring matching. With `detail="compact"` (default) the callers and callees are given by name as `file -> ["name:line"]`, at most 20 each (`callers_total` or `callees_total` gives the true count when there are more). With `detail="full"` each symbol has every node field and the raw relationship records with node ids. A compact result is about a third of the size of a full one.
 
 #### `graph`
 Trace the call graph of a symbol. This tool replaces `find_callers`, `find_callees` and `impact`.
@@ -166,8 +170,23 @@ Parameters:
 - `direction` — "callers" (default) or "callees"
 - `transitive` — `True` returns the full transitive change impact. It works only with `direction="callers"`. Run it before you refactor a shared symbol.
 - `max_depth` — Maximum traversal depth for `transitive=True` (default 10)
+- `detail` — "compact" (default): callers or callees as `file -> ["name:line"]`, source files before test files. "full": one record for each symbol with docstring, complexity, signature types and the node id.
 
-> **Known gap:** the graph holds `CONTAINS` and `IMPORTS` edges only. No parser extracts `CALLS` edges yet, so `graph` returns empty results today. Use `search` to find call sites until call-edge extraction lands. See [Known Limitations](../README.md#known-limitations).
+With `transitive=True` and `detail="compact"`, the result has `total_impacted` and `impacted_files` (`file -> [names]`, every impacted symbol). The `impacted_symbols` list of records is only in `detail="full"`. A compact result is about 10% of the size of a full one.
+
+A callers result (immediate or transitive) also has `references`: every line where the name appears as a whole word, from a live text search of the project.
+
+```
+"references": {"total_files": 3, "total_lines": 6, "truncated": false,
+               "files": {"src/agents/budget.py": ["12: def ensure_budget(n):"],
+                         "src/agents/runtime.py": ["4: from budget import ensure_budget",
+                                                   "88: ensure_budget(cost)"]},
+               "test_files": {"tests/test_budget.py": 3}}
+```
+
+The caller list holds only the calls that static analysis resolved, so it is a lower bound. `references` is the complete text answer, so a separate grep is not needed. Source files come first, each line with its code (at most 8 lines per file, 60 lines in all, 110 characters per line). A source file past the budget is a line count in `more_files`. Test files are a line count each in `test_files`. `truncated` says when a cap cut the list, and the totals always count everything. In the caller lists a test file with more than 3 symbols shows 3 and `+N more`. A name with no graph node (a constant, or a language without graph support) returns its `references` with an empty caller list instead of an error.
+
+> **Limit:** call edges are static and name-based. Dynamic dispatch, callbacks and reflection are invisible, and a name shared by several definitions gets no edge. Treat results as a lower bound and use `search` for other call sites. See [Known Limitations](../README.md#known-limitations).
 
 #### `explain`
 Preferred over Read for understanding a symbol. Combines graph relationships, semantic search results and code metrics.
@@ -227,14 +246,15 @@ Set via environment variables before starting the server:
 ```bash
 # Embedding model selection
 export NEXUS_EMBEDDING_MODEL=bge-small-en       # Default: bge-small-en (384d, lightweight)
-                                                 # Options: jina-code (768d, code-specific)
+                                                 # jina-code (768d) is deprecated
 export NEXUS_EMBEDDING_DEVICE=auto               # auto (CUDA > MPS > CPU), cuda, mps, cpu
 
 # Search tuning
 export NEXUS_SEARCH_MODE=hybrid          # hybrid, vector, or bm25
 export NEXUS_FUSION_WEIGHT_VECTOR=0.5    # Vector weight in RRF
 export NEXUS_FUSION_WEIGHT_BM25=0.3      # BM25 weight in RRF
-export NEXUS_FUSION_WEIGHT_GRAPH=0.2     # Graph weight in RRF
+export NEXUS_FUSION_WEIGHT_GRAPH=0       # Graph weight in RRF. 0 (default) = graph list off
+export NEXUS_WARM_START=true             # Load the index and the model while the server starts
 
 # Resource limits
 export NEXUS_MAX_FILE_SIZE_MB=10         # Skip files larger than this
@@ -261,12 +281,12 @@ See the [README configuration table](../README.md#configuration) for every varia
 
 ### Embedding Models
 
-Nexus-MCP supports two embedding models. Only registered model names are accepted; custom model names raise a `ConfigurationError`.
+Nexus-MCP recommends one embedding model, `bge-small-en`. `jina-code` still loads, with a warning, so an existing index keeps working; it is deprecated. Only registered model names are accepted; custom model names raise a `ConfigurationError`.
 
 | Model | HuggingFace ID | Dims | Code-specific? | Notes |
 |-------|---------------|------|:-:|---|
 | `bge-small-en` (default) | `BAAI/bge-small-en-v1.5` | 384 | No | Smallest download (~50MB), general text, PyTorch backend |
-| `jina-code` | `jinaai/jina-embeddings-v2-base-code` | 768 | Yes | Best code search quality, ONNX, needs `trust_remote_code` |
+| `jina-code` (deprecated) | `jinaai/jina-embeddings-v2-base-code` | 768 | Yes | ONNX, needs `trust_remote_code` and a 612 MiB download; slow CPU index. Removal in a future major release |
 
 GPU/MPS auto-detection (`NEXUS_EMBEDDING_DEVICE=auto`) tries CUDA first, then Apple MPS, then falls back to CPU. For explicit GPU support, install with `pip install -e ".[gpu]"`.
 

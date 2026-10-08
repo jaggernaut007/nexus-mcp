@@ -6,7 +6,7 @@ Nexus-MCP is a unified code intelligence MCP (Model Context Protocol) server tha
 - **code-graph-mcp** — structural AST analysis + call graphs
 - **Live Grep** — 100% coverage fallback via ripgrep/grep
 
-Into a **single, memory-efficient MCP server** (<350MB RAM) with 10 tools for code search, navigation, analysis, and memory.
+Into a **single, memory-efficient MCP server** (about 90MB idle and 460MB with the model loaded, see docs/MEMORY.md) with 10 tools for code search, navigation, analysis, and memory.
 
 ---
 
@@ -20,9 +20,9 @@ Into a **single, memory-efficient MCP server** (<350MB RAM) with 10 tools for co
 
 ### What Nexus-MCP Solves
 - Single process, single MCP connection, 10 tools
-- <350MB RAM via ONNX Runtime + LanceDB mmap + lightweight models
+- Low memory: LanceDB mmap and a lazy-loaded model (see docs/MEMORY.md for measured numbers)
 - Hybrid search combining vector + BM25 + graph signals + live-grep fallback
-- Cross-engine tools like `explain` (graph + vector) and `graph` (call-graph traversal; real indexes currently lack `CALLS` edges, so these results are empty)
+- Cross-engine tools like `explain` (graph + vector) and `graph` (static call-graph traversal)
 
 ---
 
@@ -40,7 +40,7 @@ Into a **single, memory-efficient MCP server** (<350MB RAM) with 10 tools for co
 ├─────────────────────────────────────────────────┤
 │  Response Formatter (token budget optimization)  │
 │  FlashRank Re-ranker (two-stage retrieval)       │
-│  Reciprocal Rank Fusion (0.5/0.3/0.2 weights)   │
+│  Reciprocal Rank Fusion (0.5/0.3/0 weights)     │
 ├─────────────────────────────────────────────────┤
 │  Three Search Engines (parallel)                 │
 │  ┌─────────┐ ┌──────────┐ ┌──────────────┐     │
@@ -68,10 +68,10 @@ Into a **single, memory-efficient MCP server** (<350MB RAM) with 10 tools for co
 |-------|-----------|-----|
 | MCP Framework | FastMCP ≥2.0 | Standard MCP server framework |
 | Vector + FTS Storage | LanceDB ≥0.4 | Embedded, mmap, vectors + FTS in one DB |
-| Inference | ONNX Runtime (jina-code) / PyTorch (bge-small-en) | jina-code runs on ONNX (~50MB vs ~500MB for PyTorch); bge-small-en uses PyTorch |
-| Embedding Model | bge-small-en (default) | 384 dims, lightweight; jina-code (768d, code-specific) is optional |
+| Inference | PyTorch (bge-small-en) | The deprecated jina-code runs on ONNX Runtime |
+| Embedding Model | bge-small-en (default) | 384 dims, lightweight; jina-code (768d) is deprecated |
 | Symbol Parsing | tree-sitter 0.21.3 | Extract code symbols for embeddings |
-| Structural Analysis | ast-grep-py ≥0.28 | Build the containment and import graph (call edges are not extracted yet) |
+| Structural Analysis | ast-grep-py ≥0.28 | Build the containment and import graph (plus callee names, resolved into call edges after indexing) |
 | Graph Engine | rustworkx ≥0.15 | In-memory directed graph, Rust-backed |
 | Re-ranking | FlashRank ≥0.2 | ONNX-based two-stage re-ranking |
 | Live Grep | ripgrep (rg) / grep | 100% coverage fallback for unindexed files |
@@ -133,7 +133,7 @@ Old names (`find_callers`, `find_callees`, `impact`, `overview`, `architecture`,
 
 | Metric | Target | Previous (two MCPs) |
 |--------|--------|--------------------|
-| Total RAM | <350MB | ~1-2GB |
+| Total RAM | ~90MB idle, ~460MB with the model loaded | ~1-2GB |
 | Warm start | <5s | ~13s combined |
 | Incremental reindex (1 file) | <1s | ~2s |
 | Hybrid search + re-rank | <500ms | ~200ms (vector only) |
@@ -177,12 +177,14 @@ All settings via environment variables with `NEXUS_` prefix:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | Embedding model (`bge-small-en`, `jina-code`) |
+| `NEXUS_EMBEDDING_MODEL` | `bge-small-en` | Embedding model (`bge-small-en`; `jina-code` is deprecated) |
 | `NEXUS_STORAGE_DIR` | `.nexus` | Per-project storage directory |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this (MB) |
 | `NEXUS_LOG_FORMAT` | `text` | Logging format (`text` or `json`) |
 | `NEXUS_EMBEDDING_BATCH_SIZE` | `32` | Embedding batch size |
 | `NEXUS_AUTO_WATCH` | `true` | Auto-reindex on file change |
+| `NEXUS_AUTO_RESTORE` | `true` | Reattach to the stored index when a new process starts |
+| `NEXUS_WARM_START` | `true` | Load the index and the embedding model in the background at server start |
 
 The [README](../README.md#configuration) lists every variable.
 
@@ -205,7 +207,7 @@ The [README](../README.md#configuration) lists every variable.
 |----------|-----------|
 | LanceDB over ChromaDB | Embedded, mmap (disk-backed), native FTS, fewer dependencies |
 | ONNX Runtime over PyTorch | 50MB vs 500MB RAM, 2.5x faster CPU inference |
-| bge-small-en default | Lightweight 384d embeddings ([ADR-004](adr/ADR-004-bge-small-default-model.md)); jina-code (768d, code-specific) is optional; GPU/MPS auto-detection |
+| bge-small-en default | Lightweight 384d embeddings ([ADR-004](adr/ADR-004-bge-small-default-model.md)); jina-code (768d) is deprecated; GPU/MPS auto-detection |
 | rustworkx over Neo4j | In-memory graph is sufficient, no DB server dependency |
 | Single MCP over two | Halves memory, eliminates cross-process coordination |
 | Dual parsers (tree-sitter + ast-grep) | Each excels at different task: symbols vs structure |

@@ -30,7 +30,7 @@ python self_test/demo_mcp.py /path/to/your/codebase
 | 12 | `index` | Incremental re-index after a file change |
 | 13 | `health` | Final health check |
 
-The demo checks that each call returns without an error. It does not check that the graph holds call edges. Call edges are not extracted yet, so the `graph` calls return empty lists and still pass.
+The demo checks that each call returns without an error. It also checks that `graph` finds known callers in the sample project, so an empty call graph fails the demo.
 
 ## Sample Project
 

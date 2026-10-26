@@ -99,8 +99,41 @@ instructions, the enums and annotations, and the session restore (it had to call
 attribute the gain to each part, run each change alone. The cost is time: a run is 7 seconds longer
 at the median, because Claude now loads and calls nexus tools where it used to grep.
 
-**Not yet measured:** Tool Search off, the `nexus` condition (with the plugin skill), more than one
-run per prompt, and Codex.
+**Not yet measured (2026-10-05 run):** Tool Search off, the `nexus` condition (with the plugin
+skill), more than one run per prompt, and Codex. The 2026-10-26 run below has 3 runs per prompt.
+
+### Results (2026-10-26): the 8-tool surface
+
+The routing eval was rerun after `explain` and `health` left the tool list, the schemas lost their
+unused parameters and the server instructions were shortened. Commit `3fa8810`, `mcp-only`
+condition, Tool Search on, model `sonnet`, **3 runs for each of the 25 prompts (75 runs)**, 0 runs
+left out, 0 isolation problems, 0 denied calls.
+
+| | 2026-10-05 (10 tools, 1 run each) | 2026-10-26 (8 tools, 3 runs each) |
+|---|---|---|
+| Pass | 88% (22 of 25) | **97% (73 of 75)** |
+| Nexus tool called first | 86% | 92% |
+| Right tool within 3 counted calls | 86% | 97% |
+| Right arguments | 86% | 97% |
+| Negatives (grep or no tool is right) | 100% | 100% |
+
+By category on 2026-10-26: search 100% (15 runs), symbol 100% (12), graph 100% (12), map 100% (9),
+analyze 100% (9), negative 100% (9), memory 78% (9).
+
+- The only failing prompt is `memory-store-decision`: 2 of 3 runs failed. In both, Claude called
+  `Read` and `Glob` and then `ToolSearch`, and never reached `memory` within three counted calls;
+  in the third run it called `ToolSearch` and then `memory`. Claude Code has its own memory
+  convention, and this prompt also failed on 2026-10-05.
+- `analyze-quality` failed on 2026-10-05. Now it passes in all 3 runs, but nexus is not called
+  first: Claude calls `Glob`, then `analyze`, then `Read`.
+- `symbol-reserve` ("Where is reserve_stock defined?") now gets `find_symbol` first in all 3
+  runs. On 2026-10-05 Claude used Grep for it.
+- "Nexus first" is below 100% for the negative prompts (a built-in tool is right there), for
+  `analyze-quality` (3 runs) and for `memory-store-decision` (2 runs).
+- The two runs differ in the tool list, the schemas, the instructions and the number of runs (1
+  against 3), so the gain is not attributed to one change. What the run shows is that removing
+  two tools and their unused parameters did **not** lower routing.
+- Not measured: Tool Search off, the `nexus` condition (with the plugin skill), and Codex.
 
 ## Retrieval eval
 

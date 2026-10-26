@@ -35,8 +35,10 @@ SKIP_DIRS: Set[str] = {
 
 
 # Raise this when the set of chunks for a file changes, so that an index of an older
-# version is rebuilt. 2: one module chunk for a file that starts with a docstring.
-CHUNK_FORMAT = 2
+# version is rebuilt. 2: one module chunk for a file that starts with a docstring. 3: that
+# docstring is also found after a licence or pragma comment, and a package comment after a
+# licence block.
+CHUNK_FORMAT = 3
 
 
 @dataclass

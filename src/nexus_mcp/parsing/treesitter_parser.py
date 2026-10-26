@@ -8,7 +8,7 @@ import logging
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from tree_sitter_languages import get_parser
 
@@ -35,6 +35,12 @@ class TreeSitterParser(IParser):
     LICENCE_WORDS = ("copyright", "license", "licence", "spdx")
     # File names that say nothing: the folder name is the module name.
     PACKAGE_FILE_STEMS = ("__init__", "index", "mod", "main")
+    # Comments that talk to a tool, not to a reader: they are not a module description.
+    PRAGMA_PREFIXES = (
+        "pylint:", "type:", "noqa", "mypy:", "pyright:", "flake8:", "isort:", "fmt:", "ruff:",
+        "eslint", "prettier", "@ts-", "tslint:", "jshint", "istanbul ", "c8 ", "biome",
+        "go:build", "+build", "go:generate", "nolint", "nosec", "pragma", "vim:", "lint:",
+    )
 
     def __init__(self):
         self._parsers: Dict[str, Any] = {}
@@ -224,33 +230,65 @@ class TreeSitterParser(IParser):
             metadata={"defines": defines[: self.MAX_MODULE_DEFINES]},
         )
 
+    def _is_pragma_comment(self, text: str) -> bool:
+        """A comment for a tool (shebang, encoding, linter, type checker), not for a reader."""
+        low = text.strip().lower()
+        return (
+            low.startswith(self.PRAGMA_PREFIXES)
+            or "coding:" in low[:30]
+            or "-*-" in low
+        )
+
+    def _comment_text(self, raw: str) -> Optional[str]:
+        """The words of one comment node without its markers, or None for a pragma comment."""
+        raw = raw.replace("\r\n", "\n")
+        if raw.startswith("#!"):
+            return None
+        lines = [line.strip().lstrip("/#*!-").rstrip("*/").strip() for line in raw.split("\n")]
+        if self._is_pragma_comment(lines[0]):
+            return None
+        return "\n".join(lines)
+
     def _module_doc(self, root_node, content: bytes) -> tuple[str, int]:
-        """The docstring or the comment block at the top of a file, and its last line."""
-        comments: List[str] = []
-        end_line = 1
+        """The docstring or the comment block at the top of a file, and its last line.
+
+        A docstring wins over comments, and comments for a tool (a linter pragma, an
+        encoding line) or a licence are skipped one block at a time: a licence block, a
+        blank line and then a package comment still give the package comment. A block is
+        a run of comment lines with no blank line between them.
+        """
+        blocks: List[List[Tuple[str, int]]] = []  # each item: (text, last line)
+        prev_end: Optional[int] = None
+        docstring: Optional[Tuple[str, int]] = None
         for child in root_node.children:
             if "comment" in child.type:
-                text = self._get_node_text(child, content)
-                if text.startswith("#!") or "coding:" in text[:30]:
+                text = self._comment_text(self._get_node_text(child, content))
+                first_line, last_line = child.start_point[0], child.end_point[0]
+                if text is None:
+                    prev_end = None  # a pragma ends the block before it
                     continue
-                comments.append(text)
-                end_line = child.end_point[0] + 1
+                if blocks and prev_end is not None and first_line - prev_end <= 1:
+                    blocks[-1].append((text, last_line + 1))
+                else:
+                    blocks.append([(text, last_line + 1)])
+                prev_end = last_line
                 continue
-            if child.type == "expression_statement" and not comments:
+            if child.type == "expression_statement":
                 for sc in child.children:
                     if sc.type in ("string", "string_literal"):
                         raw = self._get_node_text(sc, content).strip()
-                        return self._strip_quotes(raw), child.end_point[0] + 1
+                        text = self._strip_quotes(raw).replace("\r\n", "\n")
+                        docstring = (text, child.end_point[0] + 1)
+                        break
             break
-        if not comments:
-            return "", 1
-        lines = []
-        for line in "\n".join(comments).split("\n"):
-            lines.append(line.strip().lstrip("/#*!-").rstrip("*/").strip())
-        doc = "\n".join(lines).strip()
-        if any(word in doc.lower() for word in self.LICENCE_WORDS):
-            return "", 1
-        return doc, end_line
+        # `"use strict"` is a string statement too: too short to be a docstring.
+        if docstring and len(docstring[0]) >= self.MIN_MODULE_DOC_CHARS:
+            return docstring
+        for block in blocks:
+            doc = "\n".join(text for text, _ in block).strip()
+            if doc and not any(word in doc.lower() for word in self.LICENCE_WORDS):
+                return doc, block[-1][1]
+        return "", 1
 
     @staticmethod
     def _strip_quotes(raw: str) -> str:

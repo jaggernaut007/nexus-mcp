@@ -50,7 +50,8 @@ rename, signature change or delete)
 name, and `graph` every text reference beside the call edges. Each call costs one more \
 read of the whole conversation, so do not follow a nexus call with a grep or a file read \
 for a name: call `find_symbol` with all the names at once. Use your built-in grep or file \
-read when you already know the exact file or string. Call edges are static: calls through \
+read when you already know the exact file or string. Results come from the index and can \
+be a little old: read the file before you edit it. Call edges are static: calls through \
 callbacks, reflection or dynamic dispatch are not visible, so read the references list \
 of `graph` before you delete code.
 """

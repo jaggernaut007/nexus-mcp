@@ -241,3 +241,69 @@ def test_extract_module_symbol_text_is_capped(parser, tmp_path):
     f.write_text('"""' + "word " * 1000 + '"""\n')
     (module,) = _modules(parser, f)
     assert len(module.code_snippet) == TreeSitterParser.MAX_MODULE_DOC_CHARS
+
+
+# A code review of 2026-10-26 found that a comment before the docstring hid the docstring, and
+# that a licence header hid a package comment that follows it.
+def test_module_doc_python_docstring_after_a_licence_comment(parser, tmp_path):
+    f = tmp_path / "retry.py"
+    f.write_text(
+        "# Copyright 2024 Acme. Licensed under Apache.\n"
+        '"""Parse the retry configuration and wait between attempts."""\n\n'
+        "def wait():\n    return 1\n"
+    )
+    (module,) = _modules(parser, f)
+    assert module.code_snippet.startswith("Parse the retry configuration")
+
+
+@pytest.mark.parametrize("pragma", [
+    "# pylint: disable=too-many-arguments,invalid-name",
+    "# type: ignore",
+    "# noqa",
+    "# mypy: ignore-errors",
+    "# -*- coding: utf-8 -*-",
+])
+def test_module_doc_python_docstring_after_a_pragma_comment(parser, tmp_path, pragma):
+    f = tmp_path / "retry.py"
+    f.write_text(f'{pragma}\n"""Parse the retry configuration and wait between attempts."""\n')
+    (module,) = _modules(parser, f)
+    assert module.code_snippet.startswith("Parse the retry configuration")
+    assert "pylint" not in module.code_snippet and "noqa" not in module.code_snippet
+
+
+def test_module_doc_pragma_comments_alone_give_no_module_chunk(parser, tmp_path):
+    f = tmp_path / "plain.py"
+    f.write_text("# pylint: disable=invalid-name\n# type: ignore\n\nx = 1\n")
+    assert _modules(parser, f) == []
+
+
+def test_module_doc_go_package_comment_after_a_licence_block(parser, tmp_path):
+    f = tmp_path / "foo.go"
+    f.write_text(
+        "// Copyright 2026 Example Ltd. All rights reserved.\n"
+        "// Licensed under the Apache License, Version 2.0.\n\n"
+        "// Package foo formats and parses durations for the scheduler.\n"
+        "package foo\n\nfunc Run() int { return 1 }\n"
+    )
+    (module,) = _modules(parser, f)
+    assert "Package foo formats and parses durations" in module.code_snippet
+    assert "Licensed" not in module.code_snippet
+
+
+def test_module_doc_js_comment_after_a_licence_block(parser, tmp_path):
+    f = tmp_path / "dates.js"
+    f.write_text(
+        "// Copyright 2026 Example Ltd.\n// SPDX-License-Identifier: MIT\n\n"
+        "// Utilities for date formatting and parsing in the report views.\n"
+        "function fmt() { return 1; }\n"
+    )
+    (module,) = _modules(parser, f)
+    assert "Utilities for date formatting" in module.code_snippet
+
+
+def test_module_doc_crlf_line_ends_are_normalised(parser, tmp_path):
+    f = tmp_path / "crlf.py"
+    f.write_bytes(b'"""Line one of the module doc.\r\nLine two of the module doc."""\r\n')
+    (module,) = _modules(parser, f)
+    assert "\r" not in module.code_snippet
+    assert "Line one of the module doc.\nLine two" in module.code_snippet

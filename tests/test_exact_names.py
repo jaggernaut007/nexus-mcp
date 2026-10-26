@@ -177,13 +177,14 @@ class TestFindSymbolCode:
     def test_find_symbol_keeps_one_call_inside_the_code_budget(
         self, names_repo, tmp_path, monkeypatch
     ):
-        monkeypatch.setattr(core_api, "SYMBOL_CODE_BUDGET", 100)
+        # A leftover below MIN_CODE_BUDGET (200) gives no code, so the third symbol gets none.
+        monkeypatch.setattr(core_api, "SYMBOL_CODE_BUDGET", 300)
         names = "run_step_01 run_step_02 run_step_03"
         result = _run(names_repo, tmp_path, "find_symbol", {"symbol_name": names})
         with_code = [s for s in result["symbols"] if "code" in s]
         assert len(result["symbols"]) == 3
-        assert 1 <= len(with_code) < 3
-        assert sum(len(s["code"]) for s in with_code) <= 100 + 20
+        assert len(with_code) == 2
+        assert sum(len(s["code"]) for s in with_code) <= 300
 
     def test_find_symbol_full_has_the_code_too(self, names_repo, tmp_path):
         result = _run(
@@ -197,7 +198,7 @@ class TestFindSymbolCode:
         assert "not found" in result["error"]
 
     def test_symbol_source_of_a_missing_file_is_empty(self, tmp_path):
-        assert core_api._symbol_source(str(tmp_path / "gone.py"), 1, 5, 100) == ""
+        assert core_api._symbol_source(str(tmp_path / "gone.py"), 1, 5, 100, [tmp_path]) == ""
 
     def test_split_symbol_names_has_a_maximum_and_no_duplicates(self):
         names = core_api._split_symbol_names("a, a | b " + " ".join(f"n{i}" for i in range(20)))

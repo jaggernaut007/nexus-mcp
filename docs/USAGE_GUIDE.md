@@ -141,6 +141,8 @@ find_symbol(symbol_name="should_keep, AUTO_APPLY_CATEGORIES, MailClassification"
 
 Pass several names in one call (commas or spaces between them, 8 names at most): an agent pays for each call with one more read of its prompt. `code` is the whole symbol without its common indent, 6,000 characters at most for one symbol and 12,000 for one call; longer code is cut at a line and marked `(truncated)`, and `start_line` and `end_line` say where the rest is. A name with more than 3 definitions gets code for the first 3 (source files before test files). A name with no graph node, such as a constant, comes from the chunk table. Names with no match are in `not_found`.
 
+The code is read from the file at the path that the index stores, and only when that file is a regular file inside an indexed folder (symlinks are followed first), not larger than `NEXUS_MAX_FILE_SIZE_MB`; at most 1,000 lines are read for one symbol. The node of a whole file (the graph has one for each file, named like it) comes after functions and classes and has no code. When the file changed after it was indexed, so that the stored lines no longer hold the symbol, its code is left out and the result has a `warning`. A name has at most 10 entries (`more_matches` counts the rest). A symbol gets no code when less than 200 characters of the call budget are left.
+
 Use `exact=False` for fuzzy substring matching. With `detail="compact"` (default) the callers and callees are given by name as `file -> ["name:line"]`, at most 20 each (`callers_total` or `callees_total` gives the true count when there are more). With `detail="full"` each symbol has every node field and the raw relationship records with node ids. A compact result is about a third of the size of a full one.
 
 #### `graph`

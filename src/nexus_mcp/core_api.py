@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any, Callable, List, Optional
 
 from nexus_mcp import __version__
-from nexus_mcp.core.graph_models import UniversalNode, UniversalRelationship
+from nexus_mcp.core.graph_models import NodeType, UniversalNode, UniversalRelationship
 
 logger = logging.getLogger(__name__)
 
@@ -655,6 +655,10 @@ MAX_SYMBOL_RELATIONS = 20
 FIND_SYMBOL_MAX_NAMES = 8
 SYMBOL_CODE_CHARS = 6000  # one symbol
 SYMBOL_CODE_BUDGET = 12000  # all symbols of one call
+MAX_SYMBOL_SOURCE_LINES = 1000  # lines read from a file for one symbol
+MIN_CODE_BUDGET = 200  # a smaller leftover gives a stub, so the symbol gets no code
+MAX_MATCHES_PER_NAME = 10  # a fuzzy name can match hundreds of symbols
+NAME_CHECK_LINES = 12  # the symbol name must be in the first lines of its code
 MAX_SYMBOL_MATCHES_WITH_CODE = 3  # a name with more definitions shows the place of the rest
 # `detail="full"` of `graph` and `verbosity="full"` of `explain` list at most this many
 # symbols with all their fields. One `graph` call returned 20,000 characters without it.
@@ -970,22 +974,58 @@ def _split_symbol_names(symbol_name: str) -> List[str]:
     return names[:FIND_SYMBOL_MAX_NAMES]
 
 
-def _symbol_source(path: str, start_line: int, end_line: int, limit: int) -> str:
+def _index_roots(state) -> list[Path]:
+    """The folders that the index was built from."""
+    roots = list(getattr(state, "codebase_paths", None) or [])
+    if not roots and getattr(state, "codebase_path", None):
+        roots = [state.codebase_path]
+    return roots
+
+
+def _symbol_source(
+    path: str, start_line: int, end_line: int, limit: int, roots: list[Path]
+) -> str:
     """Lines ``start_line`` to ``end_line`` of a file, without the common indent.
 
-    Returns "" when the file cannot be read (it was deleted after the index was built).
+    The path comes from the index, and the index is data from disk: a repository can ship its
+    own `.nexus` folder. So the file is read only when its real path (symlinks followed) is a
+    regular file inside one of ``roots`` and not larger than ``max_file_size_mb``, and at most
+    ``MAX_SYMBOL_SOURCE_LINES`` lines are read. Returns "" in every other case, and when the
+    file is gone (deleted after the index was built).
     """
+    import itertools
     import textwrap
 
+    from nexus_mcp.config import get_settings
+
     try:
-        with open(path, encoding="utf-8", errors="replace") as f:
-            lines = f.readlines()
-    except OSError:
+        real = Path(path).resolve(strict=True)
+        if not any(real.is_relative_to(Path(root).resolve()) for root in roots):
+            return ""
+        if not real.is_file():
+            return ""
+        if real.stat().st_size > get_settings().max_file_size_mb * 1024 * 1024:
+            return ""
+        first = max(1, int(start_line or 1))
+        last = min(max(first, int(end_line or first)), first + MAX_SYMBOL_SOURCE_LINES - 1)
+        with open(real, encoding="utf-8", errors="replace") as f:
+            lines = list(itertools.islice(f, first - 1, last))
+    except (OSError, ValueError, RuntimeError):  # RuntimeError: a symlink loop
         return ""
-    first = max(1, int(start_line or 1))
-    last = max(first, int(end_line or first))
-    code = textwrap.dedent("".join(lines[first - 1:last])).rstrip()
-    return _trim_snippet(code, limit)
+    return _trim_snippet(textwrap.dedent("".join(lines)).rstrip(), limit)
+
+
+def _slice_names_symbol(code: str, name: str) -> bool:
+    """True when the name of the symbol is in the first lines of its code.
+
+    The line numbers in the index are from the time of indexing. After an edit that moves
+    lines, the same numbers point at other code. This check finds that: the code that
+    `find_symbol` would show must hold the name of the symbol.
+    """
+    short = str(name).rsplit(".", 1)[-1]
+    if not short:
+        return True
+    return short in "\n".join(code.split("\n")[:NAME_CHECK_LINES])
 
 
 def _chunk_symbol_entries(state, name: str) -> list[tuple[dict[str, Any], tuple]]:
@@ -1025,8 +1065,11 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
     ``symbol_name`` holds one name, or several names with commas or spaces between them
     (at most ``FIND_SYMBOL_MAX_NAMES``). Each symbol comes with its ``code`` (at most
     ``SYMBOL_CODE_CHARS`` for one symbol, ``SYMBOL_CODE_BUDGET`` for the call, and only
-    the first ``MAX_SYMBOL_MATCHES_WITH_CODE`` definitions of one name). A name with no
-    graph node (a constant, for example) is looked up in the chunk table.
+    the first ``MAX_SYMBOL_MATCHES_WITH_CODE`` definitions of one name; none for the
+    node of a whole file, and none when the file changed after indexing, with a
+    ``warning``). A name has at most ``MAX_MATCHES_PER_NAME`` entries; ``more_matches``
+    counts the rest. A name with no graph node (a constant, for example) is looked up in
+    the chunk table.
 
     ``detail="compact"`` (default) gives file, lines and the callers and callees by name
     (`file -> ["name:line"]`, at most ``MAX_SYMBOL_RELATIONS`` each). ``detail="full"``
@@ -1045,10 +1088,21 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
 
     symbols: list[dict[str, Any]] = []
     not_found: list[str] = []
+    more_matches: dict[str, int] = {}
+    stale_code = 0
     budget = SYMBOL_CODE_BUDGET
+    roots = _index_roots(state)
     for name in _split_symbol_names(symbol_name) or [symbol_name]:
         nodes = _resolve_symbol(state.graph_engine, name, exact=exact)
-        nodes = sorted(nodes, key=lambda n: is_test_path(n.location.file_path))
+        # Functions and classes first, then tests, then the node of a whole file (the graph
+        # has one for each file, named like it: `main` is also `main.py`).
+        nodes = sorted(
+            nodes,
+            key=lambda n: (n.node_type == NodeType.MODULE, is_test_path(n.location.file_path)),
+        )
+        if len(nodes) > MAX_MATCHES_PER_NAME:
+            more_matches[name] = len(nodes) - MAX_MATCHES_PER_NAME
+            nodes = nodes[:MAX_MATCHES_PER_NAME]
         found: list[tuple[dict[str, Any], tuple]] = []
         for node in nodes:
             if detail == "compact":
@@ -1067,9 +1121,16 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
             not_found.append(name)
             continue
         for i, (entry, place) in enumerate(found):
-            if i < MAX_SYMBOL_MATCHES_WITH_CODE and budget > 0:
-                code = _symbol_source(*place, min(SYMBOL_CODE_CHARS, budget))
-                if code:
+            wants_code = (
+                i < MAX_SYMBOL_MATCHES_WITH_CODE
+                and budget >= MIN_CODE_BUDGET
+                and entry.get("type") != "module"  # a whole file: read it with a file read
+            )
+            if wants_code:
+                code = _symbol_source(*place, min(SYMBOL_CODE_CHARS, budget), roots)
+                if code and not _slice_names_symbol(code, entry.get("name", "")):
+                    stale_code += 1  # the file changed after it was indexed
+                elif code:
                     entry["code"] = code
                     budget -= len(code)
                     if detail == "compact":
@@ -1085,6 +1146,13 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
     result: dict[str, Any] = {"total": len(symbols), "symbols": symbols}
     if not_found:
         result["not_found"] = not_found
+    if more_matches:
+        result["more_matches"] = more_matches
+    if stale_code:
+        result["warning"] = (
+            f"A file changed after it was indexed, so the code of {stale_code} symbol(s) is "
+            "left out. The index refreshes in the background: call again, or read the file."
+        )
     return result
 
 
@@ -1355,10 +1423,17 @@ def explain(symbol_name: str, verbosity: str = "detailed") -> dict[str, Any]:
                 symbol_data[f"{key}_total"] = len(related)
     else:
         symbol_data = _symbol_compact(node, state)
-    if verbosity != "summary":
+    if verbosity != "summary" and node.node_type != NodeType.MODULE:
         loc = node.location
-        code = _symbol_source(loc.file_path, loc.start_line, loc.end_line, SYMBOL_CODE_CHARS)
-        if code:
+        code = _symbol_source(
+            loc.file_path, loc.start_line, loc.end_line, SYMBOL_CODE_CHARS, _index_roots(state)
+        )
+        if code and not _slice_names_symbol(code, node.name):
+            symbol_data["warning"] = (
+                "The file changed after it was indexed, so the code is left out. "
+                "The index refreshes in the background: call again, or read the file."
+            )
+        elif code:
             symbol_data["code"] = code
             if not full:
                 symbol_data.pop("docstring", None)  # the code starts with it

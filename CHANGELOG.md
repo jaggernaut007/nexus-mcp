@@ -164,6 +164,27 @@ All notable changes to this project will be documented in this file.
 - With `flashrank` installed, the default `search` raised `ValueError` (and the result was not
   JSON-serializable): the reranker returned numpy scores. The scores are plain floats now.
 
+### Fixed
+
+A security review and a code review of 2026-10-26 found these in code of this release; all are
+fixed before the release, each with a test that fails on the old code.
+
+- **`find_symbol` and `explain` could read a file outside the project.** They read the source
+  of a symbol from the path in the index, and a repository can ship its own `.nexus` folder
+  (attached by `NEXUS_AUTO_RESTORE`). A crafted path (`/etc/passwd`, a `..` path or a symlink)
+  gave the content of that file. Now the real path must be a regular file inside an indexed
+  folder and not larger than `NEXUS_MAX_FILE_SIZE_MB`, and at most 1,000 lines are read.
+- `find_symbol` gave the whole file as the "code" of the node of a file that is named like
+  the symbol (`main` and `main.py`), and used half of the code budget on it. Such a node now
+  comes last and has no code.
+- `find_symbol` gave the wrong code, with no warning, when a file changed after indexing. The
+  code is left out and a `warning` is given when the stored lines do not hold the symbol name.
+- Module chunks: a docstring after a licence or pragma comment (`# pylint:`, `# type:`,
+  `# noqa`) was lost, and so was a Go or JavaScript package comment after a licence block.
+  `chunk_format` is now 3. A fuzzy name with many matches is capped at 10 entries, and a
+  leftover code budget below 200 characters gives no stub.
+- The server instructions say that results come from the index: read the file before an edit.
+
 ### Removed
 
 Rule for every item below: a tool, a parameter or an engine stays only if tasks that use it end

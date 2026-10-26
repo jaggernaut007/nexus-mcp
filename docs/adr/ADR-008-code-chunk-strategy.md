@@ -47,7 +47,10 @@ suites and fell on none (docs/research/embedding-models-2026-10.md, round 4).
 A file with no such text gets no module chunk. A chunk of only a path and names is short,
 and short texts take high ranks in vector search without a reason.
 
-`index_metadata.json` records `chunk_format` (now 2). An index with another value is rebuilt.
+`index_metadata.json` records `chunk_format` (now 3). An index with another value is rebuilt.
+Format 3 (2026-10-26, after a code review): a docstring after a licence or pragma comment
+(`# pylint:`, `# type:`, `# noqa`) is found, a licence block is skipped as a block, and a
+package comment that follows it (Go, JavaScript) gives the module chunk.
 
 ## Alternatives Considered
 - **Sliding window chunking**: Rejected — produces chunks that split functions mid-body, reducing search relevance.

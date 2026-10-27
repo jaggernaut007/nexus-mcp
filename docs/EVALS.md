@@ -309,3 +309,54 @@ jobscout, with the same answer score):
 Scripts used (not in the repository): a cost split for each question from the raw traces, a
 price fit (`numpy.linalg.lstsq`), and a list of each `find_symbol` call with its size and the
 calls after it.
+
+### Results (2026-10-27): the class outline in `find_symbol`, both projects
+
+Commit `a67e5b4`: a class longer than 2,000 characters gets an outline (head and one line for
+each method) in place of its body (candidate 1 above). **Only the nexus condition ran again**
+(36 runs for each project, same flags, `--warm-up --save-raw`, Claude Code 2.1.280 as before, 0
+errors, warm cache in all 72 runs). The Grep and Read numbers are the stored runs of the tables
+above, on the same repository commits. So part of each change below is run-to-run variation of
+the nexus runs. Output files: `runs-jobscout-outline.jsonl`, `runs-django-outline.jsonl`.
+
+| Sum of the medians | Grep and Read | nexus before (`3fa8810`, `91a338e`) | nexus with the outline (`a67e5b4`) |
+|---|---:|---:|---:|
+| django cost | $0.894 | $0.973 (+8.9%) | **$0.863 (-3.4%)** |
+| django turns | 93 | 78 | 71 |
+| django correct | 34 of 36 | 35 of 36 | 36 of 36 |
+| jobscout cost | $0.571 | $0.459 (-19.7%) | **$0.446 (-22.0%)** |
+| jobscout turns | 55 | 34 | 35 |
+| jobscout correct | 36 of 36 | 36 of 36 | 35 of 36 |
+
+Per question, django, cost $ (Grep and Read / nexus before / nexus with the outline): ORM layers
+0.059 / 0.078 / 0.068; request to query 0.063 / 0.096 / 0.089; validators and fields 0.070 /
+0.102 / 0.089; field validation 0.013 / 0.024 / 0.024; middleware chain 0.051 / 0.053 / 0.050;
+signal dispatch 0.056 / 0.052 / 0.053; `Field.validate` 0.077 / 0.113 / 0.124; `SQLCompiler.as_sql`
+0.313 / 0.247 / 0.217; `URLResolver.resolve` 0.146 / 0.131 / 0.086; `CharField` 0.013 / 0.023 /
+0.019; max_length validator 0.012 / 0.015 / 0.015; `send_robust` 0.020 / 0.039 / 0.028.
+
+Per question, jobscout, cost $ (nexus before / with the outline): caches 0.024 / 0.023; budget
+0.022 / 0.023; salary floor 0.024 / 0.024; CV variant 0.041 / 0.039; ledger lease 0.024 / 0.024;
+secret redaction 0.036 / 0.025; **gateway flow 0.089 / 0.114 (5 / 10 turns)**; discovery graph
+0.030 / 0.028; mail triage 0.054 / 0.055; `ensure_budget` 0.027 / 0.019; `score_job` 0.067 /
+0.049; `wrap_untrusted` 0.022 / 0.022.
+
+What the traces show:
+
+- **The mechanism works on django.** `find_symbol` fell from 9,159 to 6,011 characters for each
+  call (median runs); cache writes of nexus fell from $0.492 to $0.442 and output from $0.281 to
+  $0.238. 24 of 44 `find_symbol` calls returned an outline. `CharField` was answered from the
+  outline in 3 of 3 runs (2,826 characters, no other call). After the `Signal` outline the agent
+  asked for `Signal.send_robust` in 3 of 3 runs, as the hint says.
+- **Nexus is still dearer on 8 of 12 django questions**; the total is lower because the long
+  questions (`URLResolver.resolve` -41% against Grep and Read, `SQLCompiler.as_sql` -31%) save more.
+- **Possible cost of the outline on jobscout gateway flow.** 2 of 14 `find_symbol` calls returned
+  an outline (`Selector`, `CreditLedger`); after both, the agent used Grep for method definitions
+  (`def web_search|def fetch\(`) and did not ask for `Class.method`. The median of that question
+  went from 5 to 10 turns. With 3 runs this is not separable from variation.
+- **The one wrong jobscout answer is not caused by the outline.** `needle-caches`, rep 2: the run
+  made one `search` and one Grep and no `find_symbol` call; the agent named the file that uses the
+  classes (`gateway.py`) and not the file that defines them (`cache.py`). Over both projects the
+  correct count is 71 of 72 before and after.
+- The retrieval gate (hit@1, `evals.retrieval.run`) measures `search`, which this commit does not
+  change, so it was not run again.

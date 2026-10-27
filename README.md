@@ -163,7 +163,21 @@ search("how does auth work")
 
 Two live runs, 12 questions each, with Claude Sonnet, 3 runs for each question and condition
 (72 runs each) and the prompt cache warm for both conditions. **The result depends on the
-project**: nexus is cheaper on one and dearer on the other.
+project.**
+
+**Latest (commit `a67e5b4`, `find_symbol` shows an outline of a long class):**
+
+| | Grep and Read | Nexus-MCP |
+|---|---:|---:|
+| Private 460-file Python project: cost | $0.571 | $0.446 (**-22.0%**) |
+| Private project: turns, correct | 55, 36 of 36 | 35, 35 of 36 |
+| Django (3,000 files): cost | $0.894 | $0.863 (**-3.4%**) |
+| Django: turns, correct | 93, 34 of 36 | 71, 36 of 36 |
+
+Only the nexus condition ran again for this commit; the Grep and Read numbers are the stored
+runs below. On django nexus is cheaper in total but still dearer on 8 of 12 questions (the short
+lookups). The one wrong answer on the private project came from a run that did not call
+`find_symbol`. Details: `docs/EVALS.md`. The sections below are the runs before the outline.
 
 **Private 460-file Python project** (2026-10-08, commit `91a338e`):
 
@@ -216,11 +230,12 @@ question asked for a value, and the scorer also required a file name); details i
   class lookup sends up to 6,000 characters of the class body: `CharField` cost $0.023 with nexus
   and $0.013 with Grep.
 
-The next change to test is an outline for a class in `find_symbol` (methods and lines, not the
-body). Details and the other candidates are in `docs/EVALS.md`.
+This led to the outline for a class in `find_symbol` (methods and lines, not the body). With it,
+nexus on django went from $0.973 to $0.863 (see "Latest" above). Details and the other
+candidates are in `docs/EVALS.md`.
 
-So a claim of "nexus saves tokens" holds for the first project and not for the second. Run
-`benchmarks/` on your own project before you rely on it.
+The saving is large on a project that the model does not know and small on one that it knows.
+Run `benchmarks/` on your own project before you rely on it.
 
 ---
 

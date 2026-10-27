@@ -13,8 +13,11 @@ All notable changes to this project will be documented in this file.
   graph, and every function keep their code. Reason: the django cost split (`docs/EVALS.md`)
   showed that a class body of up to 6,000 characters was larger than the read that it replaced.
   Result sizes on the django index: `CharField` 6,468 to 2,728 characters, `SQLCompiler` 6,675
-  to 2,332, `URLResolver` 6,682 to 1,270, `Signal` 6,671 to 1,502. Live rerun of both projects:
-  pending.
+  to 2,332, `URLResolver` 6,682 to 1,270, `Signal` 6,671 to 1,502. Live rerun of the nexus
+  condition (36 runs for each project, against the stored Grep and Read runs): django $0.973 to
+  **$0.863 (+8.9% to -3.4% against Grep and Read)**, 36 of 36 correct; jobscout $0.459 to
+  **$0.446 (-19.7% to -22.0%)**, 35 of 36 correct (the wrong run did not call `find_symbol`).
+  One jobscout question (gateway flow) went from 5 to 10 turns after two outlines.
 
 - **Live benchmark on django, 2026-10-27, and the routing eval for 8 tools.** On django (12
   questions, 3 runs each) nexus costs **8.9% more** than Grep and Read ($0.973 against $0.894)

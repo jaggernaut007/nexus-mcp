@@ -192,3 +192,52 @@ Reference, the same questions on 2026-10-07 (1 run each, cold cache in the first
 nexus $0.587, Grep and Read $0.553 with the cold-cache write taken out, 47 and 42 turns.
 Before that, the three questions that cost most with nexus were `needle-caches`,
 `secret-redaction` and `mail-triage`; in this run they cost $0.024, $0.036 and $0.054.
+
+### Results (2026-10-27): django, 12 questions, 3 runs each (a public repository)
+
+Same conditions, model and flags as the jobscout run (`--tasks benchmarks/tasks/django.yaml`),
+commit `3fa8810` (after the security and code review fixes), index `chunk_format` 3 (46,052
+chunks, built in 67 minutes). Pin `318a316a`. Medians of the 3 runs of a question.
+
+| Task | Turns (Grep and Read / nexus) | Cost $ | Correct |
+|---|---:|---:|---:|
+| concept: signal dispatch | 3 / 3 | 0.056 / 0.052 | 3/3 and 3/3 |
+| concept: field validation | 2 / 2 | 0.013 / 0.024 | 2/3 and 2/3 |
+| concept: middleware chain | 3 / 3 | 0.051 / 0.053 | 3/3 and 3/3 |
+| needle: CharField class | 2 / 2 | 0.013 / 0.023 | 3/3 and 3/3 |
+| needle: max_length validator code | 2 / 2 | 0.012 / 0.015 | 3/3 and 3/3 (see below) |
+| needle: send_robust | 3 / 4 | 0.020 / 0.039 | 3/3 and 3/3 |
+| architecture: ORM layers | 7 / 4 | 0.059 / 0.078 | 3/3 and 3/3 |
+| architecture: request to query | 9 / 6 | 0.063 / 0.096 | 2/3 and 3/3 |
+| architecture: validators and fields | 8 / 8 | 0.070 / 0.102 | 3/3 and 3/3 |
+| impact: SQLCompiler.as_sql | 24 / 21 | 0.313 / 0.247 | 3/3 and 3/3 |
+| impact: URLResolver.resolve | 18 / 10 | 0.146 / 0.131 | 3/3 and 3/3 |
+| impact: Field.validate | 12 / 13 | 0.077 / 0.113 | 3/3 and 3/3 |
+| **Sum of the medians** | **93 / 78** | **0.894 / 0.973** | **34/36 and 35/36** |
+
+- **On django nexus costs 8.9% more than Grep and Read** ($0.973 against $0.894), with 16% fewer
+  turns (78 against 93) and 15% fewer output tokens (27,513 against 32,291). Accuracy is level:
+  34 of 36 and 35 of 36 correct. **The saving of the jobscout run (-19.7%) does not hold here.**
+- Nexus is cheaper on 3 questions (signal dispatch -7%, `SQLCompiler.as_sql` -21%,
+  `URLResolver.resolve` -10%), about equal on 1 (middleware chain, +4%) and dearer on 8.
+- The pattern in these numbers: nexus wins on the questions where Grep and Read need the most
+  turns (24 and 18 turns) and loses on short lookups that take 2 or 3 turns (+$0.002 to +$0.019 per
+  question). **The cause is not analysed yet.** The prompt of nexus is about 3,600 tokens larger on
+  every turn, and a result such as `find_symbol` with code adds text that is written to the prompt
+  cache; the split of the cost for these runs has not been done, so this is a hypothesis.
+- `Field.validate` (impact): in 3 nexus runs the agent made 23 `Grep` and 9 `Read` calls besides
+  `find_symbol` and `graph`: nexus did not replace the text search here.
+- Django is a repository that the model knows from training, so part of what this measures is the
+  model and not the tool.
+
+**Run problems, and one change of ground truth (both after seeing the results).**
+5 of the 72 runs were `API Error: Can't reach the API server (ENOTFOUND)` after about 80 minutes
+each (the computer lost its network): 3 nexus runs of `orm-layers` and 2 Grep and Read runs of
+`needle-charfield-class`. The runner re-ran exactly those 5; the table has no failed run. The task
+`dj-needle-max-length-validator-code` asks for a string value and not for a file, but its ground
+truth required the file name, so six exact answers (`"max_length"`) scored 0.5 and failed in both
+conditions. The requirement is removed from `benchmarks/tasks/django.yaml` and the runs were
+rescored from their stored answers (`python -m benchmarks.rescore`, no Claude call; 6 verdicts
+changed, all from false to true, 3 in each condition). Three answers of the first jobscout run
+were scored wrong for the same kind of reason and were rescored in the same way. Before the rescore the correct counts were 31 of 36 and 32 of 36; the cost
+and turn columns do not change.

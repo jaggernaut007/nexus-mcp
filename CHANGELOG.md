@@ -6,6 +6,15 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Live benchmark on django, 2026-10-27, and the routing eval for 8 tools.** On django (12
+  questions, 3 runs each) nexus costs **8.9% more** than Grep and Read ($0.973 against $0.894)
+  with 16% fewer turns (78 against 93) and level accuracy (35 of 36 against 34 of 36). So the
+  saving of the jobscout run is not general: nexus wins on questions that need 18 to 24 turns of
+  grep and read and loses on short lookups. The cause is not analysed yet (see the backlog).
+  One django ground truth was corrected after the run (a question asked for a value, and the
+  scorer also required a file name); the runs were rescored from their stored answers. The
+  routing eval, 25 prompts with 3 runs each, passes in 97% of runs (88% on 2026-10-05 with 10
+  tools). See `docs/EVALS.md`.
 - **Live benchmark, 2026-10-08.** 12 jobscout questions, 72 runs, Claude Sonnet, warm prompt
   cache: nexus costs 19.7% less than Grep and Read ($0.459 against $0.571), with 38% fewer turns
   (34 against 55) and 25% fewer output tokens, and 36 of 36 answers correct in both conditions.

@@ -171,9 +171,11 @@ search("how does auth work")
 
 ## Token Efficiency
 
-Measured on 12 questions about a private 460-file Python project, with Claude Sonnet, 3 runs
-for each question and condition (72 runs), and the prompt cache warm for both conditions. Live
-run of 2026-10-08, commit `91a338e`:
+Two live runs, 12 questions each, with Claude Sonnet, 3 runs for each question and condition
+(72 runs each) and the prompt cache warm for both conditions. **The result depends on the
+project**: nexus is cheaper on one and dearer on the other.
+
+**Private 460-file Python project** (2026-10-08, commit `91a338e`):
 
 | | Grep and Read | Nexus-MCP |
 |---|---:|---:|
@@ -189,7 +191,24 @@ and without nexus (261 and 217), and each turn reads the whole prompt again, so 
 if it saves turns. The nexus prompt is still 3,600 tokens larger on every turn. Per question numbers are in
 `docs/EVALS.md`. The same questions on 2026-10-07 (before exact names, code in `find_symbol`,
 the smaller tool list and the warm-up call) gave nexus 6% more cost than Grep and Read.
-The result is for one project and one model; run `benchmarks/` on yours.
+**Django, a public repository** (3,000 files; 2026-10-27, commit `3fa8810`):
+
+| | Grep and Read | Nexus-MCP |
+|---|---:|---:|
+| Turns (sum of the median of each question) | 93 | 78 (-16%) |
+| Output tokens | 32,291 | 27,513 (-15%) |
+| Cost | $0.894 | $0.973 (**+8.9%**) |
+| Correct answers | 34 of 36 | 35 of 36 |
+
+On django nexus uses fewer turns but costs more. It is cheaper on the questions where Grep and
+Read need 18 to 24 turns (`SQLCompiler.as_sql` -21%, `URLResolver.resolve` -10%) and dearer on
+short lookups that take 2 or 3 turns. Why is not analysed yet. Django is a repository that the
+model knows from training, so part of this measures the model. One ground truth was corrected
+after the run (a question asked for a value, and the scorer also required a file name); details
+in `docs/EVALS.md`.
+
+So a claim of "nexus saves tokens" holds for the first project and not for the second. Run
+`benchmarks/` on your own project before you rely on it.
 
 ---
 

@@ -159,13 +159,13 @@ tasks:
       What is the exact string value of the `code` class attribute on
       MaxLengthValidator?
     ground_truth:
-      relevant_files:
-        - django/core/validators.py
+      # The question asks for a value, not for a file. It required the file name before
+      # 2026-10-27, so six exact answers (`"max_length"`) scored 0.5 and failed in both
+      # conditions. No file is required now; the answer is graded on the value.
+      relevant_files: []
       acceptable_extra_files: []
       facts:
         - any_of: ["\"max_length\"", "'max_length'", "code = max_length"]
-      must_mention_files:
-        - django/core/validators.py
 
   - id: dj-concept-middleware-chain
     category: conceptual

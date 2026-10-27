@@ -222,9 +222,8 @@ chunks, built in 67 minutes). Pin `318a316a`. Medians of the 3 runs of a questio
   `URLResolver.resolve` -10%), about equal on 1 (middleware chain, +4%) and dearer on 8.
 - The pattern in these numbers: nexus wins on the questions where Grep and Read need the most
   turns (24 and 18 turns) and loses on short lookups that take 2 or 3 turns (+$0.002 to +$0.019 per
-  question). **The cause is not analysed yet.** The prompt of nexus is about 3,600 tokens larger on
-  every turn, and a result such as `find_symbol` with code adds text that is written to the prompt
-  cache; the split of the cost for these runs has not been done, so this is a hypothesis.
+  question). The cause is in the cost split below: the results of nexus are larger than the
+  reads that the agent makes on django.
 - `Field.validate` (impact): in 3 nexus runs the agent made 23 `Grep` and 9 `Read` calls besides
   `find_symbol` and `graph`: nexus did not replace the text search here.
 - Django is a repository that the model knows from training, so part of what this measures is the
@@ -241,3 +240,72 @@ rescored from their stored answers (`python -m benchmarks.rescore`, no Claude ca
 changed, all from false to true, 3 in each condition). Three answers of the first jobscout run
 were scored wrong for the same kind of reason and were rescored in the same way. Before the rescore the correct counts were 31 of 36 and 32 of 36; the cost
 and turn columns do not change.
+
+### Cost split (2026-10-27): why nexus wins on jobscout and loses on django
+
+Source: the raw traces of both runs (`--save-raw`), the run with the median cost of each
+question. The usage totals come from the `result` record of each run; the turn-1 numbers come
+from the usage of the first message. The parts add up to the cost that Claude Code reports, to
+the cent, for all 72 django runs.
+
+**Prices.** A least-squares fit of `total_cost_usd` against the four token counts of the 72
+django runs gives an exact fit (largest error 4e-15): input $2, cache read $0.20, cache write
+$4 (1-hour cache), output $10 per million tokens. The cache writes use the 1-hour cache, which
+costs 20 times a cache read. The older notes in `docs/BACKLOG.md` ("one turn costs $0.0098")
+used other prices.
+
+| Cost part, sum of 12 questions | django Grep and Read | django nexus | Change | jobscout change |
+|---|---:|---:|---:|---:|
+| Cache read (the prompt, again on each turn) | $0.190 | $0.200 | +$0.011 | -$0.002 |
+| Cache write (new text: first message, tool results) | $0.381 | $0.492 | **+$0.111** | -$0.078 |
+| Output | $0.323 | $0.281 | -$0.042 | -$0.033 |
+| **Total** | **$0.894** | **$0.973** | **+$0.079** | **-$0.112** |
+
+What the numbers show:
+
+- **The larger prompt is not the cause.** The nexus prompt is 3,600 tokens larger on each turn,
+  but at $0.20 per million that is +$0.011 on django, and fewer turns cancel it on jobscout.
+  The earlier hypothesis is wrong.
+- **The cause is the size of the tool results, written to the cache at $4 per million.** On
+  django the writes after turn 1 are 21,400 tokens larger with nexus (+$0.086). The turn-1 write is
+  also larger: about 600 more tokens for each question (949 against 1,556 in the CharField run),
+  +$0.029 over 12 questions (these two per-turn values come from the stream and add up to
+  $0.004 more than the total). This is probably the server instructions (1,777 characters) and the
+  nexus tool names, which Claude Code sends with the question and not in the cached prefix. This
+  is not checked.
+- **Result size against read size.** Characters for each call, in the median runs:
+
+  | | Read | Grep | `find_symbol` | `search` | `graph` |
+  |---|---:|---:|---:|---:|---:|
+  | jobscout, Grep and Read | 10,062 | 1,374 | | | |
+  | jobscout, nexus | 590 | 303 | 9,674 | 4,920 | 1,622 |
+  | django, Grep and Read | 3,445 | 998 | | | |
+  | django, nexus | 2,356 | 593 | 9,159 | 6,887 | 5,401 |
+
+  On jobscout the agent does not know the code and reads whole files (10,000 characters for each
+  Read), so a `find_symbol` result of the same size replaces a Read and saves turns. On django the
+  agent knows the code and reads a short line range (3,400 characters), so a `find_symbol` result
+  of 9,000 characters is larger than the read that it replaces.
+- **`find_symbol` on a class sends up to 6,000 characters of the class body.** 39 calls in the 36
+  nexus runs: median 6,675 characters, 14 calls above 8,000, 308,590 characters in total.
+  Examples: `CharField` (needle question, the agent needs the place and the parent class): 6,468
+  characters in all 3 runs; Grep and Read answered for $0.013, nexus for $0.023. `SQLCompiler` and
+  `URLResolver` (impact questions): 6,700 characters each, and in all 6 runs the agent then used
+  Grep and Read anyway, so the class code did not replace them. `Signal` (question about
+  `send_robust`): the class code came first, then the agent searched for the method.
+- **Calls with several names on architecture questions return 10,000 to 21,700 characters**
+  (for example `Field, validators, clean, run_validators, validate`: 21,680), above the 12,000
+  character code budget because callers and callees are added.
+
+Candidates, not built and not measured (each must lower the cost on django and not raise it on
+jobscout, with the same answer score):
+
+1. For a class, `find_symbol` returns an outline (signature, docstring, the methods with their
+   lines) and not the class body; the code of a method comes with `Class.method`.
+2. A smaller code budget for one call with several names, with callers and callees inside it.
+3. Shorter server instructions, because they are probably written to the cache once for each
+   question.
+
+Scripts used (not in the repository): a cost split for each question from the raw traces, a
+price fit (`numpy.linalg.lstsq`), and a list of each `find_symbol` call with its size and the
+calls after it.

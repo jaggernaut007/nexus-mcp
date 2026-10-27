@@ -176,11 +176,11 @@ project**: nexus is cheaper on one and dearer on the other.
 | Prompt on the first turn | 12,700 tokens | 16,300 tokens |
 
 Nexus is cheaper on 7 questions, equal on 3 and dearer on 2 (the two impact questions, by
-$0.005 and $0.004). The saving comes from turns: output tokens for each turn are similar with
-and without nexus (261 and 217), and each turn reads the whole prompt again, so a tool pays only
-if it saves turns. The nexus prompt is still 3,600 tokens larger on every turn. Per question numbers are in
+$0.005 and $0.004). The saving comes from fewer turns and from smaller tool results than the
+whole-file reads of Grep and Read (see the cost split below). Per question numbers are in
 `docs/EVALS.md`. The same questions on 2026-10-07 (before exact names, code in `find_symbol`,
 the smaller tool list and the warm-up call) gave nexus 6% more cost than Grep and Read.
+
 **Django, a public repository** (3,000 files; 2026-10-27, commit `3fa8810`):
 
 | | Grep and Read | Nexus-MCP |
@@ -192,10 +192,32 @@ the smaller tool list and the warm-up call) gave nexus 6% more cost than Grep an
 
 On django nexus uses fewer turns but costs more. It is cheaper on the questions where Grep and
 Read need 18 to 24 turns (`SQLCompiler.as_sql` -21%, `URLResolver.resolve` -10%) and dearer on
-short lookups that take 2 or 3 turns. Why is not analysed yet. Django is a repository that the
-model knows from training, so part of this measures the model. One ground truth was corrected
-after the run (a question asked for a value, and the scorer also required a file name); details
-in `docs/EVALS.md`.
+short lookups that take 2 or 3 turns. Django is a repository that the model knows from
+training, so part of this measures the model. One ground truth was corrected after the run (a
+question asked for a value, and the scorer also required a file name); details in
+`docs/EVALS.md`.
+
+**Why: the cost split of the traces.** The parts below add up to the reported cost of each run.
+
+| Change, nexus against Grep and Read | django | jobscout |
+|---|---:|---:|
+| Cache read (the prompt, on each turn) | +$0.011 | -$0.002 |
+| Cache write (tool results and the first message) | **+$0.111** | -$0.078 |
+| Output | -$0.042 | -$0.033 |
+| **Total** | **+$0.079** | **-$0.112** |
+
+- The 3,600 extra prompt tokens on each turn cost little: a cache read is $0.20 per million.
+- Tool results are written to the cache at $4 per million, 20 times the read price. So the size
+  of a result matters more than the size of the prompt.
+- On jobscout the agent does not know the code and reads whole files (10,000 characters for each
+  Read). A `find_symbol` result of 9,700 characters replaces a Read and saves a turn.
+- On django the agent knows the code and reads short line ranges (3,400 characters for each
+  Read). A `find_symbol` result of 9,200 characters is larger than the read that it replaces. A
+  class lookup sends up to 6,000 characters of the class body: `CharField` cost $0.023 with nexus
+  and $0.013 with Grep.
+
+The next change to test is an outline for a class in `find_symbol` (methods and lines, not the
+body). Details and the other candidates are in `docs/EVALS.md`.
 
 So a claim of "nexus saves tokens" holds for the first project and not for the second. Run
 `benchmarks/` on your own project before you rely on it.

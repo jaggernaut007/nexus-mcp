@@ -660,6 +660,13 @@ MIN_CODE_BUDGET = 200  # a smaller leftover gives a stub, so the symbol gets no 
 MAX_MATCHES_PER_NAME = 10  # a fuzzy name can match hundreds of symbols
 NAME_CHECK_LINES = 12  # the symbol name must be in the first lines of its code
 MAX_SYMBOL_MATCHES_WITH_CODE = 3  # a name with more definitions shows the place of the rest
+# A class longer than this gets an outline (head and method lines), not its body. In the
+# django benchmark (2026-10-27) a class body was larger than the read that it replaced.
+CLASS_OUTLINE_MIN_CHARS = 2000
+CLASS_OUTLINE_HEAD_LINES = 25
+CLASS_OUTLINE_HEAD_CHARS = 1200
+MAX_OUTLINE_METHODS = 60
+MAX_OUTLINE_SOURCE_LINES = 5000
 # `detail="full"` of `graph` and `verbosity="full"` of `explain` list at most this many
 # symbols with all their fields. One `graph` call returned 20,000 characters without it.
 MAX_FULL_NODES = 25
@@ -982,37 +989,128 @@ def _index_roots(state) -> list[Path]:
     return roots
 
 
-def _symbol_source(
-    path: str, start_line: int, end_line: int, limit: int, roots: list[Path]
-) -> str:
-    """Lines ``start_line`` to ``end_line`` of a file, without the common indent.
+def _source_lines(
+    path: str, start_line: int, end_line: int, roots: list[Path],
+    max_lines: int = MAX_SYMBOL_SOURCE_LINES,
+) -> list[str]:
+    """Lines ``start_line`` to ``end_line`` of a file (at most ``max_lines``).
 
     The path comes from the index, and the index is data from disk: a repository can ship its
     own `.nexus` folder. So the file is read only when its real path (symlinks followed) is a
-    regular file inside one of ``roots`` and not larger than ``max_file_size_mb``, and at most
-    ``MAX_SYMBOL_SOURCE_LINES`` lines are read. Returns "" in every other case, and when the
-    file is gone (deleted after the index was built).
+    regular file inside one of ``roots`` and not larger than ``max_file_size_mb``. Returns []
+    in every other case, and when the file is gone (deleted after the index was built).
     """
     import itertools
-    import textwrap
 
     from nexus_mcp.config import get_settings
 
     try:
         real = Path(path).resolve(strict=True)
         if not any(real.is_relative_to(Path(root).resolve()) for root in roots):
-            return ""
+            return []
         if not real.is_file():
-            return ""
+            return []
         if real.stat().st_size > get_settings().max_file_size_mb * 1024 * 1024:
-            return ""
+            return []
         first = max(1, int(start_line or 1))
-        last = min(max(first, int(end_line or first)), first + MAX_SYMBOL_SOURCE_LINES - 1)
+        last = min(max(first, int(end_line or first)), first + max_lines - 1)
         with open(real, encoding="utf-8", errors="replace") as f:
-            lines = list(itertools.islice(f, first - 1, last))
+            return list(itertools.islice(f, first - 1, last))
     except (OSError, ValueError, RuntimeError):  # RuntimeError: a symlink loop
+        return []
+
+
+def _symbol_source(
+    path: str, start_line: int, end_line: int, limit: int, roots: list[Path]
+) -> str:
+    """Lines ``start_line`` to ``end_line`` of a file, without the common indent.
+
+    The file is read only inside ``roots`` (see ``_source_lines``), at most
+    ``MAX_SYMBOL_SOURCE_LINES`` lines. Returns "" when it cannot be read.
+    """
+    import textwrap
+
+    lines = _source_lines(path, start_line, end_line, roots)
+    if not lines:
         return ""
     return _trim_snippet(textwrap.dedent("".join(lines)).rstrip(), limit)
+
+
+def _class_methods(state, node: UniversalNode) -> list[UniversalNode]:
+    """The methods of a class node, in source order.
+
+    A method is a function node of the same file whose lines are inside the class and whose
+    ``parent_class`` is the class (the parser records it). The graph links functions to their
+    module, not to their class, so the module node is the way in.
+    """
+    graph = state.graph_engine
+    loc = node.location
+    modules = [
+        n for n in graph.get_predecessors(node.id)
+        if n.node_type == NodeType.MODULE and n.location.file_path == loc.file_path
+    ]
+    methods: dict[str, UniversalNode] = {}
+    for module in modules:
+        for n in graph.get_successors(module.id):
+            nl = n.location
+            if (
+                n.node_type == NodeType.FUNCTION
+                and nl.file_path == loc.file_path
+                and loc.start_line < nl.start_line <= loc.end_line
+                and (n.metadata or {}).get("parent_class", node.name) == node.name
+            ):
+                methods[n.id] = n
+    # A function nested in a method has the same parent class; leave it out.
+    direct: list[UniversalNode] = []
+    for n in sorted(methods.values(), key=lambda n: (n.location.start_line, -n.location.end_line)):
+        if direct and n.location.end_line <= direct[-1].location.end_line:
+            continue
+        direct.append(n)
+    return direct
+
+
+def _is_long_class(node: UniversalNode, code: str) -> bool:
+    """True for a class whose code is longer than ``CLASS_OUTLINE_MIN_CHARS``."""
+    return node.node_type == NodeType.CLASS and len(code) > CLASS_OUTLINE_MIN_CHARS
+
+
+def _class_outline(state, node: UniversalNode, roots: list[Path]) -> str:
+    """A short view of a long class: its head (decorators, class line, docstring, class
+    attributes, up to the first method) and one line for each method with its lines.
+
+    In the django benchmark `find_symbol` sent up to 6,000 characters of a class body, which
+    is more than the short line range that the agent would read; most of those answers needed
+    only the place, the parent class and the method names. Returns "" when the class has no
+    methods in the graph or the file cannot be read; the caller then shows the code.
+    """
+    import textwrap
+
+    methods = _class_methods(state, node)
+    if not methods:
+        return ""
+    loc = node.location
+    lines = _source_lines(
+        loc.file_path, loc.start_line, loc.end_line, roots, max_lines=MAX_OUTLINE_SOURCE_LINES
+    )
+    if not lines:
+        return ""
+    head_end = methods[0].location.start_line - loc.start_line  # lines before the first method
+    head_lines = textwrap.dedent("".join(lines[:head_end])).rstrip().split("\n")
+    # In Python the node of a method starts after its decorators, so they end the head.
+    while len(head_lines) > 1 and head_lines[-1].lstrip().startswith("@"):
+        head_lines.pop()
+    head = "\n".join(head_lines[:CLASS_OUTLINE_HEAD_LINES]).rstrip()
+    head = _trim_snippet(head, CLASS_OUTLINE_HEAD_CHARS)
+    out = [head, f"# {len(methods)} methods:"]
+    for m in methods[:MAX_OUTLINE_METHODS]:
+        offset = m.location.start_line - loc.start_line
+        first = lines[offset].strip() if 0 <= offset < len(lines) else m.name
+        if len(first) > 120:
+            first = first[:117] + "..."
+        out.append(f"  {m.location.start_line}-{m.location.end_line}: {first}")
+    if len(methods) > MAX_OUTLINE_METHODS:
+        out.append(f"  ... {len(methods) - MAX_OUTLINE_METHODS} more")
+    return "\n".join(out)
 
 
 def _slice_names_symbol(code: str, name: str) -> bool:
@@ -1067,7 +1165,9 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
     ``SYMBOL_CODE_CHARS`` for one symbol, ``SYMBOL_CODE_BUDGET`` for the call, and only
     the first ``MAX_SYMBOL_MATCHES_WITH_CODE`` definitions of one name; none for the
     node of a whole file, and none when the file changed after indexing, with a
-    ``warning``). A name has at most ``MAX_MATCHES_PER_NAME`` entries; ``more_matches``
+    ``warning``). A class longer than ``CLASS_OUTLINE_MIN_CHARS`` gets an ``outline`` (its
+    head and one line for each method) in place of ``code``, and the result a ``hint`` to ask
+    for ``Class.method``. A name has at most ``MAX_MATCHES_PER_NAME`` entries; ``more_matches``
     counts the rest. A name with no graph node (a constant, for example) is looked up in
     the chunk table.
 
@@ -1090,6 +1190,7 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
     not_found: list[str] = []
     more_matches: dict[str, int] = {}
     stale_code = 0
+    outlined = False
     budget = SYMBOL_CODE_BUDGET
     roots = _index_roots(state)
     for name in _split_symbol_names(symbol_name) or [symbol_name]:
@@ -1104,6 +1205,7 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
             more_matches[name] = len(nodes) - MAX_MATCHES_PER_NAME
             nodes = nodes[:MAX_MATCHES_PER_NAME]
         found: list[tuple[dict[str, Any], tuple]] = []
+        node_of: dict[int, UniversalNode] = {}  # id(entry) -> graph node
         for node in nodes:
             if detail == "compact":
                 entry = _symbol_compact(node, state)
@@ -1115,6 +1217,7 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
                 entry["relationships_in"] = [_serialize_relationship(r) for r in rels_to]
             loc = node.location
             found.append((entry, (loc.file_path, loc.start_line, loc.end_line)))
+            node_of[id(entry)] = node
         if not found and exact:
             found = _chunk_symbol_entries(state, name)
         if not found:
@@ -1128,13 +1231,23 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
             )
             if wants_code:
                 code = _symbol_source(*place, min(SYMBOL_CODE_CHARS, budget), roots)
+                node = node_of.get(id(entry))
                 if code and not _slice_names_symbol(code, entry.get("name", "")):
                     stale_code += 1  # the file changed after it was indexed
+                elif code and node is not None and _is_long_class(node, code):
+                    outline = _class_outline(state, node, roots)
+                    if outline:
+                        entry["outline"] = _trim_snippet(outline, budget)
+                        budget -= len(entry["outline"])
+                        outlined = True
+                    else:
+                        entry["code"] = code
+                        budget -= len(code)
                 elif code:
                     entry["code"] = code
                     budget -= len(code)
-                    if detail == "compact":
-                        entry.pop("docstring", None)  # the code starts with it
+                if detail == "compact" and ("code" in entry or "outline" in entry):
+                    entry.pop("docstring", None)  # the code or the outline starts with it
             symbols.append(entry)
 
     if not symbols:
@@ -1148,6 +1261,11 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
         result["not_found"] = not_found
     if more_matches:
         result["more_matches"] = more_matches
+    if outlined:
+        result["hint"] = (
+            "A long class shows an outline, not its body. For the code of a method, call "
+            "find_symbol with 'Class.method' (several names in one call)."
+        )
     if stale_code:
         result["warning"] = (
             f"A file changed after it was indexed, so the code of {stale_code} symbol(s) is "

@@ -360,3 +360,50 @@ What the traces show:
   correct count is 71 of 72 before and after.
 - The retrieval gate (hit@1, `evals.retrieval.run`) measures `search`, which this commit does not
   change, so it was not run again.
+
+### Tried and discarded (2026-10-28): a smaller budget for `find_symbol` with several names
+
+Candidate 2 of the cost split. The commit was not merged; the code is on the local branch
+`discarded-find-symbol-budget` (commit `b964bad`). The changes to `find_symbol`:
+
+- A bare name with more than 3 function definitions (`clean`: 62 in django) showed the places
+  only, with a hint to ask for `Class.name`.
+- In a call with several names each name got code for one definition, not three.
+- A definition in a file that also defines the other names of the call came first, so
+  `Field, Field.clean` gave the model `Field` and not the GDAL one.
+- An outline was capped at 2,500 characters (the `Field` outline was 5,628).
+
+On the django index the sizes fell from 19,497 to 7,476, 16,235 to 5,362 and 10,128 to 6,127
+characters. Only the nexus condition ran again, with the same flags as the outline run (0 errors,
+Claude Code 2.1.280, warm cache in all 72 runs). Output files: `runs-jobscout-budget.jsonl`,
+`runs-django-budget.jsonl`.
+
+| Sum of the medians | Grep and Read | nexus, outline (`a67e5b4`) | nexus, budget (`b964bad`) |
+|---|---:|---:|---:|
+| django cost | $0.894 | $0.863 | $0.902 (+4.5%) |
+| django turns | 93 | 71 | 71 |
+| django correct | 34 of 36 | 36 of 36 | 34 of 36 |
+| jobscout cost | $0.571 | $0.446 | $0.531 (+19%) |
+| jobscout turns | 55 | 35 | 39 |
+| jobscout correct | 36 of 36 | 35 of 36 | 36 of 36 |
+
+The cost did not fall, so the change was discarded. What the traces show:
+
+- **The mechanism worked, the cost did not follow.** On django all `find_symbol` output fell
+  from 264,972 to 198,782 characters (-25%); calls over 8,000 characters fell from 15 to 9. In the
+  median runs, cache writes fell by $0.013, but Read output grew from 30,869 to 49,118 characters
+  and output tokens rose, together +$0.051. One agent followed the new hint (`as_sql`, then
+  `SQLCompiler.as_sql`).
+- **The run-to-run noise is about 20%.** On jobscout the new rules did not fire: the one call they
+  could change (`score_job`) returned 9,941 characters in both runs. The tasks that got dearer
+  used only `search`, `graph`, Grep and Read, which the commit did not change. Still the jobscout
+  cost rose by 19%. So with 3 runs for each question, a change of a few percent cannot be seen.
+  This also applies to the outline results above (django -3.4%, jobscout -22.0% against
+  -19.7%): the outline lowered the result size, but its cost effect is inside the noise.
+- **The two wrong django answers are not caused by the change.** `field-validation` (rep 1) used
+  only `search`. `Field.validate` (rep 0) got the same 1,798-character result as rep 2, which was
+  correct.
+- **A bug found in the traces:** `find_symbol("Field.validate", exact=False)` always returns "not
+  found" (5 of 9 calls over the last three django runs). With the default `exact=True` a dotted
+  name resolves through the chunk table, but that fallback is skipped when `exact` is false. The
+  agent then goes on with Grep and Read on the question that takes about 15 turns.

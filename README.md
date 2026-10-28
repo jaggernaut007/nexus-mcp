@@ -177,7 +177,11 @@ project.**
 Only the nexus condition ran again for this commit; the Grep and Read numbers are the stored
 runs below. On django nexus is cheaper in total but still dearer on 8 of 12 questions (the short
 lookups). The one wrong answer on the private project came from a run that did not call
-`find_symbol`. Details: `docs/EVALS.md`. The sections below are the runs before the outline.
+`find_symbol`. With 3 runs for each question the same code can vary by about 20% in cost
+(measured 2026-10-28), so the change against the runs before the outline is inside the noise;
+all three recent nexus runs on the private project cost less than Grep and Read ($0.446 to
+$0.531 against $0.571), and on django nexus is about equal ($0.863 to $0.973 against $0.894). Details:
+`docs/EVALS.md`. The sections below are the runs before the outline.
 
 **Private 460-file Python project** (2026-10-08, commit `91a338e`):
 

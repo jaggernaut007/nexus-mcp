@@ -17,7 +17,16 @@ All notable changes to this project will be documented in this file.
   condition (36 runs for each project, against the stored Grep and Read runs): django $0.973 to
   **$0.863 (+8.9% to -3.4% against Grep and Read)**, 36 of 36 correct; jobscout $0.459 to
   **$0.446 (-19.7% to -22.0%)**, 35 of 36 correct (the wrong run did not call `find_symbol`).
-  One jobscout question (gateway flow) went from 5 to 10 turns after two outlines.
+  One jobscout question (gateway flow) went from 5 to 10 turns after two outlines. A later run
+  (2026-10-28) showed that the same code varies by about 20% in cost over 3 runs, so these
+  changes of cost are inside the noise; the drop in result size is real.
+
+- **Tried and discarded: a smaller budget for `find_symbol` with several names** (2026-10-28).
+  Places only for a bare name with more than 3 definitions, one code definition for each name
+  in a call with several names, and a cap of 2,500 characters for an outline. `find_symbol`
+  output on django fell by 25%, but the cost did not fall (django $0.863 to $0.902, jobscout
+  $0.446 to $0.531, a run where the change did not fire). Not merged; the code is on the local
+  branch `discarded-find-symbol-budget`. Details in `docs/EVALS.md`.
 
 - **Live benchmark on django, 2026-10-27, and the routing eval for 8 tools.** On django (12
   questions, 3 runs each) nexus costs **8.9% more** than Grep and Read ($0.973 against $0.894)

@@ -72,7 +72,7 @@ If you want the rules in your own project file, a short block is enough:
 
 The nexus-mcp server is connected. For questions about how this codebase works:
 - No setup call is needed; run `index` only if a tool says the project is not indexed.
-- Use `search` to find code, `find_symbol` or `find_symbol` for symbols, `map` for structure.
+- Use `search` to find code, `find_symbol` for symbols, `map` for structure.
 - Use `graph` with `transitive=true` before you change a shared function. The call graph
   is static, so also use `search` for dynamic call sites.
 - Use plain grep or read when you already know the file or the exact string.
@@ -246,6 +246,10 @@ Run `benchmarks/` on your own project before you rely on it.
 ---
 
 ## The 8 Tools
+
+**v2.1.0 breaking change:** `explain` and `health` are removed from the MCP tool list, and
+several rarely used parameters are removed from the schemas (see [CHANGELOG](CHANGELOG.md)).
+`find_symbol` now returns the code with callers and callees.
 
 **v2.0.0 breaking change:** `find_callers`/`find_callees`/`impact` merged into
 `graph`, `overview`/`architecture` merged into `map`, and `remember`/`recall`/`forget`

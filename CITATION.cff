@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use Nexus-MCP, please cite it as below."
 title: "Nexus-MCP: Unified Code Intelligence Server"
 type: software
-version: 2.0.3
-date-released: 2026-09-18
+version: 2.1.0
+date-released: 2026-10-28
 license: PolyForm-Noncommercial-1.0.0
 url: "https://github.com/jaggernaut007/Nexus-MCP"
 repository-code: "https://github.com/jaggernaut007/Nexus-MCP"
@@ -28,7 +28,8 @@ keywords:
   - onnx-runtime
 abstract: >-
   Nexus-MCP is a unified, local-first MCP server that combines hybrid search
-  (vector + BM25 + graph), structural code graph analysis, and persistent
-  semantic memory into a single process. It provides 10 tools for AI coding
-  agents via the Model Context Protocol, delivering token-efficient code
-  understanding with <350MB RAM, no API keys, and no cloud dependencies.
+  (vector + BM25), a static code graph with call edges, and persistent
+  semantic memory into a single process. It provides 8 tools for AI coding
+  agents via the Model Context Protocol. The tools aim at fewer agent turns
+  for the same answers. It uses about 90 MB of RAM idle and 460 MB with the
+  embedding model loaded, needs no API keys and has no cloud dependencies.

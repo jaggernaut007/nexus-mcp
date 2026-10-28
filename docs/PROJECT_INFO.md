@@ -6,7 +6,7 @@ Nexus-MCP is a unified code intelligence MCP (Model Context Protocol) server tha
 - **code-graph-mcp** — structural AST analysis + call graphs
 - **Live Grep** — 100% coverage fallback via ripgrep/grep
 
-Into a **single, memory-efficient MCP server** (about 90MB idle and 460MB with the model loaded, see docs/MEMORY.md) with 10 tools for code search, navigation, analysis, and memory.
+Into a **single, memory-efficient MCP server** (about 90MB idle and 460MB with the model loaded, see docs/MEMORY.md) with 8 tools for code search, navigation, analysis, and memory.
 
 ---
 
@@ -19,10 +19,10 @@ Into a **single, memory-efficient MCP server** (about 90MB idle and 460MB with t
 4. **No cross-engine intelligence** — can't combine "semantic meaning" with "who calls this function"
 
 ### What Nexus-MCP Solves
-- Single process, single MCP connection, 10 tools
+- Single process, single MCP connection, 8 tools
 - Low memory: LanceDB mmap and a lazy-loaded model (see docs/MEMORY.md for measured numbers)
-- Hybrid search combining vector + BM25 + graph signals + live-grep fallback
-- Cross-engine tools like `explain` (graph + vector) and `graph` (static call-graph traversal)
+- Hybrid search combining vector + BM25 + exact names + live-grep fallback
+- Cross-engine tools like `find_symbol` (code + callers and callees) and `graph` (static call-graph traversal)
 
 ---
 
@@ -32,9 +32,9 @@ Into a **single, memory-efficient MCP server** (about 90MB idle and 460MB with t
 ┌─────────────────────────────────────────────────┐
 │              Nexus-MCP Server (FastMCP, stdio)   │
 ├─────────────────────────────────────────────────┤
-│  10 MCP Tools (thin wrappers in server.py)       │
-│  index | status | health | search | find_symbol  │
-│  graph | explain | analyze | map | memory        │
+│  8 MCP Tools (thin wrappers in server.py)        │
+│  index | status | search | find_symbol           │
+│  graph | analyze | map | memory                  │
 ├─────────────────────────────────────────────────┤
 │  core_api.py (transport-agnostic tool logic)     │
 ├─────────────────────────────────────────────────┤
@@ -93,35 +93,33 @@ Into a **single, memory-efficient MCP server** (about 90MB idle and 460MB with t
 
 ---
 
-## 10 Tools
+## 8 Tools
 
-The v2.0.0 release merged 15 tools into 10 ([ADR-017](adr/ADR-017-tool-consolidation.md)).
+The v2.0.0 release merged 15 tools into 10 ([ADR-017](adr/ADR-017-tool-consolidation.md)). The v2.1.0 release removed `explain` and `health` from the MCP tool list (both stay in `core_api`).
 
 ### Indexing & Discovery
 | Tool | Description | Engine |
 |------|-------------|--------|
 | `index` | Index one or more folders (incremental once an index exists); starts the file watcher | Pipeline → all engines |
 | `status` | Index stats, memory usage, staleness warning | All engines |
-| `health` | Liveness probe: uptime and engine availability | All engines |
 | `map` | Project overview (`detail="summary"`), architecture (`"architecture"`) or both (`"full"`) | Graph + Code Analyzer |
 
 ### Search & Navigation
 | Tool | Description | Engine |
 |------|-------------|--------|
 | `search` | Hybrid search with live-grep fallback | Vector + BM25 + exact names + rg/grep |
-| `find_symbol` | Find definition and relationships | Graph |
+| `find_symbol` | Code of one or more names, with callers and callees | Graph + chunks |
 | `graph` | Callers or callees of a symbol; `transitive=True` returns change impact | Graph (predecessors/successors) |
 
 ### Analysis
 | Tool | Description | Engine |
 |------|-------------|--------|
 | `analyze` | Complexity, code smells, dependencies, quality score | Graph + Code Analyzer |
-| `explain` | Symbol explanation: graph relationships + related code + metrics | Graph + Vector (synthesis) |
 
 ### Memory
 | Tool | Description | Engine |
 |------|-------------|--------|
-| `memory` | `action="store"` / `"search"` / `"delete"`, with TTL and tags | Memory (LanceDB) |
+| `memory` | `action="store"` / `"search"` / `"delete"`, with tags | Memory (LanceDB) |
 
 Old names (`find_callers`, `find_callees`, `impact`, `overview`, `architecture`, `remember`, `recall`, `forget`) no longer exist. The [CHANGELOG](../CHANGELOG.md) has the full mapping.
 
@@ -134,9 +132,8 @@ Old names (`find_callers`, `find_callees`, `impact`, `overview`, `architecture`,
 | Total RAM | ~90MB idle, ~460MB with the model loaded | ~1-2GB |
 | Warm start | <5s | ~13s combined |
 | Incremental reindex (1 file) | <1s | ~2s |
-| Hybrid search + re-rank | <500ms | ~200ms (vector only) |
+| Hybrid search | <500ms | ~200ms (vector only) |
 | `find_symbol` | <100ms | <1s |
-| `explain` (symbol) | <2s | N/A (new) |
 | Processes | 1 | 2 |
 
 ---

@@ -1,6 +1,7 @@
 """Tests for MCP tools: index, search, status."""
 
 import asyncio
+import importlib.metadata
 import time
 from unittest.mock import patch
 
@@ -44,7 +45,8 @@ class TestStatus:
     def test_status_before_index(self):
         mcp = server_module.create_server()
         result = asyncio.run(_call_tool(mcp, "status"))
-        assert result["version"] == "2.0.0"
+        # __version__ must match the package metadata (it said 2.0.0 in the 2.0.3 package).
+        assert result["version"] == importlib.metadata.version("nexus-mcp-ci")
         assert result["indexed"] is False
         assert result["codebase_path"] is None
         assert "hint" in result

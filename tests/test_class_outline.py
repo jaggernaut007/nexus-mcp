@@ -114,3 +114,21 @@ class TestShortClassAndFallback:
         node = core_api._resolve_symbol(state.graph_engine, "Ledger")[0]
         other = tmp_path_factory.mktemp("elsewhere")
         assert core_api._class_outline(state, node, [other]) == ""
+
+
+class TestOutlineWithSharedBudget:
+    def test_find_symbol_long_class_after_big_symbols_still_gets_an_outline(self, tmp_path):
+        """Earlier names use most of the budget. The class must not become a cut body."""
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "ledger.py").write_text("class Base:\n    pass\n\n\n" + LONG_CLASS)
+        for name in ("big_one", "big_two"):
+            lines = "\n".join(f"    v_{j} = {j}  # a line of padding text" for j in range(140))
+            (src / f"{name}.py").write_text(f"def {name}():\n{lines}\n    return 0\n")
+        asyncio.run(_setup_indexed(tmp_path, tmp_path / ".nexus"))
+
+        result = core_api.find_symbol("big_one, big_two, Ledger")
+        ledger = next(s for s in result["symbols"] if s["name"] == "Ledger")
+
+        assert "code" not in ledger
+        assert ledger["outline"].startswith("class Ledger(Base):")

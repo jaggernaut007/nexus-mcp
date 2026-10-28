@@ -13,6 +13,7 @@ tool answers which question; this page adds only what they do not.
   project path. A `warning` field means a background reindex is running.
 - Each call costs one more read of the whole conversation. Prefer one `find_symbol` call
   with all the names to a grep or a file read for each name.
+- A long class comes back as an outline. Ask for `Class.method` to get the code of a method.
 
 ## When not to use it
 

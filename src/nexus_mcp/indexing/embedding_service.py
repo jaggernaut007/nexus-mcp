@@ -189,17 +189,29 @@ class EmbeddingService:
                 self.config["dimensions"] = self._model.get_sentence_embedding_dimension()
             self._model_loaded = True
 
+    def _loaded_model(self):
+        """The loaded model, as a local reference that a concurrent ``unload()`` cannot clear.
+
+        A background reindex calls ``unload()`` when it ends. A search that read
+        ``self._model`` after that got None and fell back to BM25 without a word.
+        """
+        while True:
+            self._load_model()
+            model = self._model
+            if model is not None:
+                return model
+
     @property
     def dimensions(self) -> int:
         self._load_model()
         return self.config["dimensions"]
 
     def _embed_single_uncached(self, text: str, is_query: bool) -> tuple:
-        self._load_model()
+        model = self._loaded_model()
         prefix = self.config["query_prefix"] if is_query else self.config["prompt_prefix"]
         if prefix:
             text = prefix + text
-        embeddings = self._model.encode(
+        embeddings = model.encode(
             [text],
             show_progress_bar=False,
             normalize_embeddings=self.normalize,
@@ -227,7 +239,7 @@ class EmbeddingService:
 
         if not texts:
             return []
-        self._load_model()
+        model = self._loaded_model()
 
         bs = min(batch_size or self.batch_size, self.max_batch_size)
         prefix = self.config["query_prefix"] if is_query else self.config["prompt_prefix"]
@@ -235,7 +247,7 @@ class EmbeddingService:
             texts = [prefix + t for t in texts]
 
         start = time.time()
-        embeddings = self._model.encode(
+        embeddings = model.encode(
             texts,
             batch_size=bs,
             show_progress_bar=False,

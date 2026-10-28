@@ -61,7 +61,7 @@ def test_open_or_migrate_failure_after_drop_leaves_the_json_backup(tmp_path):
 
 
 def test_open_or_migrate_failure_while_refilling_keeps_rows_after_restart(tmp_path):
-    """The refill of the new table fails. The next start must restore the rows from the temp table."""
+    """The refill of the new table fails. The next start restores the rows from the temp table."""
     first = _memory_store(tmp_path, 384)
     first.remember(_note("m1", "keep me"))
     first.remember(_note("m2", "keep me too"))

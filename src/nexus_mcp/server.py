@@ -298,8 +298,8 @@ def create_server():
         ctx: Context = None,
     ) -> dict[str, Any]:
         """Build or refresh the code index for a project. Call it once per project
-        when `status` says `indexed` is false; search, find_symbol, graph, map, analyze
-        and explain all need it. Pass an absolute path, or several comma-separated
+        when `status` says `indexed` is false; search, find_symbol, graph, map and
+        analyze all need it. Pass an absolute path, or several comma-separated
         paths for a monorepo. It is incremental when an index exists, and a file
         watcher then keeps the index fresh, so you rarely need to call it again.
         Large repositories take a while; progress is reported."""
@@ -372,8 +372,10 @@ def create_server():
         code of each, with file, line range and direct callers and callees. Use it
         when you know the name ("show me create_order", "where is TokenBudget defined"),
         and in place of a file read or a grep for a definition. Pass several names in
-        one call. Code longer than 6,000 characters is cut and marked `(truncated)`.
-        Set exact=false to match part of a name when you are unsure of the spelling.
+        one call. A class longer than 2,000 characters gives an outline (its head and
+        one line per method); ask for "Class.method" for a method's code. Other code
+        longer than 6,000 characters is cut and marked `(truncated)`. Set exact=false
+        to match part of a name when you are unsure of the spelling.
         For every use of a name, use `graph`."""
         guard_err = _guard("find_symbol")
         if guard_err:

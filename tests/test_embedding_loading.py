@@ -238,3 +238,31 @@ def test_memories_stay_untouched_when_the_width_is_unchanged(tmp_path):
     _memory_store(tmp_path, 384).remember(_note("m1", "keep me"))
     _memory_store(tmp_path, 384).remember(_note("m2", "and me"))
     assert not (tmp_path / "memories-before-model-change.json").exists()
+
+
+class _EncodingModel(_RecordingModel):
+    def encode(self, texts, **kwargs):
+        import numpy as np
+
+        return np.zeros((len(texts), 384))
+
+
+def test_embed_batch_survives_unload_right_after_load(monkeypatch):
+    """A reindex unloads the model between load and encode. The search keeps its model."""
+    fake = types.ModuleType("sentence_transformers")
+    fake.SentenceTransformer = _EncodingModel
+    monkeypatch.setitem(sys.modules, "sentence_transformers", fake)
+    service = es.EmbeddingService("bge-small-en", device="cpu")
+    real_load = service._load_model
+    raced = []
+
+    def load_then_unload():
+        real_load()
+        if not raced:  # another thread's unload() lands here, once
+            raced.append(True)
+            service.unload()
+
+    monkeypatch.setattr(service, "_load_model", load_then_unload)
+
+    assert len(service.embed_batch(["a", "b"])) == 2
+    assert len(service.embed("c")) == 384

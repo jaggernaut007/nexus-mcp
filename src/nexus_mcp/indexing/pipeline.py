@@ -538,6 +538,8 @@ class IndexingPipeline:
         return {
             "stale": True,
             "changed_files": changed,
+            # Searches leave out the stored snippets of these files: the text on disk differs.
+            "changed_paths": diff["new"] | diff["deleted"] | diff["modified"],
             "reason": (
                 f"{len(diff['new'])} new, {len(diff['modified'])} modified, "
                 f"{len(diff['deleted'])} deleted since last index"

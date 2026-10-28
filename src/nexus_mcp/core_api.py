@@ -785,7 +785,8 @@ def search(
     search_warning = None
     if staleness["stale"]:
         search_warning = (
-            f"Index may be out of date ({staleness['reason']}); refreshing in background."
+            f"Index may be out of date ({staleness['reason']}); refreshing in background. "
+            "Results in changed files have no snippet."
         )
         _trigger_background_reindex(state.codebase_path, state.codebase_paths)
 
@@ -860,13 +861,17 @@ def search(
             logger.debug("Exact name lookup failed: %s", e)
     results = results[:limit]
 
+    roots = _index_roots(state)
     if not symbol_type and (live_grep or (mode == "hybrid" and len(results) < limit)):
         try:
             from nexus_mcp.engines.live_grep import LiveGrepEngine
             from nexus_mcp.parsing.language_registry import get_language_for_file
 
-            live_engine = LiveGrepEngine(str(state.codebase_path))
-            live_results = live_engine.search(query, limit=limit)
+            live_results = []
+            for root in roots:  # every root of a multi-root index, not only the first
+                live_results += LiveGrepEngine(str(root)).search(query, limit=limit)
+                if len(live_results) >= limit:
+                    break
 
             if live_results:
                 filtered_live = []
@@ -898,9 +903,7 @@ def search(
         except Exception as e:
             logger.warning("Live grep failed: %s", e)
 
-    roots = getattr(state, "codebase_paths", [])
-    if not roots and state.codebase_path:
-        roots = [state.codebase_path]
+    changed_paths = staleness.get("changed_paths") or set()
     compact = detail == "compact"
     for rank, r in enumerate(results):
         r.pop("vector", None)
@@ -929,6 +932,15 @@ def search(
             continue
 
         r["absolute_path"] = str(abs_path)
+        # A stored snippet of a changed file is not the code on disk. After a restore the
+        # stored index can even come from the repository itself (a shipped `.nexus`).
+        # Live-grep results are read from disk now, so they keep theirs.
+        if (
+            r["absolute_path"] in changed_paths
+            and not str(r.get("search_mode", "")).startswith("live_grep")
+        ):
+            r.pop("code_snippet", None)
+            r["changed_since_index"] = True
 
         for root in roots:
             try:
@@ -1234,11 +1246,14 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
                 and entry.get("type") != "module"  # a whole file: read it with a file read
             )
             if wants_code:
-                code = _symbol_source(*place, min(SYMBOL_CODE_CHARS, budget), roots)
+                # Decide "long class" from the source before the budget cut: a class cut
+                # to a small leftover budget would look short and send a cut body.
+                source = _symbol_source(*place, SYMBOL_CODE_CHARS, roots)
+                code = source if budget >= SYMBOL_CODE_CHARS else _trim_snippet(source, budget)
                 node = node_of.get(id(entry))
                 if code and not _slice_names_symbol(code, entry.get("name", "")):
                     stale_code += 1  # the file changed after it was indexed
-                elif code and node is not None and _is_long_class(node, code):
+                elif code and node is not None and _is_long_class(node, source):
                     outline = _class_outline(state, node, roots)
                     if outline:
                         entry["outline"] = _trim_snippet(outline, budget)
@@ -1338,6 +1353,19 @@ def _references_only(state, symbol_name: str, direction: str) -> dict[str, Any]:
     return result
 
 
+def _merge_references(found: list[tuple[Path, dict[str, Any]]]) -> dict[str, Any]:
+    """One `references` result from the results of several roots, paths as `root/path`."""
+    merged: dict[str, Any] = {"total_files": 0, "total_lines": 0, "files": {}, "truncated": False}
+    for root, refs in found:
+        merged["total_files"] += refs.get("total_files", 0)
+        merged["total_lines"] += refs.get("total_lines", 0)
+        merged["truncated"] = merged["truncated"] or refs.get("truncated", False)
+        for key in ("files", "more_files", "test_files"):
+            for path, value in refs.get(key, {}).items():
+                merged.setdefault(key, {})[f"{root.name}/{path}"] = value
+    return merged
+
+
 def _add_references(result: dict[str, Any], state, symbol_name: str) -> None:
     """Add every whole-word text use of the symbol name to a `graph` callers result.
 
@@ -1346,18 +1374,26 @@ def _add_references(result: dict[str, Any], state, symbol_name: str) -> None:
     """
     from nexus_mcp.engines.live_grep import LiveGrepEngine
 
-    try:
-        refs = LiveGrepEngine(str(state.codebase_path)).references(
-            symbol_name,
-            max_lines=MAX_REFERENCE_LINES,
-            max_lines_per_file=MAX_REFERENCE_LINES_PER_FILE,
-        )
-    except Exception as e:  # noqa: BLE001 - references are an addition, never a failure
-        logger.warning("Reference search failed: %s", e)
+    roots = _index_roots(state)
+    # Each root of a multi-root index gets a share of the line budget, and its paths get
+    # the root's folder name in front, so that `src/a.py` of two roots stays apart.
+    max_lines = max(MAX_REFERENCE_LINES // max(len(roots), 1), MAX_REFERENCE_LINES_PER_FILE)
+    found = []
+    for root in roots:
+        try:
+            refs = LiveGrepEngine(str(root)).references(
+                symbol_name,
+                max_lines=max_lines if len(roots) > 1 else MAX_REFERENCE_LINES,
+                max_lines_per_file=MAX_REFERENCE_LINES_PER_FILE,
+            )
+        except Exception as e:  # noqa: BLE001 - references are an addition, never a failure
+            logger.warning("Reference search failed: %s", e)
+            continue
+        if refs is not None:
+            found.append((Path(root), refs))
+    if not found:
         return
-    if refs is None:
-        return
-    result["references"] = refs
+    result["references"] = found[0][1] if len(roots) == 1 else _merge_references(found)
     result["note"] = (
         "references: every whole-word use of the name. Source files show `line: code`; "
         "test files show a line count. No grep is needed. Callers are the statically "

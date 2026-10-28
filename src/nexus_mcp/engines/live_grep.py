@@ -140,6 +140,7 @@ class LiveGrepEngine:
             str(limit),
             "--smart-case",
             "--heading",
+            "-e",  # a query that starts with "-" must not become a flag (rg --pre runs commands)
             query,
             str(self.workspace_path),
         ]
@@ -187,6 +188,7 @@ class LiveGrepEngine:
             "-rnI",
             "-m",
             str(limit),
+            "-e",  # a query that starts with "-" must not become a flag
             query,
             str(self.workspace_path),
         ]

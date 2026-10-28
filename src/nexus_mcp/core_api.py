@@ -555,8 +555,6 @@ async def index(
     from nexus_mcp.indexing.pipeline import IndexingPipeline
     from nexus_mcp.state import get_state
 
-    global _pipeline
-
     raw_paths = [p.strip() for p in path.split(",") if p.strip()]
     if paths:
         raw_paths.extend(p.strip() for p in paths.split(",") if p.strip())
@@ -583,40 +581,44 @@ async def index(
         except Exception as e:
             logger.debug("progress_callback failed for %s: %s", stage, e)
 
-    await asyncio.to_thread(_pipeline_lock.acquire)
-    try:
-        if _pipeline is None:
-            _pipeline = IndexingPipeline(settings)
+    def _locked_index():
+        # Acquire, index and release in one worker thread. A cancelled `await` then
+        # cannot separate the lock from the work: it neither leaks the lock (cancel while
+        # waiting for it) nor frees it while the thread still writes (cancel mid-index).
+        global _pipeline
+        with _pipeline_lock:
+            if _pipeline is None:
+                _pipeline = IndexingPipeline(settings)
 
-        if len(validated) > 1:
-            result = await asyncio.to_thread(_pipeline.multi_index, validated, _cb)
-            state = get_state()
-            state.codebase_path = validated[0]
-            state.codebase_paths = validated
-        else:
-            codebase_path = validated[0]
-            metadata_path = settings.storage_path / "index_metadata.json"
-            # Incremental only if the stored index belongs to this same project. A shared
-            # storage folder can hold another project's index; diffing against it would
-            # mix the two, so build from scratch instead.
-            if metadata_path.exists() and _stored_root_set(metadata_path) == {
-                str(codebase_path.resolve())
-            }:
-                result = await asyncio.to_thread(
-                    _pipeline.incremental_index, codebase_path, _cb
-                )
+            if len(validated) > 1:
+                result = _pipeline.multi_index(validated, _cb)
+                state = get_state()
+                state.codebase_path = validated[0]
+                state.codebase_paths = validated
             else:
-                result = await asyncio.to_thread(_pipeline.index, codebase_path, _cb)
-            state = get_state()
-            state.codebase_path = codebase_path
-            state.codebase_paths = [codebase_path]
+                codebase_path = validated[0]
+                metadata_path = settings.storage_path / "index_metadata.json"
+                # Incremental only if the stored index belongs to this same project. A
+                # shared storage folder can hold another project's index; diffing against
+                # it would mix the two, so build from scratch instead.
+                if metadata_path.exists() and _stored_root_set(metadata_path) == {
+                    str(codebase_path.resolve())
+                }:
+                    result = _pipeline.incremental_index(codebase_path, _cb)
+                else:
+                    result = _pipeline.index(codebase_path, _cb)
+                state = get_state()
+                state.codebase_path = codebase_path
+                state.codebase_paths = [codebase_path]
 
-        state.vector_engine = _pipeline.vector_engine
-        state.bm25_engine = _pipeline.bm25_engine
-        state.graph_engine = _pipeline.graph_engine
-        state._staleness_cache = None
-    finally:
-        _pipeline_lock.release()
+            state.vector_engine = _pipeline.vector_engine
+            state.bm25_engine = _pipeline.bm25_engine
+            state.graph_engine = _pipeline.graph_engine
+            state._staleness_cache = None
+            return result, state
+
+    # shield: a cancelled caller stops waiting, but the thread finishes and releases the lock.
+    result, state = await asyncio.shield(asyncio.to_thread(_locked_index))
 
     await _ensure_file_watcher(state, settings.auto_watch_enabled)
 

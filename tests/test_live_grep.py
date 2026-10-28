@@ -55,3 +55,25 @@ def test_live_grep_empty_query(temp_workspace):
     engine = LiveGrepEngine(str(temp_workspace))
     assert engine.search("") == []
     assert engine.search("   ") == []
+
+
+def test_search_grep_query_starting_with_dash_is_a_pattern(temp_workspace):
+    """A query like "--version" is searched as text, not passed to grep as a flag."""
+    (temp_workspace / "flags.txt").write_text("run it with --version to check\n")
+    engine = LiveGrepEngine(str(temp_workspace))
+    engine.rg_path = None
+
+    results = engine.search("--version")
+
+    assert any("flags.txt" in r["absolute_path"] for r in results)
+
+
+def test_search_rg_query_starting_with_dash_is_a_pattern(temp_workspace):
+    """A query like "--pre=sh" must never reach ripgrep as a flag (it would run commands)."""
+    if not shutil.which("rg"):
+        pytest.skip("ripgrep (rg) not installed")
+    (temp_workspace / "flags.txt").write_text("run it with --version to check\n")
+
+    results = LiveGrepEngine(str(temp_workspace)).search("--version")
+
+    assert any("flags.txt" in r["absolute_path"] for r in results)

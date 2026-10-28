@@ -112,6 +112,29 @@ class MemoryStore:
         logger.warning("Finished an interrupted memory migration (%d memories)", len(rows))
         return table
 
+    def _merge_leftover_migration(self, table) -> None:
+        """Copy rows that only the temp table holds into `table`, then drop the temp table.
+
+        A temp table next to a main table of the right width is either the leftover of a
+        finished migration (every row is in both) or the only copy of the rows of a
+        migration that failed while it refilled the main table. Dropping it without this
+        check deletes those rows on the next start.
+        """
+        temp = self._db.open_table(self._migration_table)
+        temp_width = getattr(temp.schema.field("vector").type, "list_size", None)
+        if temp_width not in (None, self._vector_dims):
+            logger.error(
+                "Kept table %r: its vector width %s does not fit the current model (%s)",
+                self._migration_table, temp_width, self._vector_dims,
+            )
+            return
+        have = set(table.to_arrow().column("id").to_pylist())
+        missing = [row for row in temp.to_arrow().to_pylist() if row["id"] not in have]
+        if missing:
+            table.add(missing)
+            logger.warning("Restored %d memories from an interrupted migration", len(missing))
+        self._db.drop_table(self._migration_table)
+
     def _open_or_migrate(self, table):
         """Return `table`, re-embedding its rows first if its vector width is wrong.
 
@@ -123,7 +146,7 @@ class MemoryStore:
         old_width = getattr(table.schema.field("vector").type, "list_size", None)
         if old_width is None or old_width == self._vector_dims:
             if self._migration_table in self._table_names():
-                self._db.drop_table(self._migration_table)  # a finished migration's leftover
+                self._merge_leftover_migration(table)
             return table
 
         rows = table.to_arrow().to_pylist()

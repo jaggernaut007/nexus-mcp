@@ -45,7 +45,6 @@ class _Bucket:
 TOOL_RATE_OVERRIDES: Dict[str, tuple[float, int]] = {
     "index": (0.1, 2),          # 1 per 10s, burst 2
     "search": (10.0, 20),       # 10/s, burst 20
-    "explain": (10.0, 20),
     "graph": (5.0, 10),         # covers the heavier transitive=True (impact) path
     "memory": (10.0, 20),       # matches old recall's rate; search is the common case
 }

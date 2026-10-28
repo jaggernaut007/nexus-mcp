@@ -1,6 +1,6 @@
-"""Reciprocal Rank Fusion and graph relevance scoring.
+"""Reciprocal Rank Fusion, test-file ordering and exact-name lookup.
 
-Combines results from vector search, BM25, and graph relevance
+Combines results from vector search and BM25
 into a single ranked list using Reciprocal Rank Fusion (RRF).
 """
 
@@ -8,79 +8,119 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
-from nexus_mcp.indexing.chunker import _generate_chunk_id
+from nexus_mcp.core.graph_models import identifier_words
 
 logger = logging.getLogger(__name__)
 
 
-def graph_relevance_search(
-    graph_engine,
-    query: str,
-    limit: int = 10,
-) -> List[Dict[str, Any]]:
-    """Score graph nodes by structural importance for a query.
+# Query words that show the user wants test code.
+TEST_QUERY_WORDS = frozenset({
+    "test", "tests", "testing", "tested", "spec", "specs", "fixture", "fixtures", "mock",
+    "mocks", "pytest", "unittest", "conftest", "jest",
+})
+_TEST_DIRS = frozenset({"test", "tests", "testing", "__tests__", "spec", "specs", "e2e"})
+_TEST_SUFFIXES = (
+    "_test.py", "_test.go", "_test.rs", ".test.ts", ".test.tsx", ".test.js", ".test.jsx",
+    ".spec.ts", ".spec.tsx", ".spec.js", ".spec.jsx", "test.java", "tests.java",
+)
 
-    Tokenizes the query, finds matching nodes by name, and scores
-    them by graph centrality (weighted in-degree + out-degree).
 
-    Args:
-        graph_engine: RustworkxCodeGraph instance.
-        query: Search query text.
-        limit: Max results to return.
+def is_test_path(path: str) -> bool:
+    """True when ``path`` is test code by its folder or file name."""
+    parts = str(path).replace("\\", "/").lower().split("/")
+    name = parts[-1]
+    if any(part in _TEST_DIRS for part in parts[:-1]):
+        return True
+    return name.startswith("test_") or name in ("conftest.py", "tests.py") or name.endswith(
+        _TEST_SUFFIXES
+    )
 
-    Returns:
-        List of result dicts with id, symbol_name, filepath, score, etc.
+
+def query_mentions_tests(query: str) -> bool:
+    """True when the query asks for test code (`test_login`, "the fixture for orders")."""
+    words = set()
+    for token in query.replace("/", " ").replace(".", " ").split():
+        words.update(identifier_words(token))
+        words.add(token.lower())
+    return bool(words & TEST_QUERY_WORDS)
+
+
+def demote_test_files(query: str, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Move results in test files after all other results, in the same relative order.
+
+    A test repeats the words of the code it tests, so tests outrank the source they
+    cover (measured: 70% of the chunks of a large project were tests, and a prose
+    query returned five tests before the function). The order is unchanged when the
+    query itself asks for tests. No result is removed.
     """
-    # Tokenize query into words (alphanumeric, 2+ chars)
-    tokens = [t.lower() for t in re.split(r'\W+', query) if len(t) >= 2]
-    if not tokens:
-        return []
+    if query_mentions_tests(query):
+        return results
+    source, tests = [], []
+    for r in results:
+        path = r.get("absolute_path") or r.get("filepath") or ""
+        (tests if is_test_path(path) else source).append(r)
+    return source + tests
 
-    # Find matching nodes across all tokens
-    seen_ids: set = set()
-    candidates: list = []
-    for token in tokens:
-        matches = graph_engine.find_nodes_by_name(token, exact=False)
-        for node in matches:
-            if node.id not in seen_ids:
-                seen_ids.add(node.id)
-                candidates.append(node)
 
-    if not candidates:
-        return []
+_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_INNER_CAPITAL = re.compile(r"[a-z0-9][A-Z]")
+MAX_QUERY_IDENTIFIERS = 5
 
-    # Score by graph centrality: in_degree * 2 + out_degree
-    scored = []
-    for node in candidates:
-        in_deg, out_deg = graph_engine.get_node_degree(node.id)
-        raw_score = in_deg * 2 + out_deg
-        scored.append((node, raw_score))
 
-    if not scored:
-        return []
+def query_identifiers(query: str) -> List[str]:
+    """Words of the query that are written like code names: `snake_case` or `CamelCase`.
 
-    # Normalize scores to [0, 1]
-    max_score = max(s for _, s in scored) or 1
-    scored.sort(key=lambda x: x[1], reverse=True)
+    A plain word (`cache`, `Governor`, `API`) is not a name here: it can be prose. The
+    part after the last dot of `module.name` is used. At most ``MAX_QUERY_IDENTIFIERS``.
+    """
+    names: List[str] = []
+    for token in _IDENTIFIER.findall(query):
+        if len(token) < 3 or token in names:
+            continue
+        if "_" in token.strip("_") or _INNER_CAPITAL.search(token):
+            names.append(token)
+    return names[:MAX_QUERY_IDENTIFIERS]
 
-    results = []
-    for node, raw_score in scored[:limit]:
-        # Map graph node to chunk ID for fusion deduplication
-        chunk_id = _generate_chunk_id(
-            node.location.file_path, node.name, node.location.start_line
+
+def exact_names_first(
+    query: str, results: List[Dict[str, Any]], definitions: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """Put the definitions of the names in the query before the other results.
+
+    ``definitions`` are the chunks whose symbol name is a name in the query. A file that
+    defines more of the names comes first; then the order of ``results`` decides. On four
+    eval suites this raised hit@1 on one (0.59 to 0.64) and lowered none. A plain "all
+    definitions first" order lowered one suite, because one name can have a definition in
+    several files.
+    """
+    if not definitions:
+        return results
+    names_in_file: Dict[str, set] = {}
+    for d in definitions:
+        names_in_file.setdefault(d.get("filepath", ""), set()).add(
+            str(d.get("symbol_name", "")).rsplit(".", 1)[-1]
         )
-        results.append({
-            "id": chunk_id,
-            "filepath": node.location.file_path,
-            "symbol_name": node.name,
-            "symbol_type": node.node_type.value,
-            "language": node.language,
-            "line_start": node.location.start_line,
-            "line_end": node.location.end_line,
-            "score": raw_score / max_score,
-        })
-
-    return results
+    order = {r.get("id"): i for i, r in enumerate(results)}
+    # A definition that the engines also found keeps its scores. One that only the name
+    # lookup found gets the same fields, so that each row has one shape.
+    ranked = {r.get("id"): r for r in results}
+    definitions = [
+        ranked.get(
+            d.get("id"),
+            {**d, "score": 1.0, "rrf_score": 0.0, "_fusion_sources": ["exact_name"]},
+        )
+        for d in definitions
+    ]
+    first = sorted(
+        definitions,
+        key=lambda d: (
+            -len(names_in_file[d.get("filepath", "")]),
+            order.get(d.get("id"), len(results)),
+        ),
+    )
+    first = demote_test_files(query, first)
+    ids = {d.get("id") for d in first}
+    return first + [r for r in results if r.get("id") not in ids]
 
 
 class ReciprocalRankFusion:
@@ -95,7 +135,7 @@ class ReciprocalRankFusion:
         weights: Optional[Dict[str, float]] = None,
         k: int = 60,
     ):
-        self.weights = weights or {"vector": 0.5, "bm25": 0.3, "graph": 0.2}
+        self.weights = weights or {"vector": 0.5, "bm25": 0.3}
         self.k = k
 
     def fuse(

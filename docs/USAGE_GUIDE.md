@@ -8,9 +8,6 @@
 # Install from PyPI
 pip install nexus-mcp-ci
 
-# Optional: with FlashRank reranker for better search quality
-pip install nexus-mcp-ci[reranker]
-
 # Optional: with GPU (CUDA) support
 pip install nexus-mcp-ci[gpu]
 ```
@@ -36,7 +33,7 @@ The server starts on stdio (the default MCP transport). Configure your MCP clien
 **Claude Code:**
 
 ```bash
-claude mcp add nexus-mcp-ci -- nexus-mcp-ci
+claude mcp add nexus-mcp -- nexus-mcp-ci
 ```
 
 **Claude Desktop** (add to `~/Library/Application Support/Claude/claude_desktop_config.json`):
@@ -44,7 +41,7 @@ claude mcp add nexus-mcp-ci -- nexus-mcp-ci
 ```json
 {
   "mcpServers": {
-    "nexus-mcp-ci": {
+    "nexus-mcp": {
       "command": "nexus-mcp-ci",
       "args": []
     }
@@ -56,7 +53,7 @@ claude mcp add nexus-mcp-ci -- nexus-mcp-ci
 
 ```json
 {
-  "nexus-mcp-ci": {
+  "nexus-mcp": {
     "command": "nexus-mcp-ci",
     "transport": "stdio"
   }
@@ -67,12 +64,12 @@ See the full [Installation Guide](INSTALLATION.md) for client-specific instructi
 
 ## Tool Reference
 
-Nexus-MCP exposes 10 tools. The v2.0.0 release merged the old 15 tools; see the [CHANGELOG](../CHANGELOG.md) for the old-to-new mapping and [ADR-017](adr/ADR-017-tool-consolidation.md) for the reason.
+Nexus-MCP exposes 8 tools. The v2.0.0 release merged the old 15 tools; see the [CHANGELOG](../CHANGELOG.md) for the old-to-new mapping and [ADR-017](adr/ADR-017-tool-consolidation.md) for the reason.
 
 ### Discovery & Indexing
 
 #### `index`
-Index a codebase directory. Call it before any other tool except `status` and `health`.
+Index a codebase directory. Call it before any other tool except `status`.
 
 ```
 # Single directory
@@ -102,15 +99,8 @@ status()
 
 Returns version, indexing state, chunk counts, graph stats, peak RSS memory and a `hint` field. If files changed since the last index, the result includes `stale` and `staleness_warning`, and the server starts a background reindex. The staleness check runs at most once every `NEXUS_STALENESS_CHECK_INTERVAL` seconds (default 15).
 
-#### `health`
-Liveness and readiness probe: uptime and which engines are up. Use `status` to check index freshness.
-
-```
-health()
-```
-
 #### `map`
-Project orientation. Use it instead of `ls` or manual browsing.
+Project overview: files, languages, modules and structure. Use it before you list directories or open files one by one.
 
 ```
 map(detail="summary")        # files, languages, symbol counts, quality, top modules
@@ -123,33 +113,39 @@ map(detail="full")           # both
 ### Search
 
 #### `search`
-Preferred over Grep/Glob for finding code. Semantic + keyword + graph search with code snippets.
+Finds code by meaning or keyword: semantic + keyword + graph search, with code snippets.
 
 ```
-search(query="authentication middleware", limit=10, language="python", mode="hybrid")
+search(query="authentication middleware", limit=10)
 ```
 
 Parameters:
-- `query` — Natural language or code query
+- `query` — Natural language or code query. Exact names (`parse_config`) bring their definitions first.
 - `limit` — Max results (1-100, default 10)
-- `language` — Filter by language (e.g., "python", "javascript")
-- `symbol_type` — Filter by type (e.g., "function", "class")
-- `mode` — "hybrid" (default), "vector", or "bm25"
-- `rerank` — Enable FlashRank reranking (default True)
-- `live_grep` — Force the live-grep fallback (`rg`, then `grep`) (default False)
 
-Returns results with `filepath` (relative), `absolute_path`, `code_snippet` (truncated to 2000 chars), `score`, `symbol_name`, `line_start`/`line_end`, and a `hint` field. Raw embedding vectors are stripped from results. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a non-null `warning`. A background reindex starts, and the results still return at once.
+The schema that the model sees holds only these two. The Python API (`nexus_mcp.core_api.search`) also takes `language`, `symbol_type` ("function", "class", "method", "variable" or "module"), `mode` ("hybrid", "vector" or "bm25"), `live_grep` and `detail` ("compact" or "full"). Agents used none of them in 49 calls, and each parameter costs prompt tokens on every turn.
+
+Returns results with `filepath` (relative), `code_snippet`, `symbol_name`, `symbol_type`, `line_start`/`line_end`, and a `hint` field. A compact response has only `total`, `results`, `hint` and, when the index is stale, `warning`; `detail="full"` adds `query`, `search_mode`, `engines_used` and the `language` of each result. With `detail="compact"` each of the top 3 results carries its whole symbol, up to 2000 characters (cut at a line boundary and marked `(truncated)` when longer), so the agent can answer without a file read. The other results show the signature and the first docstring line (160 characters at most, with no `(truncated)` mark). The snippet is the code only: the stored chunk text also has a `# path:line` line, a `type: name` line, a copy of the signature and docstring, and `Imports:` and `Calls:` lines, and compact mode leaves those out. The fields that repeat the snippet (`signature`, `docstring`, `parent`), the internal fields (`id`, `score`, `rrf_score`, `_fusion_sources`, `absolute_path`) and empty values are also left out. Measured on a 460-file project, a compact result is about 7,000 characters, 40% of a full one.
+
+Results in test files come after results in source files, unless the query itself asks for tests (a word such as "test", "fixture" or "mock", or a name such as `test_login`). No result is removed. On a 45,000-chunk index of django, where 70% of the chunks are tests, this raised hit@1 from 6 of 12 to 8 of 12 task queries. A query can hold exact names written as `snake_case` or `CamelCase` (`"parse_config RetryPolicy"`): their definitions come first, and a file that defines more of the names comes before the others. Hybrid mode fuses vector and keyword results; With `detail="full"` the snippet is up to 2000 characters and those fields are present. Raw embedding vectors are always stripped. The tool falls back to live grep on its own when hybrid results are sparse. If the index looks stale, the result carries a `warning` (in full mode the field is always there and is null when the index is fresh). A background reindex starts, and the results still return at once.
 
 ### Graph Analysis
 
 #### `find_symbol`
-Preferred over Grep for finding symbol definitions. Returns file path, line numbers, docstring, type annotations and the graph relationships of the symbol.
+Finds symbol definitions by name. Returns file path, line numbers, type, the `code` of the symbol, and its callers and callees.
 
 ```
 find_symbol(symbol_name="UserService", exact=True)
+find_symbol(symbol_name="should_keep, AUTO_APPLY_CATEGORIES, MailClassification")
 ```
 
-Use `exact=False` for fuzzy substring matching.
+Pass several names in one call (commas or spaces between them, 8 names at most): an agent pays for each call with one more read of its prompt. `code` is the whole symbol without its common indent, 6,000 characters at most for one symbol and 12,000 for one call; longer code is cut at a line and marked `(truncated)`, and `start_line` and `end_line` say where the rest is. A name with more than 3 definitions gets code for the first 3 (source files before test files). A name with no graph node, such as a constant, comes from the chunk table. Names with no match are in `not_found`.
+
+A class longer than 2,000 characters gets `outline` in place of `code`. The outline holds the class line, the docstring and the attributes (25 lines or 1,200 characters at most). It then has one line for each method, with its line range (60 methods at most). The result also has a `hint`: ask for `Class.method` to get the code of a method. A short class, a class with no methods in the graph, and a function keep `code`. A `Class.method` name works with `exact=False` too. `more_matches` counts the matches past the first 10 of one name.
+
+The code is read from the file at the path that the index stores, and only when that file is a regular file inside an indexed folder (symlinks are followed first), not larger than `NEXUS_MAX_FILE_SIZE_MB`; at most 1,000 lines are read for one symbol. The node of a whole file (the graph has one for each file, named like it) comes after functions and classes and has no code. When the file changed after it was indexed, so that the stored lines no longer hold the symbol, its code is left out and the result has a `warning`. A name has at most 10 entries (`more_matches` counts the rest). A symbol gets no code when less than 200 characters of the call budget are left.
+
+Use `exact=False` for fuzzy substring matching. With `detail="compact"` (default) the callers and callees are given by name as `file -> ["name:line"]`, at most 20 each (`callers_total` or `callees_total` gives the true count when there are more). With `detail="full"` each symbol has every node field and the raw relationship records with node ids. A compact result is about a third of the size of a full one.
 
 #### `graph`
 Trace the call graph of a symbol. This tool replaces `find_callers`, `find_callees` and `impact`.
@@ -158,25 +154,30 @@ Trace the call graph of a symbol. This tool replaces `find_callers`, `find_calle
 graph(symbol_name="authenticate", direction="callers")        # who calls this
 graph(symbol_name="process_request", direction="callees")     # what this calls
 graph(symbol_name="DatabaseConnection", direction="callers",
-      transitive=True, max_depth=5)                            # change blast radius
+      transitive=True)                                         # change blast radius
 ```
 
 Parameters:
 - `symbol_name` — Name of the function or symbol
 - `direction` — "callers" (default) or "callees"
 - `transitive` — `True` returns the full transitive change impact. It works only with `direction="callers"`. Run it before you refactor a shared symbol.
-- `max_depth` — Maximum traversal depth for `transitive=True` (default 10)
+- The Python API also takes `max_depth` and `detail` ("compact", or "full" with 25 symbols at most). Compact: callers or callees as `file -> ["name:line"]`, source files before test files. "full": one record for each symbol with docstring, complexity, signature types and the node id.
 
-> **Known gap:** the graph holds `CONTAINS` and `IMPORTS` edges only. No parser extracts `CALLS` edges yet, so `graph` returns empty results today. Use `search` to find call sites until call-edge extraction lands. See [Known Limitations](../README.md#known-limitations).
+With `transitive=True` and `detail="compact"`, the result has `total_impacted` and `impacted_files` (`file -> [names]`, every impacted symbol). The `impacted_symbols` list of records is only in `detail="full"`. A compact result is about 10% of the size of a full one.
 
-#### `explain`
-Preferred over Read for understanding a symbol. Combines graph relationships, semantic search results and code metrics.
+A callers result (immediate or transitive) also has `references`: every line where the name appears as a whole word, from a live text search of the project.
 
 ```
-explain(symbol_name="Router", verbosity="detailed")
+"references": {"total_files": 3, "total_lines": 6, "truncated": false,
+               "files": {"src/agents/budget.py": ["12: def ensure_budget(n):"],
+                         "src/agents/runtime.py": ["4: from budget import ensure_budget",
+                                                   "88: ensure_budget(cost)"]},
+               "test_files": {"tests/test_budget.py": 3}}
 ```
 
-Verbosity levels: "summary" (concise), "detailed" (default), "full" (everything).
+The caller list holds only the calls that static analysis resolved, so it is a lower bound. `references` is the complete text answer, so a separate grep is not needed. Source files come first, each line with its code (at most 8 lines per file, 60 lines in all, 110 characters per line). A source file past the budget is a line count in `more_files`. Test files are a line count each in `test_files`. `truncated` says when a cap cut the list, and the totals always count everything. In the caller lists a test file with more than 3 symbols shows 3 and `+N more`. A name with no graph node (a constant, or a language without graph support) returns its `references` with an empty caller list instead of an error.
+
+> **Limit:** call edges are static and name-based. Dynamic dispatch, callbacks and reflection are invisible, and a name shared by several definitions gets no edge. Treat results as a lower bound and use `search` for other call sites. See [Known Limitations](../README.md#known-limitations).
 
 #### `analyze`
 Run code analysis on the indexed codebase: complexity metrics, dependency analysis, code smells and quality scores.
@@ -196,14 +197,13 @@ Persist and retrieve project context across sessions. This tool replaces `rememb
 # Store
 memory(action="store",
        content="The auth service uses JWT tokens with 24h expiry",
-       memory_type="decision", tags="auth,jwt", ttl="permanent")
+       tags="auth,jwt")
 
 # Search
-memory(action="search", query="how does authentication work?", limit=5, tags="auth")
+memory(action="search", query="how does authentication work?", tags="auth")
 
 # Delete
 memory(action="delete", tags="temporary")
-memory(action="delete", memory_type="session")
 memory(action="delete", memory_id="abc-123")
 ```
 
@@ -211,10 +211,9 @@ Parameters:
 - `action` — "store", "search" or "delete"
 - `content` — Text to store (`action="store"`)
 - `query` — Natural language query (`action="search"`)
-- `memory_id`, `memory_type`, `tags` — Filters for search and delete. `memory_type` and `tags` also set the type and tags when you store.
-- `ttl` — "permanent" (default), "month", "week", "day" or "session"
-- `project` — Project name for scoping (`action="store"`, default "default")
-- `limit` — Maximum results (`action="search"`, default 5)
+- `tags` — Comma-separated; they set the tags when you store and filter when you search or delete
+- `memory_id` — The note to delete (`action="delete"`)
+- The Python API also takes `memory_type`, `ttl`, `project` and `limit`.
 
 Memory types: note (default), decision, conversation, status, preference, doc.
 
@@ -227,14 +226,14 @@ Set via environment variables before starting the server:
 ```bash
 # Embedding model selection
 export NEXUS_EMBEDDING_MODEL=bge-small-en       # Default: bge-small-en (384d, lightweight)
-                                                 # Options: jina-code (768d, code-specific)
+                                                 # jina-code (768d) is deprecated
 export NEXUS_EMBEDDING_DEVICE=auto               # auto (CUDA > MPS > CPU), cuda, mps, cpu
 
 # Search tuning
 export NEXUS_SEARCH_MODE=hybrid          # hybrid, vector, or bm25
 export NEXUS_FUSION_WEIGHT_VECTOR=0.5    # Vector weight in RRF
 export NEXUS_FUSION_WEIGHT_BM25=0.3      # BM25 weight in RRF
-export NEXUS_FUSION_WEIGHT_GRAPH=0.2     # Graph weight in RRF
+export NEXUS_WARM_START=true             # Load the index and the model while the server starts
 
 # Resource limits
 export NEXUS_MAX_FILE_SIZE_MB=10         # Skip files larger than this
@@ -261,12 +260,12 @@ See the [README configuration table](../README.md#configuration) for every varia
 
 ### Embedding Models
 
-Nexus-MCP supports two embedding models. Only registered model names are accepted; custom model names raise a `ConfigurationError`.
+Nexus-MCP recommends one embedding model, `bge-small-en`. `jina-code` still loads, with a warning, so an existing index keeps working; it is deprecated. Only registered model names are accepted; custom model names raise a `ConfigurationError`.
 
 | Model | HuggingFace ID | Dims | Code-specific? | Notes |
 |-------|---------------|------|:-:|---|
 | `bge-small-en` (default) | `BAAI/bge-small-en-v1.5` | 384 | No | Smallest download (~50MB), general text, PyTorch backend |
-| `jina-code` | `jinaai/jina-embeddings-v2-base-code` | 768 | Yes | Best code search quality, ONNX, needs `trust_remote_code` |
+| `jina-code` (deprecated) | `jinaai/jina-embeddings-v2-base-code` | 768 | Yes | ONNX, needs `trust_remote_code` and a 612 MiB download; slow CPU index. Removal in a future major release |
 
 GPU/MPS auto-detection (`NEXUS_EMBEDDING_DEVICE=auto`) tries CUDA first, then Apple MPS, then falls back to CPU. For explicit GPU support, install with `pip install -e ".[gpu]"`.
 
@@ -288,7 +287,6 @@ GPU/MPS auto-detection (`NEXUS_EMBEDDING_DEVICE=auto`) tries CUDA first, then Ap
 
 2. **Use filters to narrow results** — The `language` and `symbol_type` filters are applied before search, making results more relevant and queries faster.
 
-3. **Adjust verbosity for context** — When using `explain`, start with "summary" for quick overviews and "detailed" for investigation.
 
 ### Memory
 

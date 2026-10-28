@@ -6,6 +6,7 @@ from benchmarks.scoring import (
     file_recall,
     judge_prompt,
     mechanical_score,
+    mentions_path,
     normalize_path,
     parse_judge_output,
     score_run,
@@ -93,6 +94,63 @@ class TestFileRecall:
     def test_file_recall_partial(self):
         recall = file_recall("only django/a.py is mentioned", ["django/a.py", "django/b.py"])
         assert recall == 0.5
+
+
+class TestMentionsPath:
+    """An answer may name a file by its full path, a shorter path or its bare name."""
+
+    TARGET = "src/jobscout/gateway/gateway.py"
+
+    def test_mentions_path_full_path(self):
+        assert mentions_path(f"see {self.TARGET}", self.TARGET)
+
+    def test_mentions_path_parent_and_name(self):
+        assert mentions_path("the entry is gateway/gateway.py", self.TARGET)
+
+    def test_mentions_path_bare_name_in_backticks(self):
+        assert mentions_path("1. `gateway.py` checks the cache", self.TARGET)
+
+    def test_mentions_path_name_with_a_line_number(self):
+        assert mentions_path("defined at gateway.py:42", self.TARGET)
+
+    def test_mentions_path_is_case_insensitive_on_the_lowered_answer(self):
+        assert file_recall("See Gateway.PY", [self.TARGET]) == 1.0
+
+    def test_mentions_path_rejects_a_longer_file_name(self):
+        assert not mentions_path("see my_gateway.py", self.TARGET)
+        assert not mentions_path("see gateway.pyc", self.TARGET)
+        assert not mentions_path("see old-gateway.py", self.TARGET)
+
+    def test_mentions_path_rejects_a_different_stem(self):
+        assert not mentions_path("see gateway_utils.py and selector.py", self.TARGET)
+
+    def test_mentions_path_generic_name_needs_its_parent(self):
+        target = "src/jobscout/gateway/__init__.py"
+        assert not mentions_path("see __init__.py", target)
+        assert mentions_path("see gateway/__init__.py", target)
+
+    def test_mentions_path_single_part_target(self):
+        assert mentions_path("edit setup.cfg", "setup.cfg")
+        assert not mentions_path("edit mysetup.cfg", "setup.cfg")
+
+    def test_mentions_path_backslashes_in_the_target(self):
+        assert mentions_path("see gateway/gateway.py", "src\\jobscout\\gateway\\gateway.py")
+
+    def test_file_recall_a_group_counts_when_any_member_is_named(self):
+        group = [["src/a/one.py", "src/a/two.py"]]
+        assert file_recall("it is in two.py", group) == 1.0
+        assert file_recall("it is in src/a/one.py", group) == 1.0
+        assert file_recall("it is in three.py", group) == 0.0
+
+    def test_file_recall_a_group_is_one_target_among_others(self):
+        targets = [["src/a/one.py", "src/a/two.py"], "src/a/four.py"]
+        assert file_recall("one.py and two.py", targets) == 0.5
+        assert file_recall("two.py and four.py", targets) == 1.0
+
+    def test_file_recall_counts_short_paths(self):
+        targets = [self.TARGET, "src/jobscout/gateway/cache.py"]
+        assert file_recall("gateway.py and cache.py", targets) == 1.0
+        assert file_recall("only gateway.py", targets) == 0.5
 
 
 class TestMechanicalScore:

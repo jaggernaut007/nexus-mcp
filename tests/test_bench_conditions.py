@@ -149,3 +149,71 @@ class TestBuildRun:
         built = build_run("baseline", "hi", "claude-sonnet-5", 1.0, tmp_path, env={})
         assert built["isolation_mode"] == "reduced"
         assert "--setting-sources" in built["argv"]
+
+
+class TestHeadlessPermissions:
+    def test_build_argv_uses_allowlist_not_bypass(self):
+        argv = build_argv("baseline", "hello", "sonnet", 1.0)
+        assert "bypassPermissions" not in argv
+        assert "--dangerously-skip-permissions" not in argv
+        assert argv[argv.index("--permission-mode") + 1] == "dontAsk"
+        assert "mcp__nexus-mcp__*" in argv[argv.index("--allowedTools") + 1]
+
+    def test_build_argv_mcp_only_has_server_and_no_skill(self, tmp_path):
+        mcp_config = tmp_path / "nexus.json"
+        mcp_config.write_text("{}")
+        argv = build_argv("mcp-only", "hello", "sonnet", 1.0, mcp_config_path=mcp_config)
+        assert str(mcp_config) in argv
+        assert "--append-system-prompt" not in argv
+
+    def test_build_argv_builtin_tools_override(self):
+        argv = build_argv("baseline", "hi", "sonnet", 1.0, builtin_tools="Read,ToolSearch")
+        assert argv[argv.index("--tools") + 1] == "Read,ToolSearch"
+
+
+class TestToolSearchEnv:
+    def test_build_env_tool_search_false_disables_it(self, tmp_path):
+        env = build_env(tmp_path, base_env={}, tool_search=False)
+        assert env["ENABLE_TOOL_SEARCH"] == "false"
+
+    def test_build_env_tool_search_true_removes_override(self, tmp_path):
+        env = build_env(tmp_path, base_env={"ENABLE_TOOL_SEARCH": "false"}, tool_search=True)
+        assert "ENABLE_TOOL_SEARCH" not in env
+
+    def test_build_env_tool_search_default_removes_override(self, tmp_path):
+        env = build_env(tmp_path, base_env={"ENABLE_TOOL_SEARCH": "auto"})
+        assert "ENABLE_TOOL_SEARCH" not in env
+
+    def test_build_run_passes_tool_search_to_env(self, tmp_path):
+        built = build_run("mcp-only", "hi", "sonnet", 1.0, tmp_path, env={}, tool_search=False)
+        assert built["env"]["ENABLE_TOOL_SEARCH"] == "false"
+
+
+class TestStrictMcpConfig:
+    @pytest.mark.parametrize("condition", ["baseline", "mcp-only", "nexus"])
+    def test_strict_mcp_config_is_set_outside_the_plugin_condition(self, condition):
+        assert "--strict-mcp-config" in build_argv(condition, "hi", "sonnet", 1.0)
+
+    def test_plugin_condition_does_not_block_the_plugin_server(self):
+        argv = build_argv("nexus-plugin", "hi", "sonnet", 1.0)
+        assert "--strict-mcp-config" not in argv
+        assert "--plugin-dir" in argv
+
+
+class TestPromptPlacement:
+    @pytest.mark.parametrize("condition", ["baseline", "mcp-only", "nexus", "nexus-plugin"])
+    def test_build_run_puts_the_prompt_last_after_a_separator(self, tmp_path, condition):
+        built = build_run(condition, "Who calls f?", "sonnet", 1.0, tmp_path, env={})
+        assert built["argv"][-2:] == ["--", "Who calls f?"]
+        assert built["argv"].count("Who calls f?") == 1
+
+    def test_no_variadic_option_is_left_directly_before_the_prompt(self, tmp_path):
+        # --mcp-config takes a list of files; the prompt must not follow it directly.
+        built = build_run("mcp-only", "q", "sonnet", 1.0, tmp_path, env={})
+        argv = built["argv"]
+        assert argv.index("--") > argv.index("--mcp-config") + 1
+
+    def test_prompt_survives_bare_isolation(self, tmp_path):
+        built = build_run("nexus", "q", "sonnet", 1.0, tmp_path, env={"ANTHROPIC_API_KEY": "k"})
+        assert built["argv"][2] == "--bare"
+        assert built["argv"][-2:] == ["--", "q"]

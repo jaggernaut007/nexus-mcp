@@ -562,23 +562,6 @@ wheels = [
 ]
 
 [[package]]
-name = "flashrank"
-version = "0.2.10"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "onnxruntime" },
-    { name = "requests" },
-    { name = "tokenizers" },
-    { name = "tqdm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/55/1f/176cb4a857a70c3538f637e19389ab6aed21548a1ba1d1424fccc8bba108/FlashRank-0.2.10.tar.gz", hash = "sha256:f8f82a25c32fdfc668a09dc4089421d6aab8e7f71308424b541f40bb3f01d9db", size = 18905, upload-time = "2025-01-06T13:33:01.657Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/99/72639cc1c9221c5bc77a2df1c2d352fe11965553bdf7d3e0856e7fcc8fd6/FlashRank-0.2.10-py3-none-any.whl", hash = "sha256:5d3272ae657d793c132d1e7917ed9e2adf49e0e1c60735583a67b051c6f0434a", size = 14511, upload-time = "2025-01-06T13:32:59.42Z" },
-]
-
-[[package]]
 name = "flatbuffers"
 version = "25.12.19"
 source = { registry = "https://pypi.org/simple" }
@@ -1233,21 +1216,21 @@ gpu = [
     { name = "optimum", extra = ["onnxruntime-gpu"] },
     { name = "sentence-transformers", extra = ["onnx-gpu"] },
 ]
-reranker = [
-    { name = "flashrank" },
+onnx = [
+    { name = "optimum-onnx", extra = ["onnxruntime"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "ast-grep-py", specifier = ">=0.28.0" },
-    { name = "fastmcp", specifier = ">=2.0.0" },
-    { name = "flashrank", marker = "extra == 'reranker'", specifier = ">=0.2.0" },
+    { name = "fastmcp", specifier = ">=3.1,<5" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "lancedb", specifier = ">=0.4.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "onnxruntime", specifier = ">=1.17.0,<1.24.0" },
     { name = "optimum", specifier = ">=1.19.0" },
     { name = "optimum", extras = ["onnxruntime-gpu"], marker = "extra == 'gpu'", specifier = ">=1.19.0" },
+    { name = "optimum-onnx", extras = ["onnxruntime"], marker = "extra == 'onnx'", specifier = ">=0.1.0" },
     { name = "pathspec", specifier = ">=0.11.0" },
     { name = "pyarrow", specifier = ">=14.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
@@ -1262,7 +1245,7 @@ requires-dist = [
     { name = "tree-sitter-languages", specifier = ">=1.10.0" },
     { name = "watchdog", specifier = ">=3.0.0" },
 ]
-provides-extras = ["dev", "gpu", "reranker", "bench"]
+provides-extras = ["dev", "gpu", "onnx", "bench"]
 
 [[package]]
 name = "numpy"
@@ -1673,6 +1656,9 @@ wheels = [
 ]
 
 [package.optional-dependencies]
+onnxruntime = [
+    { name = "onnxruntime" },
+]
 onnxruntime-gpu = [
     { name = "onnxruntime-gpu", version = "1.24.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "onnxruntime-gpu", version = "1.30.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },

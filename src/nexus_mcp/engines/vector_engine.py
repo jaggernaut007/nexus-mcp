@@ -13,7 +13,7 @@ import lancedb
 import pyarrow as pa
 
 from nexus_mcp.core.interfaces import IEngine
-from nexus_mcp.indexing.embedding_service import EmbeddingService
+from nexus_mcp.indexing.embedding_service import EmbeddingService, model_dimensions
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class LanceDBVectorEngine(IEngine):
         self._db_path = str(db_path)
         self._embedding_service = embedding_service
         self._table_name = table_name
-        self._vector_dims = vector_dims or 384  # bge-small-en default
+        self._vector_dims = vector_dims or model_dimensions(embedding_service.model_name)
         self._lock = threading.RLock()
         self._db = lancedb.connect(self._db_path)
         self._table = None
@@ -130,6 +130,36 @@ class LanceDBVectorEngine(IEngine):
 
         return results
 
+    def find_by_symbol_names(
+        self, names: List[str], limit_per_name: int = 5
+    ) -> List[Dict[str, Any]]:
+        """Chunks whose symbol name is one of ``names``. No embedding is computed.
+
+        A method `Class.name` matches `name`. The chunk table also holds constants and
+        module chunks, which the graph does not.
+        """
+        table = self._get_or_create_table()
+        if not names or table.count_rows() == 0:
+            return []
+        rows: List[Dict[str, Any]] = []
+        for name in names:
+            safe = _escape_sql(name)
+            found = (
+                table.search()
+                .where(f"symbol_name = '{safe}' OR symbol_name LIKE '%.{safe}'")
+                .limit(limit_per_name * 4)
+                .to_list()
+            )
+            # `_` is a wildcard in LIKE, so check the name again.
+            exact = [
+                r for r in found
+                if r.get("symbol_name") == name or str(r.get("symbol_name")).endswith("." + name)
+            ]
+            for r in exact[:limit_per_name]:
+                r.pop("vector", None)
+                rows.append(r)
+        return rows
+
     def delete(self, ids: List[str]) -> None:
         """Delete chunks by ID."""
         if not ids:
@@ -184,6 +214,17 @@ class LanceDBVectorEngine(IEngine):
                 logger.warning(
                     "Schema mismatch: expected %s, got %s",
                     sorted(expected_names), sorted(actual_names),
+                )
+                return False
+
+            # Same column names can hide a different vector width (an index built with
+            # another embedding model). Adding to such a table fails, and a query fails
+            # quietly, so treat it as invalid and let the caller rebuild.
+            actual_width = getattr(table.schema.field("vector").type, "list_size", None)
+            if actual_width is not None and actual_width != self._vector_dims:
+                logger.warning(
+                    "Vector width mismatch: table has %s, model needs %s; rebuild required.",
+                    actual_width, self._vector_dims,
                 )
                 return False
 

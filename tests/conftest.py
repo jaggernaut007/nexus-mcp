@@ -7,6 +7,7 @@ import pytest
 
 import nexus_mcp.core_api as core_api
 import nexus_mcp.server as server_module
+from nexus_mcp.config import reset_settings
 from nexus_mcp.state import reset_state
 
 
@@ -27,8 +28,15 @@ def _stop_watchers() -> None:
 
 
 @pytest.fixture(autouse=True)
-def clean_state():
-    """Reset global state before each test."""
+def clean_state(monkeypatch):
+    """Reset global state before each test.
+
+    Session restore is off by default in tests: a stray `.nexus` directory in the
+    working directory must not attach a real index to a test that expects none.
+    Tests of the restore itself switch it back on.
+    """
+    monkeypatch.setenv("NEXUS_AUTO_RESTORE", "false")
+    reset_settings()
     reset_state()
     core_api._pipeline = None
     yield
@@ -83,6 +91,15 @@ def _mock_embedding_service():
         return [[0.1] * dims for _ in texts]
     svc.embed_batch.side_effect = dynamic_batch
     return svc
+
+
+async def _call_api(name, args=None):
+    """Call the Python API (`core_api`) of a tool, for a tool or a parameter that the MCP
+    schema does not have (the schema holds only what agents use)."""
+    from nexus_mcp import core_api
+
+    fn = getattr(core_api, "map_" if name == "map" else name)
+    return fn(**(args or {}))
 
 
 async def _call_tool(mcp, name, args=None):

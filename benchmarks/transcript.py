@@ -43,6 +43,8 @@ class RunTrace:
     result_subtype: Optional[str] = None
     has_result_event: bool = False
     mcp_servers: List[Dict[str, Any]] = field(default_factory=list)
+    init_event: Dict[str, Any] = field(default_factory=dict)
+    permission_denials: List[Any] = field(default_factory=list)
     parse_errors: int = 0
 
     @property
@@ -189,6 +191,9 @@ def _handle_result_event(event: Dict[str, Any], trace: RunTrace) -> None:
     trace.duration_ms = event.get("duration_ms")
     trace.total_cost_usd = event.get("total_cost_usd")
     trace.final_answer = event.get("result", "") or ""
+    denials = event.get("permission_denials")
+    if isinstance(denials, list):
+        trace.permission_denials = denials
     usage = event.get("usage")
     if isinstance(usage, dict):
         trace.usage = usage
@@ -196,6 +201,7 @@ def _handle_result_event(event: Dict[str, Any], trace: RunTrace) -> None:
 
 def _handle_system_event(event: Dict[str, Any], trace: RunTrace) -> None:
     if event.get("subtype") == "init":
+        trace.init_event = event
         servers = event.get("mcp_servers")
         if isinstance(servers, list):
             trace.mcp_servers = servers

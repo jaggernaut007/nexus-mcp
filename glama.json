@@ -43,8 +43,8 @@
       },
       "NEXUS_EMBEDDING_MODEL": {
         "type": "string",
-        "description": "Embedding model (jina-code, bge-small-en)",
-        "default": "jina-code"
+        "description": "Embedding model (bge-small-en)",
+        "default": "bge-small-en"
       },
       "NEXUS_EMBEDDING_DEVICE": {
         "type": "string",
@@ -60,11 +60,6 @@
         "type": "string",
         "description": "BM25 engine weight in RRF",
         "default": "0.3"
-      },
-      "NEXUS_FUSION_WEIGHT_GRAPH": {
-        "type": "string",
-        "description": "Graph engine weight in RRF",
-        "default": "0.2"
       },
       "NEXUS_FUSION_WEIGHT_VECTOR": {
         "type": "string",

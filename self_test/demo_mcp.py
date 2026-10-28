@@ -2,7 +2,7 @@
 """
 Nexus-MCP Self-Test Demo
 =========================
-Exercises all 10 MCP tools end-to-end by calling the underlying functions
+Exercises the 8 MCP tools and the Python API end-to-end by calling the underlying functions
 directly (bypassing the MCP protocol transport layer).
 
 Usage:
@@ -234,6 +234,15 @@ def _get_tools():
     for key, component in mcp._local_provider._components.items():
         if key.startswith("tool:"):
             tool_map[component.name] = component.fn
+    # Since 2026-10-08 the MCP schema holds only what agents use: `explain` and `health` are
+    # not tools, and `search` and `memory` have fewer parameters. The demo still checks the
+    # whole Python API, which is what `core_api` exports.
+    from nexus_mcp import core_api
+
+    tool_map["api_search"] = core_api.search
+    tool_map["api_memory"] = core_api.memory
+    tool_map["health"] = core_api.health
+    tool_map["explain"] = core_api.explain
     return tool_map
 
 
@@ -246,7 +255,7 @@ def main():
         console.print(
             Panel(
                 "[bold]Nexus-MCP Self-Test Demo[/bold]\n"
-                "Exercises all 10 MCP tools against a sample project.",
+                "Exercises the 8 MCP tools and the Python API against a sample project.",
                 title="nexus-mcp",
                 border_style="blue",
             )
@@ -282,6 +291,11 @@ def _cleanup_temp(project_path: Path):
         console.print(f"\nSkipping cleanup: {resolved} is not under temp dir")
 
 
+def _names_in(grouped):
+    """Symbol names of a compact `graph` result: `{file: ["name:line", ...]}`."""
+    return {entry.split(":")[0] for entries in grouped.values() for entry in entries}
+
+
 def _run_demo(project_path: Path, cleanup: bool):
     """Run the full demo sequence."""
     tools = _get_tools()
@@ -307,6 +321,16 @@ def _run_demo(project_path: Path, cleanup: bool):
             fail(f"{label}: {exc}")
             failed += 1
             return None
+
+    def check(label, condition):
+        """Count a content assertion. Unlike run(), it fails on an empty result."""
+        nonlocal passed, failed
+        if condition:
+            ok(label)
+            passed += 1
+        else:
+            fail(label)
+            failed += 1
 
     # ------------------------------------------------------------------
     # 1. Health & Status
@@ -387,13 +411,14 @@ def _run_demo(project_path: Path, cleanup: bool):
         console.print(f"\n  mode={mode}")
         result = run(
             f'search("clamp value", mode="{mode}")',
-            tools["search"],
+            tools["api_search"],
             "clamp value",
             5,
             "",
             "",
             mode,
             False,
+            detail="full",
         )
         if result:
             total = result.get("total", 0)
@@ -424,6 +449,24 @@ def _run_demo(project_path: Path, cleanup: bool):
     )
     if callees_result:
         pp(callees_result)
+
+    # Call edges must be real. An empty graph() result used to pass this demo.
+    console.print()
+    sum_callers = run(
+        'graph("calculate_sum", direction="callers")',
+        tools["graph"], "calculate_sum", direction="callers",
+    )
+    check(
+        "graph finds run_calculations as a caller of calculate_sum",
+        bool(sum_callers) and "run_calculations" in _names_in(sum_callers["callers"]),
+    )
+    user_callers = run(
+        'graph("User", direction="callers")', tools["graph"], "User", direction="callers"
+    )
+    check(
+        "graph finds create_user as a caller of User",
+        bool(user_callers) and "create_user" in _names_in(user_callers["callers"]),
+    )
 
     # Fuzzy search
     console.print()
@@ -462,6 +505,16 @@ def _run_demo(project_path: Path, cleanup: bool):
     if impact_result:
         pp(impact_result)
 
+    sum_impact = run(
+        'graph("calculate_sum", transitive=True)',
+        tools["graph"], "calculate_sum", transitive=True,
+    )
+    check(
+        "transitive graph reports run_calculations as impacted by calculate_sum",
+        bool(sum_impact)
+        and "run_calculations" in _names_in(sum_impact["impacted_files"]),
+    )
+
     # ------------------------------------------------------------------
     # 9. Explain
     # ------------------------------------------------------------------
@@ -485,7 +538,7 @@ def _run_demo(project_path: Path, cleanup: bool):
 
     mem1 = run(
         'memory(action="store", content="...needs refactoring", tags="auth,tech-debt")',
-        tools["memory"],
+        tools["api_memory"],
         action="store",
         content="The auth module needs refactoring",
         memory_type="note",
@@ -496,7 +549,7 @@ def _run_demo(project_path: Path, cleanup: bool):
 
     mem2 = run(
         'memory(action="store", content="Decided to use LanceDB...", memory_type="decision")',
-        tools["memory"],
+        tools["api_memory"],
         action="store",
         content="Decided to use LanceDB over ChromaDB for vector storage",
         memory_type="decision",
@@ -508,7 +561,7 @@ def _run_demo(project_path: Path, cleanup: bool):
     console.print()
     recall_result = run(
         'memory(action="search", query="auth refactoring")',
-        tools["memory"],
+        tools["api_memory"],
         action="search",
         query="auth refactoring",
         limit=5,
@@ -518,7 +571,7 @@ def _run_demo(project_path: Path, cleanup: bool):
 
     recall_result2 = run(
         'memory(action="search", query="database choice")',
-        tools["memory"],
+        tools["api_memory"],
         action="search",
         query="database choice",
         limit=5,
@@ -530,7 +583,7 @@ def _run_demo(project_path: Path, cleanup: bool):
     console.print()
     forget_result = run(
         'memory(action="delete", tags="auth,tech-debt")',
-        tools["memory"],
+        tools["api_memory"],
         action="delete",
         tags="auth,tech-debt",
     )
@@ -540,7 +593,7 @@ def _run_demo(project_path: Path, cleanup: bool):
     # Delete by type
     forget_result2 = run(
         'memory(action="delete", memory_type="decision")',
-        tools["memory"],
+        tools["api_memory"],
         action="delete",
         memory_type="decision",
     )

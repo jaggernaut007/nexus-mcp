@@ -2,7 +2,8 @@
 
 Supported models:
 - bge-small-en (384d, 512 seq len, PyTorch) — DEFAULT, lightweight general
-- jina-code (768d, 8192 seq len, ONNX) — code-specific
+- jina-code (768d, 8192 seq len, ONNX) — code-specific. DEPRECATED: it still loads, but
+  it needs trust_remote_code and a 612 MiB download, and it indexes far slower on CPU.
 """
 
 import gc
@@ -23,6 +24,11 @@ EMBEDDING_MODELS = {
         "prompt_prefix": "",
         "query_prefix": "",
         "backend": "onnx",
+        "deprecated": (
+            "jina-code is deprecated and will be removed in a future major release. "
+            "It needs trust_remote_code, a 612 MiB download and a slow CPU index. "
+            "Use bge-small-en (the default), then re-index."
+        ),
     },
     "bge-small-en": {
         "hf_name": "BAAI/bge-small-en-v1.5",
@@ -36,6 +42,12 @@ EMBEDDING_MODELS = {
 }
 
 DEFAULT_MODEL = "bge-small-en"
+
+
+def model_dimensions(model_name: str) -> int:
+    """Vector width of a registered model. Unknown names get the default model's width."""
+    config = EMBEDDING_MODELS.get(model_name) or EMBEDDING_MODELS[DEFAULT_MODEL]
+    return config["dimensions"]
 
 
 def _detect_device() -> str:
@@ -109,6 +121,8 @@ class EmbeddingService:
         with self._lock:
             if self._model_loaded:
                 return
+            if self.config.get("deprecated"):
+                logger.warning(self.config["deprecated"])
             try:
                 from sentence_transformers import SentenceTransformer
             except ImportError:
@@ -141,6 +155,12 @@ class EmbeddingService:
                 else:
                     # Force CPU-only to prevent ONNX auto-selecting CoreML/CUDA
                     kwargs["model_kwargs"] = {"provider": "CPUExecutionProvider"}
+                # A model repo can hold several ONNX files (fp32, fp16, int8). Without
+                # `file_name`, sentence-transformers loads the fp32 `onnx/model.onnx`,
+                # which for a base model is hundreds of MiB.
+                onnx_file = self.config.get("onnx_file")
+                if onnx_file:
+                    kwargs["model_kwargs"]["file_name"] = onnx_file
                 # ONNX manages its own device; remove SentenceTransformer device param
                 kwargs.pop("device", None)
                 logger.info(
@@ -158,9 +178,28 @@ class EmbeddingService:
             finally:
                 sys.stdout, sys.stderr = old_stdout, old_stderr
 
+            # Cap the sequence length at the registry value. Chunks longer than this
+            # are truncated by the tokenizer, which also bounds memory per batch.
+            limit = self.config.get("max_seq_length")
+            current = getattr(self._model, "max_seq_length", None)
+            if limit and current and limit < current:
+                self._model.max_seq_length = limit
+
             if self.config["dimensions"] is None:
                 self.config["dimensions"] = self._model.get_sentence_embedding_dimension()
             self._model_loaded = True
+
+    def _loaded_model(self):
+        """The loaded model, as a local reference that a concurrent ``unload()`` cannot clear.
+
+        A background reindex calls ``unload()`` when it ends. A search that read
+        ``self._model`` after that got None and fell back to BM25 without a word.
+        """
+        while True:
+            self._load_model()
+            model = self._model
+            if model is not None:
+                return model
 
     @property
     def dimensions(self) -> int:
@@ -168,11 +207,11 @@ class EmbeddingService:
         return self.config["dimensions"]
 
     def _embed_single_uncached(self, text: str, is_query: bool) -> tuple:
-        self._load_model()
+        model = self._loaded_model()
         prefix = self.config["query_prefix"] if is_query else self.config["prompt_prefix"]
         if prefix:
             text = prefix + text
-        embeddings = self._model.encode(
+        embeddings = model.encode(
             [text],
             show_progress_bar=False,
             normalize_embeddings=self.normalize,
@@ -200,7 +239,7 @@ class EmbeddingService:
 
         if not texts:
             return []
-        self._load_model()
+        model = self._loaded_model()
 
         bs = min(batch_size or self.batch_size, self.max_batch_size)
         prefix = self.config["query_prefix"] if is_query else self.config["prompt_prefix"]
@@ -208,7 +247,7 @@ class EmbeddingService:
             texts = [prefix + t for t in texts]
 
         start = time.time()
-        embeddings = self._model.encode(
+        embeddings = model.encode(
             texts,
             batch_size=bs,
             show_progress_bar=False,

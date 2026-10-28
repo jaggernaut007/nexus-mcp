@@ -54,12 +54,12 @@ Serverless, embedded vector database with native full-text search. Rust core, Py
 
 | Model | Params | Size | Dims | Quality | Code-specific? |
 |-------|--------|------|------|---------|---------------|
-| `jinaai/jina-embeddings-v2-base-code` **(our default)** | - | ~500MB | 768 | Best for code | Yes |
+| `jinaai/jina-embeddings-v2-base-code` (optional; the default is `bge-small-en`, see ADR-004) | - | ~500MB | 768 | Best for code | Yes |
 | `BAAI/bge-small-en-v1.5` | 33.4M | ~50MB (FP16: ~25MB) | 384 | Good | No (general text) |
 | `all-MiniLM-L6-v2` (not supported) | 22M | ~80MB | 384 | Good | No |
 | `CodeSage-Small` (not supported) | 130M | ~200MB | 1024 | Very good | Yes (9 languages) |
 
-### Why jina-code as default
+### Why jina-code was the first default (historical; superseded by ADR-004 and [embedding-models-2026-10.md](research/embedding-models-2026-10.md))
 - Code-specific model with 768-dim embeddings for high-quality code search
 - ONNX-compatible for efficient inference
 - Best search quality among supported models for code-specific queries

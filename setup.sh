@@ -7,7 +7,6 @@
 #   ./setup.sh              # Default: create venv + install with dev deps
 #   ./setup.sh --clean      # Remove existing venv before creating new
 #   ./setup.sh --prod       # Install production dependencies only (no dev)
-#   ./setup.sh --reranker   # Include optional FlashRank reranker
 #   ./setup.sh --no-verify  # Skip verification step
 #   ./setup.sh --help       # Show this help message
 #
@@ -30,7 +29,6 @@ MIN_PYTHON_VERSION="3.10"
 CLEAN=false
 PROD_ONLY=false
 SKIP_VERIFY=false
-RERANKER=false
 
 print_usage() {
     echo -e "${CYAN}Nexus-MCP Setup Script${NC}"
@@ -40,7 +38,6 @@ print_usage() {
     echo "Options:"
     echo "  --clean      Remove existing virtual environment before creating new"
     echo "  --prod       Install production dependencies only (skip dev deps)"
-    echo "  --reranker   Include optional FlashRank reranker"
     echo "  --no-verify  Skip verification step"
     echo "  --help       Show this help message"
     echo ""
@@ -48,7 +45,6 @@ print_usage() {
     echo "  ./setup.sh                       # Dev install (pytest, ruff, mypy)"
     echo "  ./setup.sh --clean               # Remove old venv, create new one"
     echo "  ./setup.sh --prod                # Production-only install"
-    echo "  ./setup.sh --reranker            # Dev install + FlashRank reranker"
     echo "  ./setup.sh --clean --prod        # Clean install, production only"
 }
 
@@ -60,10 +56,6 @@ for arg in "$@"; do
             ;;
         --prod)
             PROD_ONLY=true
-            shift
-            ;;
-        --reranker)
-            RERANKER=true
             shift
             ;;
         --no-verify)
@@ -144,22 +136,12 @@ echo -e "${GREEN}✓ pip upgraded to $(pip --version | awk '{print $2}')${NC}"
 echo -e "${BLUE}[4/6]${NC} Installing dependencies..."
 
 if [[ "$PROD_ONLY" = true ]]; then
-    if [[ "$RERANKER" = true ]]; then
-        echo -e "  Installing production + reranker dependencies..."
-        pip install -e ".[reranker]" --quiet
-    else
-        echo -e "  Installing production dependencies..."
-        pip install -e . --quiet
-    fi
+    echo -e "  Installing production dependencies..."
+    pip install -e . --quiet
     echo -e "${GREEN}✓ Production dependencies installed${NC}"
 else
-    if [[ "$RERANKER" = true ]]; then
-        echo -e "  Installing all dependencies (dev + reranker)..."
-        pip install -e ".[dev,reranker]" --quiet
-    else
-        echo -e "  Installing all dependencies (including dev)..."
-        pip install -e ".[dev]" --quiet
-    fi
+    echo -e "  Installing all dependencies (including dev)..."
+    pip install -e ".[dev]" --quiet
     echo -e "${GREEN}✓ All dependencies installed${NC}"
 fi
 

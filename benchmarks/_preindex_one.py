@@ -10,9 +10,16 @@ import asyncio
 import inspect
 import json
 import os
+import resource
 import sys
 import time
 from pathlib import Path
+
+
+def _peak_rss_mb() -> float:
+    """Peak resident memory of this process in MiB (macOS reports bytes, Linux KiB)."""
+    raw = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return raw / (1024 * 1024) if sys.platform == "darwin" else raw / 1024
 
 
 def main() -> None:
@@ -26,6 +33,16 @@ def main() -> None:
     # its (budget-capped, timed) measurement window. Must be set before
     # Settings() is constructed (create_server() below triggers that).
     os.environ.setdefault("NEXUS_STORAGE_DIR", str(Path(repo_path) / ".nexus"))
+
+    # A candidate embedding model (NEXUS_EMBEDDING_MODEL) that only the evals know has to be
+    # added to the registry before the server reads it. Run as a plain script, the
+    # `benchmarks` package may not be importable; then only shipped models work.
+    try:
+        from benchmarks.nexus_server import register_candidate
+    except ImportError:
+        register_candidate = None
+    if register_candidate is not None:
+        register_candidate()
 
     from nexus_mcp.server import create_server
 
@@ -65,6 +82,8 @@ def main() -> None:
         result_summary = {k: v for k, v in result.items() if k != "error"}
     entries[repo_name] = {
         "index_seconds": round(elapsed, 1),
+        "peak_rss_mb": round(_peak_rss_mb()),
+        "embedding_model": os.environ.get("NEXUS_EMBEDDING_MODEL") or "default",
         "result": result_summary,
     }
     meta_path.write_text(json.dumps(entries, indent=2, default=str))

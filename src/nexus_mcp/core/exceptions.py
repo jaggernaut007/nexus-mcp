@@ -57,7 +57,7 @@ class MemoryStoreError(NexusException):
 
 
 class FusionError(NexusException):
-    """Raised when fusion or reranking fails."""
+    """Raised when fusion fails."""
 
     pass
 

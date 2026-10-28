@@ -1,6 +1,6 @@
 # Architecture
 
-Nexus-MCP is a unified Model Context Protocol (MCP) server that combines vector search, full-text search, code graph analysis, and semantic memory into a single process. It is designed to run locally with <350MB RAM.
+Nexus-MCP is a unified Model Context Protocol (MCP) server that combines vector search, full-text search, code graph analysis, and semantic memory into a single process. It is designed to run locally with a small memory footprint (see docs/MEMORY.md for measured numbers).
 
 Nexus-MCP consolidates two predecessor projects into a single server ([ADR-001](adr/ADR-001-single-mcp-consolidation.md)):
 - **CodeGrok MCP** (by rdondeti / Ravitez Dondeti, MIT license) — Contributed the symbol extraction pipeline, embedding service, parallel indexing, core data models, and memory retrieval system.
@@ -8,14 +8,14 @@ Nexus-MCP consolidates two predecessor projects into a single server ([ADR-001](
 
 ## System Overview
 
-10 tools, consolidated from an earlier 15 ([ADR-017](adr/ADR-017-tool-consolidation.md)): `index`, `status`, `health`, `search`, `find_symbol`, `graph`, `explain`, `analyze`, `map`, `memory`.
+8 tools: `index`, `status`, `search`, `find_symbol`, `graph`, `analyze`, `map`, `memory`. They were consolidated from an earlier 15 ([ADR-017](adr/ADR-017-tool-consolidation.md)). `explain` and `health` are no longer tools; their functions stay in `core_api.py`.
 
 ```mermaid
 flowchart TB
     Client["MCP Client (Claude Code / IDE)"]
 
     subgraph Server["server.py — FastMCP"]
-        Tools["10 tools: index, status, health, search,\nfind_symbol, graph, explain, analyze, map, memory"]
+        Tools["8 tools: index, status, search,\nfind_symbol, graph, analyze, map, memory"]
         Guard["permission guard + rate limiter\n(security/permissions.py, security/rate_limiter.py)"]
         Audit["@_audited → middleware/audit.py"]
     end
@@ -28,7 +28,7 @@ flowchart TB
         direction TB
         Parse["parsing/\ntree-sitter (symbols, parallel) +\nast-grep (relationships, sequential) +\nfile_watcher (NEXUS_AUTO_WATCH)"]
         Chunk["indexing/chunker.py\nsymbols → CodeChunks"]
-        Embed["indexing/embedding_service.py\nbge-small-en (PyTorch) / jina-code (ONNX Runtime)"]
+        Embed["indexing/embedding_service.py\nbge-small-en (PyTorch)"]
         Parse --> Chunk --> Embed
     end
 
@@ -40,7 +40,6 @@ flowchart TB
         Graph["graph_engine.py\nrustworkx PyDiGraph"]
         LiveGrep["live_grep.py\nrg/grep fallback"]
         Fusion["fusion.py\nReciprocal Rank Fusion"]
-        Rerank["reranker.py\nFlashRank (optional)"]
     end
 
     Analysis["analysis/code_analyzer.py\ncomplexity, smells, deps"]
@@ -60,9 +59,7 @@ flowchart TB
     LanceDB --> BM25
     Vector --> Fusion
     BM25 --> Fusion
-    Graph --> Fusion
-    Fusion --> Rerank
-    Rerank --> LiveGrep
+    Fusion --> LiveGrep
     Graph -.snapshot/restore.-> Persistence
     Core --> Formatting
     Formatting --> Tools
@@ -80,10 +77,10 @@ The 8-step pipeline transforms source code into searchable indexes:
 
 1. **Discover** — Walk directory tree, filter by extension/size/.gitignore
 2. **Parse symbols** — tree-sitter extracts functions, classes, methods (parallel)
-3. **Parse graph** — ast-grep extracts functions, classes and import relationships as `CONTAINS`/`IMPORTS` edges (sequential). No parser creates `CALLS` or `INHERITS` edges yet.
+3. **Parse graph** — ast-grep extracts functions, classes and import relationships as `CONTAINS`/`IMPORTS` edges (sequential). It also records the callee names inside each function. After the last batch, `indexing/call_resolver.py` turns those names into `CALLS` edges. No parser creates `INHERITS` edges yet.
 4. **Transfer graph** — Populate rustworkx graph from ast-grep results
 5. **Chunk** — Convert symbols to CodeChunks with deterministic IDs
-6. **Embed** — generates vectors (384-dim bge-small-en default, PyTorch; 768-dim jina-code, ONNX Runtime)
+6. **Embed** — generates vectors (384-dim bge-small-en, PyTorch; the deprecated 768-dim jina-code still loads, on ONNX Runtime)
 7. **Store** — Write chunks to LanceDB, rebuild FTS index
 8. **Cleanup** — Unload embedding model, save metadata for incremental reindex
 
@@ -95,11 +92,9 @@ Incremental reindexing uses mtime-based change detection: only new/modified file
 
 **BM25 Engine** (`engines/bm25_engine.py`) — LanceDB's native Tantivy full-text search. Reads from the same `chunks` table. Good for exact keyword matches.
 
-**Graph Engine** (`engines/graph_engine.py`) — rustworkx (Rust-backed) directed graph. Stores nodes (functions, classes) and edges. The engine supports `CALLS` traversal for callers, callees and transitive impact analysis. Real indexes hold only `CONTAINS` and `IMPORTS` edges today, so those traversals return empty results until a parser extracts call edges.
+**Graph Engine** (`engines/graph_engine.py`) — rustworkx (Rust-backed) directed graph. Stores nodes (functions, classes) and edges. The engine supports `CALLS` traversal for callers, callees and transitive impact analysis. `CALLS` edges come from `indexing/call_resolver.py`, which rebuilds them after every index or reindex.
 
-**Fusion** (`engines/fusion.py`) — Reciprocal Rank Fusion combines results from vector, BM25, and graph engines with configurable weights (default: 0.5/0.3/0.2).
-
-**Reranker** (`engines/reranker.py`) — Optional FlashRank two-stage reranker. Gracefully degrades to passthrough if not installed.
+**Fusion** (`engines/fusion.py`) — Reciprocal Rank Fusion combines results from the vector and BM25 engines with configurable weights (default: 0.5/0.3). Before fusion, results in test files move after results in source files unless the query asks for tests (`demote_test_files`).
 
 **Live Grep** (`engines/live_grep.py`) — Fallback using ripgrep (`rg`), falling back to standard `grep` if `rg` isn't installed. Covers unindexed or newly created files, and is used automatically when hybrid results are sparse.
 
@@ -107,7 +102,7 @@ Incremental reindexing uses mtime-based change detection: only new/modified file
 
 **tree-sitter** — Fast, incremental parser for 25+ languages. Extracts symbol definitions (functions, classes, methods) with metadata (line numbers, docstrings, signatures). Runs in parallel via ThreadPool.
 
-**ast-grep** — Structural search tool that extracts the containment and import structure of each file (functions, classes, imports). Call and inheritance extraction is planned. Runs sequentially to build a consistent graph.
+**ast-grep** — Structural search tool that extracts the containment and import structure of each file (functions, classes, imports). It also records callee names per function (resolved later into `CALLS` edges). Inheritance extraction is planned. Runs sequentially to build a consistent graph.
 
 tree-sitter also records the call names inside each symbol. The chunker writes them into the chunk text (`Calls: ...`), so they help search. They do not become graph edges yet.
 
@@ -152,18 +147,17 @@ Source files → ast-grep → UniversalGraph → rustworkx   embed (PyTorch / ON
 ### Hybrid Search
 ```
 Query → embed → Vector search (LanceDB)  ─┐
-Query →       → BM25 search (Tantivy)     ├→ RRF Fusion → FlashRank → Live Grep (fallback) → Results
-Query →       → Graph relevance search    ─┘
+Query →       → BM25 search (Tantivy)     ┴→ RRF Fusion → exact names first → Live Grep (fallback) → Results
 ```
 
 ## Memory Budget
 
-Target: <350MB RSS. Achieved through:
-- ONNX Runtime (~50MB) for jina-code instead of PyTorch (~500MB); the bge-small-en default uses PyTorch
+Measured: about 90MB idle and 460MB with the model loaded (docs/MEMORY.md). The footprint comes from:
+- ONNX Runtime is used only by the deprecated jina-code; the bge-small-en default uses PyTorch
 - LanceDB mmap (vectors stay on disk, ~20-50MB overhead)
 - Lazy model loading — embedding model loaded during indexing, unloaded after
 - GPU/MPS auto-detection (`NEXUS_EMBEDDING_DEVICE=auto`) for faster inference when available
-- Two model options: bge-small-en (384d, default), jina-code (768d)
+- One recommended model: bge-small-en (384d). jina-code (768d) is deprecated
 
 ## Thread Safety
 

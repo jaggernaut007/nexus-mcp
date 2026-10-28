@@ -4,10 +4,26 @@ Ported from code-graph-mcp. Language-agnostic representations for
 code nodes, relationships, and graph structure.
 """
 
+import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
+from functools import lru_cache
 from typing import Any, Dict, List, Optional, Set
+
+_CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+_WORD = re.compile(r"[^\W\d_]+|\d+")  # a run of letters (any script) or a run of digits
+
+
+@lru_cache(maxsize=262144)
+def identifier_words(name: str) -> tuple:
+    """Lowercase words of an identifier, in order.
+
+    `create_order` and `CreateOrder` give create, order. `HTTPServer` gives http, server.
+    Digits are words of their own: `getHTTP2Client` gives get, http, 2, client.
+    """
+    spaced = _CAMEL_BOUNDARY.sub("_", name)
+    return tuple(w.lower() for w in _WORD.findall(spaced))
 
 
 class CacheConfig:

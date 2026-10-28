@@ -11,7 +11,8 @@ import asyncio
 import json as _json
 import logging
 import signal
-from typing import TYPE_CHECKING, Annotated, Any, Optional
+import threading
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Optional
 
 from nexus_mcp import core_api
 
@@ -19,6 +20,41 @@ if TYPE_CHECKING:
     from nexus_mcp.security.permissions import ToolCategory
 
 logger = logging.getLogger(__name__)
+
+# Sent to the client at connect time. Claude Code puts it in the model's context and,
+# with Tool Search on, shows it before any tool description. It is cut at 2,048
+# characters (Codex reads the first 512 first), so the opening lines stand alone.
+# Do not repeat the tool descriptions here; say which tool answers which question.
+SERVER_INSTRUCTIONS = """\
+Nexus-MCP is a local code-intelligence index of the project you are working in. Use it \
+for any question about how this codebase works: where something is, what calls what, \
+what breaks if a symbol changes, how the project is laid out, and what was decided \
+earlier. One call here replaces several greps and file reads.
+
+No setup call is needed: the index of an earlier session is attached when the server \
+starts and keeps itself fresh. Only if a tool answers "No codebase indexed", call \
+`index` once with the absolute project path.
+
+Which tool answers which question:
+- "where is...", "how does...", "find the code that..." -> `search` (a name in the \
+query, such as `parse_config`, brings its definition first)
+- functions, classes or constants you can name -> `find_symbol` (several names in one \
+call; it returns their code)
+- "who calls X", "what breaks if I change X" -> `graph` (use transitive=true before a \
+rename, signature change or delete)
+- "give me an overview", "where do I start" -> `map`
+- "most complex code", "dead code", "review quality" -> `analyze`
+- a decision or note to keep across sessions -> `memory`
+
+`search` returns the whole code of its top results, `find_symbol` the whole code of each \
+name, and `graph` every text reference beside the call edges. Each call costs one more \
+read of the whole conversation, so do not follow a nexus call with a grep or a file read \
+for a name: call `find_symbol` with all the names at once. Use your built-in grep or file \
+read when you already know the exact file or string. Results come from the index and can \
+be a little old: read the file before you edit it. Call edges are static: calls through \
+callbacks, reflection or dynamic dispatch are not visible, so read the references list \
+of `graph` before you delete code.
+"""
 
 
 class JsonFormatter(logging.Formatter):
@@ -47,7 +83,7 @@ def create_server():
     except Exception:
         _nexus_version = "unknown"
 
-    mcp = FastMCP("Nexus-MCP", version=_nexus_version)
+    mcp = FastMCP("Nexus-MCP", instructions=SERVER_INSTRUCTIONS, version=_nexus_version)
 
     # --- Middleware: permissions, rate limiting, audit ---
 
@@ -183,45 +219,90 @@ def create_server():
 
         return wrapper
 
+    # --- Audit calls that the schema rejects -------------------------------------------
+    # Enum and type validation runs before `_audited`, so a call with an invalid argument
+    # would leave no audit record. This middleware records it, then re-raises.
+
+    from fastmcp.exceptions import ValidationError as _SchemaError
+    from fastmcp.server.middleware import Middleware
+
+    class _AuditRejectedCalls(Middleware):
+        async def on_call_tool(self, context, call_next):
+            import time as _time
+
+            from nexus_mcp.middleware.audit import generate_correlation_id
+
+            start = _time.monotonic()
+            try:
+                return await call_next(context)
+            except _SchemaError:
+                try:
+                    _audit.log_invocation(
+                        tool_name=context.message.name,
+                        params=dict(context.message.arguments or {}),
+                        result_status="invalid_arguments",
+                        duration_ms=(_time.monotonic() - start) * 1000,
+                        correlation_id=generate_correlation_id(),
+                    )
+                except Exception as e:  # noqa: BLE001 - auditing must never hide the real error
+                    logger.warning("Audit logging failed for a rejected call: %s", e)
+                raise
+
+    mcp.add_middleware(_AuditRejectedCalls())
+
     # --- MCP Tools (thin wrappers over core_api) ---
 
-    @mcp.tool()
+    from mcp.types import ToolAnnotations
+
+    # Hints for the client (for example Codex asks for approval only for tools that
+    # are not marked read-only). They are hints, not a security boundary: the real
+    # check is the permission policy in `_guard`.
+    READ_ONLY = ToolAnnotations(
+        readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
+    )
+    INDEXING = ToolAnnotations(
+        readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False
+    )
+    MEMORY_WRITE = ToolAnnotations(
+        readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False
+    )
+
+    @mcp.tool(annotations=READ_ONLY, title="Index status")
     @_audited
-    def status() -> dict[str, Any]:
-        """Use at the start of a session, or when unsure if search results might
-        be stale. Reports whether a codebase is indexed, index size/engine
-        availability, memory usage, and a stale/staleness_warning pair if files
-        changed since the last index (a background reindex is auto-triggered)."""
+    async def status() -> dict[str, Any]:
+        """Check whether this project is indexed and whether the index is fresh. You do
+        not need it before other nexus tools: an index saved in an earlier session is
+        attached when the server starts. Use it when a tool says "No codebase indexed" or
+        to see index size. Returns `indexed` (true/false), file and symbol counts, which
+        engines are ready, memory use, and a stale warning if files changed since the
+        last index (a background reindex starts by itself). If `indexed` is false, call
+        `index`."""
         guard_err = _guard("status")
         if guard_err:
             return guard_err
-        return core_api.status()
+        # status() may reattach a stored index, which reads from disk: keep it off the
+        # event loop. The file watcher needs the running loop, so start it here. A session
+        # that called `index` already has one, and this does nothing then.
+        result = await asyncio.to_thread(core_api.status)
+        if result.get("indexed"):
+            from nexus_mcp.state import get_state
 
-    @mcp.tool()
-    @_audited
-    def health() -> dict[str, Any]:
-        """Use for liveness/readiness probes only (uptime, which engines are up)
-        — not for checking whether the index is fresh or complete; use `status`
-        for that."""
-        guard_err = _guard("health")
-        if guard_err:
-            return guard_err
-        return core_api.health()
+            await core_api._ensure_file_watcher(get_state(), _settings.auto_watch_enabled)
+        return result
 
-    @mcp.tool()
+    @mcp.tool(annotations=INDEXING, title="Index a project")
     @_audited
     async def index(
         path: Annotated[str, "Absolute path to the codebase directory (or comma-separated paths)"],
         paths: Annotated[str, "Additional comma-separated paths to index"] = "",
         ctx: Context = None,
     ) -> dict[str, Any]:
-        """Use first on any new or changed codebase, before any other tool —
-        everything except `status`/`health` requires an index. Supports
-        comma-separated paths for multi-folder/monorepo indexing (processed
-        sequentially to keep RAM low). Incremental by default once an index
-        exists, and reports live progress instead of blocking silently. After
-        this completes, a file watcher keeps the index fresh automatically
-        (NEXUS_AUTO_WATCH) — re-running `index` manually is rarely needed."""
+        """Build or refresh the code index for a project. Call it once per project
+        when `status` says `indexed` is false; search, find_symbol, graph, map and
+        analyze all need it. Pass an absolute path, or several comma-separated
+        paths for a monorepo. It is incremental when an index exists, and a file
+        watcher then keeps the index fresh, so you rarely need to call it again.
+        Large repositories take a while; progress is reported."""
         guard_err = _guard("index")
         if guard_err:
             return guard_err
@@ -257,121 +338,111 @@ def create_server():
 
         return await core_api.index(path, paths, progress_callback=progress_callback)
 
-    @mcp.tool()
+    @mcp.tool(annotations=READ_ONLY, title="Search code")
     @_audited
     def search(
-        query: Annotated[str, "Natural language or code query (e.g. 'retry logic')"],
-        limit: Annotated[int, "Max results (default 10, max 100)"] = 10,
-        language: Annotated[str, "Filter by language (e.g. 'python')"] = "",
-        symbol_type: Annotated[str, "Filter by type (e.g. 'function', 'class')"] = "",
-        mode: Annotated[str, "Search mode: 'hybrid', 'vector', or 'bm25'"] = "hybrid",
-        rerank: Annotated[bool, "FlashRank reranking (default True)"] = True,
-        live_grep: Annotated[bool, "Force live-grep fallback (rg/grep)"] = False,
+        query: Annotated[
+            str, "What to find, in plain words or code terms. Exact names (parse_config) first"
+        ],
+        limit: Annotated[int, "Max results (default 10)"] = 10,
     ) -> dict[str, Any]:
-        """Use for any "where is/how does/find" code question — preferred over
-        Grep/Glob, and usually answerable from the returned code_snippet without
-        a follow-up Read. Falls back to live grep automatically when hybrid
-        results are sparse. Returns a non-null `warning` if the index looked
-        stale (a background reindex is triggered; results still return now)."""
+        """Find code by meaning or by keyword: "where is...", "how does... work",
+        "find the code that...", "what handles...". Returns ranked results with file
+        path and line range. The first three carry the whole function or class, so you
+        can answer without opening the file. A query can hold exact names
+        (`parse_config RetryPolicy`): their definitions come first. For the whole code
+        of a result that is cut, call `find_symbol` with its name. Source files rank
+        before test files unless the query asks for tests. For an exact string or a
+        file you already know, your built-in grep or read is just as good."""
         guard_err = _guard("search")
         if guard_err:
             return guard_err
-        return core_api.search(
-            query,
-            limit=limit,
-            language=language,
-            symbol_type=symbol_type,
-            mode=mode,
-            rerank=rerank,
-            live_grep=live_grep,
-        )
+        return core_api.search(query, limit=limit)
 
-    @mcp.tool()
+    @mcp.tool(annotations=READ_ONLY, title="Find a symbol")
     @_audited
     def find_symbol(
-        symbol_name: Annotated[str, "Symbol name (e.g. 'create_server', 'TokenBudget')"],
+        symbol_name: Annotated[
+            str,
+            "One name, or several with commas (e.g. 'create_server, TokenBudget, MAX_RETRIES')",
+        ],
         exact: Annotated[bool, "True for exact match, False for fuzzy substring"] = True,
     ) -> dict[str, Any]:
-        """Use to look up a specific function/class/symbol by name — preferred
-        over Grep since it returns the definition plus its call-graph
-        relationships in one call. Set exact=False for fuzzy substring matching
-        when unsure of the exact name."""
+        """Look up functions, classes, methods or constants by name and get the whole
+        code of each, with file, line range and direct callers and callees. Use it
+        when you know the name ("show me create_order", "where is TokenBudget defined"),
+        and in place of a file read or a grep for a definition. Pass several names in
+        one call. A class longer than 2,000 characters gives an outline (its head and
+        one line per method); ask for "Class.method" for a method's code. Other code
+        longer than 6,000 characters is cut and marked `(truncated)`. Set exact=false
+        to match part of a name when you are unsure of the spelling.
+        For every use of a name, use `graph`."""
         guard_err = _guard("find_symbol")
         if guard_err:
             return guard_err
         return core_api.find_symbol(symbol_name, exact=exact)
 
-    @mcp.tool()
+    @mcp.tool(annotations=READ_ONLY, title="Call graph")
     @_audited
     def graph(
         symbol_name: Annotated[str, "Name of the function/symbol to trace"],
         direction: Annotated[
-            str, "'callers' (who calls this) or 'callees' (what this calls)"
+            Literal["callers", "callees"],
+            "'callers' (who calls this) or 'callees' (what this calls)",
         ] = "callers",
         transitive: Annotated[
             bool,
-            "True = full transitive closure for change-impact analysis (MUST use "
-            "before refactoring a shared symbol). Only valid with direction='callers'.",
+            "True = everything that depends on the symbol, directly or indirectly. Use "
+            "before changing a shared symbol. Only valid with direction='callers'.",
         ] = False,
-        max_depth: Annotated[int, "Max traversal depth when transitive=True (default 10)"] = 10,
     ) -> dict[str, Any]:
-        """Use to trace who calls a function (direction='callers'), what it calls
-        (direction='callees'), or — with transitive=True — the full transitive
-        blast radius of changing it. MUST use transitive=True before refactoring
-        or editing a widely-shared symbol; grep can't show transitive impact."""
+        """Trace the call graph: who calls a function (direction='callers') or what
+        it calls (direction='callees'). With transitive=true it lists everything that
+        depends on the symbol, directly or indirectly; use that before you change a
+        signature or rename, move or delete a shared function ("what breaks if I
+        change X"). A callers result also has `references`: every use of the name as a
+        whole word (source lines with their code, test files as counts), so you do not
+        need a grep to check it. Edges are static, so calls through callbacks,
+        reflection or dynamic dispatch are missing from the caller list; `references`
+        still shows those lines."""
         guard_err = _guard("graph")
         if guard_err:
             return guard_err
-        return core_api.graph(
-            symbol_name, direction=direction, transitive=transitive, max_depth=max_depth
-        )
+        return core_api.graph(symbol_name, direction=direction, transitive=transitive)
 
-    @mcp.tool()
+    @mcp.tool(annotations=READ_ONLY, title="Analyze code quality")
     @_audited
     def analyze(
         path: Annotated[
             str, "Optional relative path to filter analysis (subdirectory or file)"
         ] = ""
     ) -> dict[str, Any]:
-        """Use for code review or quality assessment — preferred over manually
-        reading files to eyeball complexity, since it computes cyclomatic/
-        cognitive complexity, dependency analysis, code smells (long/complex
-        functions, large classes, dead code), and an overall quality score in
-        one call. Read-only; requires an index (see `index`). Optionally scope
-        to a subdirectory or file via `path` to keep results focused and fast
-        on large codebases — omit it to analyze the whole indexed codebase."""
+        """Review the quality of the indexed project, or of one path: the most
+        complex functions, long functions, large classes, dead code (functions with
+        no static caller), module dependencies and an overall quality score. Use it
+        for "what is the most complex code", "review this directory", "is there dead
+        code". Pass `path` (relative) to limit it to a directory or file. Read-only.
+        Complexity is cyclomatic and approximate, and dead-code entries have no
+        static caller, so check them before you delete anything."""
         guard_err = _guard("analyze")
         if guard_err:
             return guard_err
         return core_api.analyze(path)
 
-    @mcp.tool()
-    @_audited
-    def explain(
-        symbol_name: Annotated[str, "Name of the symbol to explain"],
-        verbosity: Annotated[
-            str, "Output detail level: 'summary', 'detailed', or 'full'"
-        ] = "detailed",
-    ) -> dict[str, Any]:
-        """Use for onboarding to an unfamiliar symbol — combines its call-graph
-        relationships, related code found via semantic search, and quality
-        metrics in one call, so Read is often unnecessary. Use verbosity='summary'
-        for a quick look, 'full' when you need everything."""
-        guard_err = _guard("explain")
-        if guard_err:
-            return guard_err
-        return core_api.explain(symbol_name, verbosity=verbosity)
-
     def _map_impl(
         detail: Annotated[
-            str,
+            Literal["summary", "architecture", "full"],
             "'summary' (files/languages/quality/top-modules), 'architecture' "
             "(layers/dependencies/classes/entry points/hub symbols), or 'full' (both)",
         ] = "summary",
     ) -> dict[str, Any]:
-        """PREFERRED over Glob/ls/manual browsing for project understanding.
-        Use 'summary' for a quick project orientation, 'architecture' for
-        design/dependency structure, 'full' for both in one call."""
+        """Get an overview of the project: "give me an overview", "how is this
+        structured", "where do I start", "what are the main modules". 'summary' lists
+        files, languages, top modules and quality. 'architecture' gives layers, module
+        dependencies, entry points and the most connected symbols. 'full' gives both.
+        Use it at the start
+        of work in an unfamiliar repository, before you list directories or open
+        files one by one."""
         guard_err = _guard("map")
         if guard_err:
             return guard_err
@@ -382,30 +453,26 @@ def create_server():
     # the audit trail say "map", not "map_tool"/"_map_impl". Can't use @mcp.tool()/
     # @_audited decorator syntax here since the rename must happen between the two.
     _map_impl.__name__ = "map"
-    mcp.tool(name="map")(_audited(_map_impl))
+    mcp.tool(name="map", annotations=READ_ONLY, title="Project map")(_audited(_map_impl))
 
-    @mcp.tool()
+    @mcp.tool(annotations=MEMORY_WRITE, title="Project memory")
     @_audited
     def memory(
         action: Annotated[
-            str, "'store' (was remember), 'search' (was recall), or 'delete' (was forget)"
+            Literal["store", "search", "delete"],
+            "'store' saves a note, 'search' finds notes by meaning, 'delete' removes notes",
         ],
-        content: Annotated[str, "Memory content to store (action='store')"] = "",
-        query: Annotated[str, "Natural language search query (action='search')"] = "",
-        memory_id: Annotated[str, "Specific memory ID to delete (action='delete')"] = "",
-        memory_type: Annotated[
-            str, "Type/filter, e.g. 'note', 'decision' (store: type; search/delete: filter)"
-        ] = "",
+        content: Annotated[str, "The note to store (action='store')"] = "",
+        query: Annotated[str, "What to look for (action='search')"] = "",
         tags: Annotated[str, "Comma-separated tags (all actions)"] = "",
-        ttl: Annotated[
-            str, "Time-to-live for action='store': 'permanent', 'month', 'week', 'day', 'session'"
-        ] = "permanent",
-        project: Annotated[str, "Project name for scoping (action='store')"] = "default",
-        limit: Annotated[int, "Max results (action='search', default 5)"] = 5,
+        memory_id: Annotated[str, "ID of the note to delete (action='delete')"] = "",
     ) -> dict[str, Any]:
-        """Persist and retrieve project context across sessions. Use action='store'
-        to save a decision/note, action='search' to find memories by semantic
-        similarity, action='delete' to clean up by ID, tags, or type."""
+        """Keep and recall project knowledge across sessions: decisions, preferences,
+        conventions, status. Use action='store' when the user says "remember that..."
+        or a decision is made, action='search' for "what did we decide about...", and
+        action='delete' to remove outdated notes by ID or tags. Notes are stored
+        with the index of this project (the .nexus folder) and found by meaning, not
+        by exact words."""
         from nexus_mcp.security.permissions import ToolCategory
 
         category_override = {
@@ -419,15 +486,7 @@ def create_server():
             return guard_err
 
         return core_api.memory(
-            action,
-            content=content,
-            query=query,
-            memory_id=memory_id,
-            memory_type=memory_type,
-            tags=tags,
-            ttl=ttl,
-            project=project,
-            limit=limit,
+            action, content=content, query=query, tags=tags, memory_id=memory_id
         )
 
     return mcp
@@ -457,6 +516,9 @@ def main():
     signal.signal(signal.SIGINT, _shutdown_handler)
 
     server = create_server()
+    if settings.warm_start and settings.auto_restore:
+        # Not a tool call: the first `search` then finds the index and the model loaded.
+        threading.Thread(target=core_api.warm_up, name="nexus-warm-up", daemon=True).start()
     try:
         server.run()
     finally:

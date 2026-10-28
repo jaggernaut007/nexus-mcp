@@ -32,15 +32,15 @@ class Settings:
 
     # Search
     search_mode: str = "hybrid"  # "hybrid", "vector", "bm25"
-    reranker_model: str = "ms-marco-MiniLM-L-12-v2"
     fusion_weight_vector: float = 0.5
     fusion_weight_bm25: float = 0.3
-    fusion_weight_graph: float = 0.2
 
     # Memory limits
     max_memory_mb: int = 350
 
     # Auto-watch / staleness
+    auto_restore: bool = True  # reattach to the index on disk when a new process starts
+    warm_start: bool = True  # load the index and the embedding model while the server starts
     auto_watch_enabled: bool = True
     staleness_check_interval_s: float = 15.0
 
@@ -77,11 +77,11 @@ class Settings:
             "NEXUS_INDEX_FILE_BATCH_SIZE": ("index_file_batch_size", int),
             "NEXUS_GRAPH_MAX_DEPTH": ("graph_max_depth", int),
             "NEXUS_SEARCH_MODE": ("search_mode", str),
-            "NEXUS_RERANKER_MODEL": ("reranker_model", str),
             "NEXUS_FUSION_WEIGHT_VECTOR": ("fusion_weight_vector", float),
             "NEXUS_FUSION_WEIGHT_BM25": ("fusion_weight_bm25", float),
-            "NEXUS_FUSION_WEIGHT_GRAPH": ("fusion_weight_graph", float),
             "NEXUS_MAX_MEMORY_MB": ("max_memory_mb", int),
+            "NEXUS_AUTO_RESTORE": ("auto_restore", _bool),
+            "NEXUS_WARM_START": ("warm_start", _bool),
             "NEXUS_AUTO_WATCH": ("auto_watch_enabled", _bool),
             "NEXUS_STALENESS_CHECK_INTERVAL": ("staleness_check_interval_s", float),
             "NEXUS_LOG_LEVEL": ("log_level", str),

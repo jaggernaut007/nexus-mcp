@@ -153,3 +153,20 @@ derives it from `fn.__name__`, so without the rename it would have logged
   Considered for clarity, but the two response shapes have zero key collisions, so a
   flat merge preserves exact backward-compatible field access for anyone who already
   parses `overview()`'s or `architecture()`'s shape and switches to `detail="full"`.
+
+## Amendment, 2026-10-08: 10 tools to 8
+
+The surface is now `index, status, search, find_symbol, graph, analyze, map, memory`.
+
+- `explain` and `health` leave the MCP tool list. In 64 recorded live runs the agents called
+  neither. `explain` overlapped `find_symbol`, which now returns the code of a symbol with its
+  callers and callees. `health` is a probe for an operator. `core_api.explain` and
+  `core_api.health` stay in the Python API.
+- The schemas hold only what agents used: `search(query, limit)`,
+  `find_symbol(symbol_name, exact)`, `graph(symbol_name, direction, transitive)`,
+  `memory(action, content, query, tags, memory_id)`. The other options stay in `core_api`.
+
+Reason: nexus added 4,900 tokens to the prompt of each turn (16,893 against 12,282 for Grep and
+Read), and each turn reads the whole prompt again. Measured on 12 tasks, output tokens for each
+turn were equal with and without nexus (259 and 266), so a tool saves tokens only by saving
+turns. A tool or a parameter that tasks do not use is a cost with no gain.

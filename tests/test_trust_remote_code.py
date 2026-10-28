@@ -50,18 +50,33 @@ def test_jina_blocked_when_trust_disabled(monkeypatch):
 def test_jina_allowed_with_opt_in(monkeypatch):
     """Loading jina-code with NEXUS_TRUST_REMOTE_CODE=true passes the gate.
 
-    Note: actual model download is not tested; we verify the gate doesn't block.
+    The model class is a stand-in (the download is the boundary), so the test is fast
+    and checks that the load reaches it with trust_remote_code set.
     """
+    import sys
+    import types
+
+    seen = {}
+
+    class FakeModel:
+        max_seq_length = 8192
+
+        def __init__(self, name, **kwargs):
+            seen.update(kwargs)
+
+        def get_sentence_embedding_dimension(self):
+            return 768
+
+    fake = types.ModuleType("sentence_transformers")
+    fake.SentenceTransformer = FakeModel
+    monkeypatch.setitem(sys.modules, "sentence_transformers", fake)
     monkeypatch.setenv("NEXUS_TRUST_REMOTE_CODE", "true")
     reset_settings()
-    svc = EmbeddingService(model_name="jina-code")
-    try:
-        svc._load_model()
-    except ConfigurationError:
-        pytest.fail("ConfigurationError should not be raised when trust_remote_code is opted in")
-    except (ImportError, Exception):
-        # SentenceTransformer may not be installed or model not available in CI
-        pass
+    svc = EmbeddingService(model_name="jina-code", device="cpu")
+
+    svc._load_model()
+
+    assert seen.get("trust_remote_code") is True
 
 
 def test_unsupported_model_rejected():

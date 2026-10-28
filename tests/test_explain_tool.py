@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from tests.conftest import _call_tool, _setup_indexed
+from tests.conftest import _call_api, _setup_indexed
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ class TestExplainTool:
         async def _test():
             storage = tmp_path / "storage"
             mcp, _, _ = await _setup_indexed(explain_codebase, storage)
-            result = await _call_tool(mcp, "explain", {
+            result = await _call_api("explain", {
                 "symbol_name": "parse_tokens",
             })
             assert "error" not in result
@@ -44,7 +44,7 @@ class TestExplainTool:
         async def _test():
             storage = tmp_path / "storage"
             mcp, _, _ = await _setup_indexed(explain_codebase, storage)
-            result = await _call_tool(mcp, "explain", {
+            result = await _call_api("explain", {
                 "symbol_name": "nonexistent_func",
             })
             assert "error" in result
@@ -53,9 +53,7 @@ class TestExplainTool:
 
     def test_explain_before_index(self):
         async def _test():
-            import nexus_mcp.server as server_module
-            mcp = server_module.create_server()
-            result = await _call_tool(mcp, "explain", {
+            result = await _call_api("explain", {
                 "symbol_name": "test",
             })
             assert "error" in result
@@ -66,7 +64,7 @@ class TestExplainTool:
         async def _test():
             storage = tmp_path / "storage"
             mcp, _, _ = await _setup_indexed(explain_codebase, storage)
-            result = await _call_tool(mcp, "explain", {
+            result = await _call_api("explain", {
                 "symbol_name": "parse_tokens",
                 "verbosity": "summary",
             })
@@ -79,7 +77,7 @@ class TestExplainTool:
             storage = tmp_path / "storage"
             mcp, _, _ = await _setup_indexed(explain_codebase, storage)
             # Use partial name that won't exact match
-            result = await _call_tool(mcp, "explain", {
+            result = await _call_api("explain", {
                 "symbol_name": "parse",
             })
             # Should find via fuzzy match

@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-28
+
+### Breaking Changes
+
+- The `explain` and `health` tools are removed from the MCP tool list (10 tools to 8).
+  `find_symbol` now returns the code of a symbol with its callers and callees. Both functions
+  stay in `core_api`.
+- Parameters removed from the MCP schemas (they stay in `core_api`): `search` `language`,
+  `symbol_type`, `mode`, `rerank`, `live_grep`, `detail`; `find_symbol` `detail`; `graph`
+  `max_depth`, `detail`; `memory` `memory_type`, `ttl`, `project`, `limit`. A client that
+  sends one now gets a schema error.
+- `find_symbol(name=)` is now `symbol_name`. An invalid enum value is a schema error.
+- The FlashRank reranker is removed (`rerank`, the `reranker` extra, `setup.sh --reranker`,
+  `NEXUS_RERANKER_MODEL`), and so is the graph list in fusion (`NEXUS_FUSION_WEIGHT_GRAPH`).
+- An index of an older version is rebuilt in full on the first `index` call
+  (`chunk_format` 3).
+
 ### Added
 
 - **`find_symbol` shows an outline of a long class.** A class whose code is longer than 2,000

@@ -1,7 +1,7 @@
 {
   "$schema": "https://glama.ai/mcp/schemas/server.json",
   "name": "nexus-mcp-ci",
-  "description": "Unified MCP server with hybrid search, code graph analysis, semantic memory, and live-grep fallback",
+  "description": "Local MCP server for AI coding agents: hybrid code search, static call graph and project memory. 8 tools that answer code questions in fewer agent turns. No API keys.",
   "pythonVersion": "3.12",
   "homepage": "https://github.com/jaggernaut007/Nexus-MCP",
   "repository": "https://github.com/jaggernaut007/Nexus-MCP",
@@ -33,7 +33,7 @@
       },
       "NEXUS_MAX_MEMORY_MB": {
         "type": "string",
-        "description": "Memory budget (RAM)",
+        "description": "Memory budget in MB (about 90 MB idle, 460 MB with the embedding model loaded)",
         "default": "350"
       },
       "NEXUS_CHUNK_MAX_CHARS": {
@@ -76,6 +76,10 @@
     "mcp",
     "lancedb",
     "tree-sitter",
-    "ast-grep"
+    "ast-grep",
+    "call-graph",
+    "project-memory",
+    "claude-code",
+    "ai-coding-agent"
   ]
 }

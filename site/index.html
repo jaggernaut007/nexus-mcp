@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Nexus-MCP: MCP Server for AI Coding Agent Memory &amp; Code Search</title>
-  <meta name="description" content="Local MCP server that gives Claude Code, Cursor and other AI coding agents persistent project memory, a live codebase map and code explanations. No API keys.">
+  <meta name="description" content="Local MCP server that gives Claude Code, Cursor and other AI coding agents persistent project memory, a live codebase map and code search that cuts agent turns. No API keys.">
   <meta name="keywords" content="MCP server, Model Context Protocol, Claude Code memory, AI coding agent context, code search MCP, codebase documentation, semantic code search">
   <meta name="author" content="Shreyas Jagannath">
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
@@ -13,14 +13,14 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://jaggernaut007.github.io/nexus-mcp/">
   <meta property="og:title" content="Nexus-MCP: MCP Server for AI Coding Agent Memory &amp; Code Search">
-  <meta property="og:description" content="Persistent project memory, a live codebase map and symbol explanations for any MCP agent. Local, private, no API keys.">
+  <meta property="og:description" content="Persistent project memory, a live codebase map and code lookup in fewer turns for any MCP agent. Local, private, no API keys.">
   <meta property="og:image" content="https://jaggernaut007.github.io/nexus-mcp/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Nexus-MCP. Your agent forgets. Your codebase shouldn't.">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Nexus-MCP: MCP Server for AI Coding Agent Memory &amp; Code Search">
-  <meta name="twitter:description" content="Persistent project memory, a live codebase map and symbol explanations for any MCP agent. Local and private.">
+  <meta name="twitter:description" content="Persistent project memory, a live codebase map and code lookup in fewer turns for any MCP agent. Local and private.">
   <meta name="twitter:image" content="https://jaggernaut007.github.io/nexus-mcp/og.png">
   <meta name="theme-color" content="#f5f1ea" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)">
@@ -61,7 +61,7 @@
       "applicationSubCategory": "Model Context Protocol server",
       "operatingSystem": "macOS, Linux, Windows",
       "programmingLanguage": "Python",
-      "description": "A local MCP server that gives AI coding agents persistent project memory, a live codebase map, hybrid code search and symbol explanations. No API keys.",
+      "description": "A local MCP server that gives AI coding agents persistent project memory, a live codebase map, hybrid code search and symbol lookup with code. No API keys.",
       "url": "https://jaggernaut007.github.io/nexus-mcp/",
       "downloadUrl": "https://pypi.org/project/nexus-mcp-ci/",
       "installUrl": "https://pypi.org/project/nexus-mcp-ci/",
@@ -71,6 +71,7 @@
       "author": {
         "@id": "https://jaggernaut007.github.io/nexus-mcp/#author"
       },
+      "softwareVersion": "2.1.0",
       "keywords": "MCP server, Model Context Protocol, AI coding agent, Claude Code, code search, semantic memory, code intelligence, local-first",
       "sameAs": [
         "https://github.com/jaggernaut007/Nexus-MCP",
@@ -87,7 +88,7 @@
           "name": "What is Nexus-MCP?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Nexus-MCP is a local Model Context Protocol (MCP) server for AI coding agents. It gives an agent persistent project memory, a live map of the codebase, hybrid semantic and keyword code search, and symbol explanations. It runs on your machine and needs no API keys."
+            "text": "Nexus-MCP is a local Model Context Protocol (MCP) server for AI coding agents. It gives an agent persistent project memory, a live map of the codebase, hybrid semantic and keyword code search, and the code of any symbol in one call. It runs on your machine and needs no API keys."
           }
         },
         {
@@ -96,6 +97,14 @@
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "Install Nexus-MCP with pip install nexus-mcp-ci, then register it with claude mcp add nexus-mcp -- nexus-mcp-ci. The agent can then store decisions, notes and preferences with the memory tool and recall them by meaning in later sessions. The memory store is local and any MCP client can read it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Nexus-MCP lower token use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "On the projects we measured, yes, through fewer turns. In 12 live questions per project with Claude Sonnet, Nexus-MCP cut turns from 55 to 35 on a private 460-file project and from 93 to 71 on django. Cost fell by 22% and 3%. Cost varies by about 20% over 3 runs, so the django result is about equal."
           }
         },
         {
@@ -168,6 +177,7 @@
       <nav class="nav-links" aria-label="Primary">
         <a href="#problem">Why</a>
         <a href="#features">Features</a>
+        <a href="#results">Results</a>
         <a href="#tools">Tools</a>
         <a href="#install">Install</a>
         <a href="#faq">FAQ</a>
@@ -185,12 +195,12 @@
     <section class="hero" id="top">
       <div class="wrap hero-grid">
         <div class="hero-copy">
-          <p class="eyebrow"><span class="dot"></span> Local MCP server · v2 · Python 3.10–3.12</p>
+          <p class="eyebrow"><span class="dot"></span> Local MCP server · v2.1 · Python 3.10–3.12</p>
           <h1>Your agent forgets.<br><em>Your codebase shouldn't.</em></h1>
           <p class="lede">
             Nexus-MCP gives AI coding agents the context they lose between sessions.
             It keeps project decisions in a searchable memory, draws a live map of your
-            architecture, and explains any feature in plain terms. It runs on your machine.
+            architecture, and returns the code your agent asks for in fewer calls. It runs on your machine.
             It needs no API keys.
           </p>
           <div class="cta-row">
@@ -205,7 +215,7 @@
             <li><strong>0</strong> API keys</li>
             <li><strong>~90 MB</strong> RAM idle</li>
             <li><strong>25+</strong> languages</li>
-            <li><strong>10</strong> focused tools</li>
+            <li><strong>8</strong> focused tools</li>
           </ul>
         </div>
 
@@ -225,12 +235,11 @@
 <span class="o">→ billing/retry.py:42    schedule_retry()      0.94</span>
 <span class="o">→ billing/webhooks.py:18 on_charge_failed()    0.88</span>
 
-<span class="c"># Explain it before you touch it.</span>
-<span class="k">explain</span>(<span class="s">"schedule_retry"</span>, verbosity=<span class="s">"summary"</span>)
-<span class="o">→ def schedule_retry(charge, attempt) -> RetryJob</span>
-<span class="o">  "Queue the next attempt with jittered backoff."</span>
-<span class="o">  related: retry_job(), on_charge_failed()
-  complexity 6 · no smells</span><span class="cursor" aria-hidden="true"></span></code></pre>
+<span class="c"># Read it before you touch it. No file tour.</span>
+<span class="k">find_symbol</span>(<span class="s">"schedule_retry, RetryJob"</span>)
+<span class="o">→ billing/retry.py:42-61  def schedule_retry(charge, attempt)</span>
+<span class="o">  code: whole function · callers: on_charge_failed()</span>
+<span class="o">→ billing/jobs.py:8       class RetryJob · outline, 4 methods</span><span class="cursor" aria-hidden="true"></span></code></pre>
           <figcaption>Illustrative output. Real results depend on your code.</figcaption>
         </figure>
       </div>
@@ -244,7 +253,7 @@
           <h2>What is Nexus-MCP?</h2>
         </div>
         <div class="what-copy">
-          <p><strong>Nexus-MCP is a local Model Context Protocol (MCP) server for AI coding agents.</strong> It adds three things an agent lacks by default: persistent project memory across sessions, a live map of your codebase, and plain explanations of any function or class. It works with Claude Code, Claude Desktop, Cursor, Windsurf, Cline, Continue and Goose.</p>
+          <p><strong>Nexus-MCP is a local Model Context Protocol (MCP) server for AI coding agents.</strong> It adds three things an agent lacks by default: persistent project memory across sessions, a live map of your codebase, and the code of any function or class, with its callers, in one call. It works with Claude Code, Claude Desktop, Cursor, Windsurf, Cline, Continue and Goose.</p>
           <dl class="facts">
             <div><dt>Install</dt><dd><code>pip install nexus-mcp-ci</code></dd></div>
             <div><dt>Runs</dt><dd>Locally. No API keys.</dd></div>
@@ -295,20 +304,18 @@
             <h3>Project memory that outlives the session</h3>
             <p>The agent stores decisions, preferences, status and notes as it works. The next session recalls them by meaning, not by file name.</p>
             <ul class="ticks">
-              <li>Six memory types: note, decision, conversation, status, preference, doc</li>
-              <li>Expiry that you control, from one session to permanent</li>
+              <li>Store, search and delete with one tool and three actions</li>
               <li>Tag a memory to a file or a symbol, then filter by tag</li>
+              <li>Kept with the project index, in the <code>.nexus</code> folder</li>
               <li>One local store. Any MCP client can read it, so your context stays when you change agents.</li>
             </ul>
           </div>
           <div class="feature-demo">
 <pre><code><span class="k">memory</span>(
   action=<span class="s">"store"</span>,
-  memory_type=<span class="s">"decision"</span>,
   content=<span class="s">"Auth tokens live 15 min. Refresh
            tokens rotate on every use."</span>,
-  tags=<span class="s">"file:auth/tokens.py,security"</span>,
-  ttl=<span class="s">"permanent"</span>,
+  tags=<span class="s">"decision,file:auth/tokens.py"</span>,
 )
 <span class="o">→ stored · id m_7f3a</span></code></pre>
           </div>
@@ -342,13 +349,13 @@
 
         <div class="feature">
           <div class="feature-copy">
-            <span class="tag">Explanation · <code>search</code> · <code>explain</code></span>
+            <span class="tag">Code · <code>search</code> · <code>find_symbol</code></span>
             <h3>Understand a feature without a file tour</h3>
-            <p>Describe the behaviour in your own words. Hybrid search combines meaning, keywords and code structure to find the right functions. Then <code>explain</code> gives the definition, docstring and quality in a token budget you pick.</p>
+            <p>Describe the behaviour in your own words. Hybrid search combines meaning and keywords to find the right functions, and its top results carry their whole code. Then <code>find_symbol</code> gives the code of several names in one call, with their callers and callees.</p>
             <ul class="ticks">
               <li>Vector + BM25 search, merged with Reciprocal Rank Fusion</li>
-              <li>Optional local re-ranker for sharper results</li>
-              <li>Three verbosity levels: summary, detailed, full</li>
+              <li>Exact names in a query come first; source files before tests</li>
+              <li>A long class comes back as an outline; ask for <code>Class.method</code></li>
             </ul>
           </div>
           <div class="feature-demo">
@@ -356,9 +363,9 @@
 <span class="o">→ orders/idempotency.py:12  check_key()   0.93</span>
 <span class="o">→ api/middleware.py:57      dedupe()      0.86</span>
 
-<span class="k">explain</span>(<span class="s">"check_key"</span>, verbosity=<span class="s">"detailed"</span>)
-<span class="o">→ signature, docstring, line range,</span>
-<span class="o">  related chunks, complexity metrics</span></code></pre>
+<span class="k">find_symbol</span>(<span class="s">"check_key, dedupe"</span>)
+<span class="o">→ code, file, line range,</span>
+<span class="o">  direct callers and callees of each</span></code></pre>
           </div>
         </div>
       </div>
@@ -386,22 +393,42 @@
       </div>
     </section>
 
+    <!-- RESULTS -->
+    <section class="section results" id="results">
+      <div class="wrap complement-grid">
+        <div>
+          <p class="kicker">Measured, not estimated</p>
+          <h2>Fewer turns for the same answers.</h2>
+          <p class="lede small">Each turn of an agent reads the whole conversation again, so a saved turn is a saved cost. We ran 12 questions per project with Claude Sonnet, 3 runs each, against an agent with only Grep and Read. The saving is large on code the model does not know and small on code it knows. Run the <a href="https://github.com/jaggernaut007/Nexus-MCP/tree/main/benchmarks" rel="noopener">benchmark</a> on your own project before you rely on it.</p>
+        </div>
+        <table class="split">
+          <caption class="sr">Live benchmark of Nexus-MCP against Grep and Read, version 2.1</caption>
+          <thead><tr><th scope="col">Nexus-MCP against Grep and Read</th><th scope="col">Result</th></tr></thead>
+          <tbody>
+            <tr><td>Private 460-file Python project: turns</td><td><span class="pill">55 → 35</span></td></tr>
+            <tr><td>Private project: cost</td><td><span class="pill">−22%</span></td></tr>
+            <tr><td>Django, 3,000 files: turns</td><td><span class="pill">93 → 71</span></td></tr>
+            <tr><td>Django: cost</td><td><span class="pill muted">−3%</span></td></tr>
+            <tr><td>Correct answers: Nexus, then Grep and Read</td><td><span class="pill muted">71 · 70 of 72</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- TOOLS -->
     <section class="section tools" id="tools">
       <div class="wrap">
         <p class="kicker">The tool surface</p>
-        <h2>Ten tools. Each one earns its call.</h2>
+        <h2>Eight tools. Each one earns its call.</h2>
         <div class="tool-grid">
           <div class="tool"><code>memory</code><p>Store, search and delete project knowledge across sessions.</p></div>
           <div class="tool"><code>map</code><p>Project summary and architecture: layers, entry points, hubs.</p></div>
           <div class="tool"><code>analyze</code><p>Complexity, code smells and dependency metrics for a path.</p></div>
-          <div class="tool"><code>search</code><p>Hybrid semantic + keyword search, with live-grep fallback.</p></div>
-          <div class="tool"><code>explain</code><p>One symbol, explained at the verbosity you ask for.</p></div>
-          <div class="tool"><code>find_symbol</code><p>Exact or fuzzy lookup of a function, class or method.</p></div>
-          <div class="tool"><code>graph</code><p>Callers, callees and change impact from static call edges.</p></div>
+          <div class="tool"><code>search</code><p>Hybrid semantic + keyword search. Top results carry their code.</p></div>
+          <div class="tool"><code>find_symbol</code><p>The code of one or more names, with callers and callees.</p></div>
+          <div class="tool"><code>graph</code><p>Callers, callees, change impact and every text reference.</p></div>
           <div class="tool"><code>index</code><p>Incremental, multi-folder indexing with an auto-watch.</p></div>
-          <div class="tool"><code>status</code><p>Index health, counts, memory use and a staleness flag.</p></div>
-          <div class="tool"><code>health</code><p>Liveness probe: uptime and which engines are ready.</p></div>
+          <div class="tool"><code>status</code><p>Index counts, memory use and a staleness flag.</p></div>
         </div>
       </div>
     </section>
@@ -463,7 +490,7 @@
           </li>
           <li>
             <h3>Ask your agent a question</h3>
-            <p>The agent calls <code>index</code> on first use. After that, it recalls memory, maps the repo and explains code for you. A file watcher keeps the index current.</p>
+            <p>The agent calls <code>index</code> on first use. After that, it recalls memory, maps the repo and finds code for you. A file watcher keeps the index current.</p>
           </li>
         </ol>
       </div>
@@ -479,11 +506,15 @@
         <div class="faq-list">
           <details>
             <summary>What is Nexus-MCP?</summary>
-            <p>Nexus-MCP is a local Model Context Protocol (MCP) server for AI coding agents. It gives an agent persistent project memory, a live map of the codebase, hybrid semantic and keyword code search, and symbol explanations. It runs on your machine and needs no API keys.</p>
+            <p>Nexus-MCP is a local Model Context Protocol (MCP) server for AI coding agents. It gives an agent persistent project memory, a live map of the codebase, hybrid semantic and keyword code search, and the code of any symbol in one call. It runs on your machine and needs no API keys.</p>
           </details>
           <details>
             <summary>How do I give Claude Code persistent memory across sessions?</summary>
             <p>Install Nexus-MCP with <code>pip install nexus-mcp-ci</code>, then register it with <code>claude mcp add nexus-mcp -- nexus-mcp-ci</code>. The agent can then store decisions, notes and preferences with the memory tool and recall them by meaning in later sessions. The memory store is local and any MCP client can read it.</p>
+          </details>
+          <details>
+            <summary>Does Nexus-MCP lower token use?</summary>
+            <p>On the projects we measured, yes, through fewer turns. In 12 live questions per project with Claude Sonnet, Nexus-MCP cut turns from 55 to 35 on a private 460-file project and from 93 to 71 on django. Cost fell by 22% and 3%. Cost varies by about 20% over 3 runs, so the django result is about equal. <a href="https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/EVALS.md" rel="noopener">docs/EVALS.md</a> has every number.</p>
           </details>
           <details>
             <summary>Is Nexus-MCP free?</summary>

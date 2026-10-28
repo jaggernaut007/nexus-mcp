@@ -2,7 +2,7 @@
   "name": "nexus-mcp",
   "displayName": "Nexus-MCP",
   "description": "Code search, call graph and project memory for Claude Code, via the nexus-mcp-ci pip package. Requires `pip install nexus-mcp-ci` first — this plugin registers the MCP server and teaches Claude when to use it, it does not install the Python package.",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "author": {
     "name": "Shreyas Jagannath",
     "url": "https://github.com/jaggernaut007"

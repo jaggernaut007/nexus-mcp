@@ -66,7 +66,7 @@ Lower token use for an agent, with the same accuracy. Set by the owner on 2026-1
 ## Phase 4: Hybrid Search + Memory — COMPLETE
 - [x] engines/bm25_engine.py — LanceDB Tantivy FTS wrapper
 - [x] engines/fusion.py — Reciprocal Rank Fusion with multi-engine dedup
-- [x] engines/reranker.py — FlashRank two-stage reranker (optional dep)
+- [x] engines/reranker.py — FlashRank two-stage reranker (optional dep). Removed on 2026-10-26: it lowered hit@1 (see CHANGELOG).
 - [x] memory/memory_store.py — LanceDB-backed semantic memory with TTL
 - [x] formatting/token_budget.py — Token estimation and verbosity levels
 - [x] formatting/response_builder.py — Structured response building

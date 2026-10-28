@@ -8,7 +8,7 @@ Nexus-MCP consolidates two predecessor projects into a single server ([ADR-001](
 
 ## System Overview
 
-10 tools, consolidated from an earlier 15 ([ADR-017](adr/ADR-017-tool-consolidation.md)): `index`, `status`, `health`, `search`, `find_symbol`, `graph`, `explain`, `analyze`, `map`, `memory`.
+8 tools: `index`, `status`, `search`, `find_symbol`, `graph`, `analyze`, `map`, `memory`. They were consolidated from an earlier 15 ([ADR-017](adr/ADR-017-tool-consolidation.md)). `explain` and `health` are no longer tools; their functions stay in `core_api.py`.
 
 ```mermaid
 flowchart TB

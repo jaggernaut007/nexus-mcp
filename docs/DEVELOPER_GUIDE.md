@@ -182,7 +182,7 @@ Keep the tool surface small. [ADR-017](adr/ADR-017-tool-consolidation.md) explai
 All significant design decisions are documented in `docs/adr/`. When making a key decision:
 
 1. Copy `docs/adr/ADR-000-template.md`
-2. Number it sequentially (the next free number is ADR-019)
+2. Number it sequentially (the next free number is ADR-020)
 3. Document: Context, Decision, Alternatives Considered, Consequences
 4. Add a reference to `CLAUDE.md` under "Key Decisions"
 

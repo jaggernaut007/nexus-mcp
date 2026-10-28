@@ -71,7 +71,7 @@ and a measured memory table (`docs/MEMORY.md`). Still open from the same audit: 
 | Detect another code-search tool and defer to it | POSITIONING R4 |
 | Content hashing instead of mtimes | ADR-009 |
 | Re-embed stored memories when the model changes | embedding eval |
-| FlashRank research note; ADRs for RRF weights, memory TTL, FlashRank | IMPLEMENTATION_PLAN |
+| ADRs for RRF weights and memory TTL (FlashRank was removed) | IMPLEMENTATION_PLAN |
 | Test behaviour under weaker local models | POSITIONING |
 | Official MCP registry entry (`server.json`), `.mcpb` bundle | ROADMAP-2026 item 6 |
 | Lead the README with `memory` and `analyze`, not search and graph | POSITIONING D1 vs ROADMAP-2026 item 10 (these conflict; decide first) |

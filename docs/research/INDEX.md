@@ -10,7 +10,7 @@ Research notes for libraries and technologies used in Nexus-MCP. Check here befo
 | ONNX Runtime | Documented in [RESEARCH.md](../RESEARCH.md#2-embedding-models) | PyTorch replacement, quantization |
 | sentence-transformers | Used in Phase 1-2 | Model loading wrapper; lazy load + unload pattern in `embedding_service.py` |
 | FastMCP | Used in Phase 2+ | v3.1 API: `FastMCP(name)`, `@mcp.tool()`. Tools in `mcp._local_provider._components` (key: `tool:{name}`). `FunctionTool.fn` for raw function access. No `description` kwarg in v3 |
-| FlashRank | Needs research (Phase 4) | Re-ranking API, model loading |
+| FlashRank | Removed (2026-10-26) | The reranker lowered hit@1 and was deleted; see CHANGELOG |
 | tree-sitter | Ported from CodeGrok | 9 languages, ThreadLocalParserFactory for parallel parsing |
 | ast-grep | Ported from code-graph-mcp | 25+ languages, structural patterns. Sequential only (internal counters not thread-safe) |
 | watchdog | Ported from code-graph-mcp | Debounced watcher with async support |

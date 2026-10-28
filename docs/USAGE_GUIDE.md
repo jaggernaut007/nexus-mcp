@@ -64,7 +64,7 @@ See the full [Installation Guide](INSTALLATION.md) for client-specific instructi
 
 ## Tool Reference
 
-Nexus-MCP exposes 10 tools. The v2.0.0 release merged the old 15 tools; see the [CHANGELOG](../CHANGELOG.md) for the old-to-new mapping and [ADR-017](adr/ADR-017-tool-consolidation.md) for the reason.
+Nexus-MCP exposes 8 tools. The v2.0.0 release merged the old 15 tools; see the [CHANGELOG](../CHANGELOG.md) for the old-to-new mapping and [ADR-017](adr/ADR-017-tool-consolidation.md) for the reason.
 
 ### Discovery & Indexing
 
@@ -140,6 +140,8 @@ find_symbol(symbol_name="should_keep, AUTO_APPLY_CATEGORIES, MailClassification"
 ```
 
 Pass several names in one call (commas or spaces between them, 8 names at most): an agent pays for each call with one more read of its prompt. `code` is the whole symbol without its common indent, 6,000 characters at most for one symbol and 12,000 for one call; longer code is cut at a line and marked `(truncated)`, and `start_line` and `end_line` say where the rest is. A name with more than 3 definitions gets code for the first 3 (source files before test files). A name with no graph node, such as a constant, comes from the chunk table. Names with no match are in `not_found`.
+
+A class longer than 2,000 characters gets `outline` in place of `code`. The outline holds the class line, the docstring and the attributes (25 lines or 1,200 characters at most). It then has one line for each method, with its line range (60 methods at most). The result also has a `hint`: ask for `Class.method` to get the code of a method. A short class, a class with no methods in the graph, and a function keep `code`. A `Class.method` name works with `exact=False` too. `more_matches` counts the matches past the first 10 of one name.
 
 The code is read from the file at the path that the index stores, and only when that file is a regular file inside an indexed folder (symlinks are followed first), not larger than `NEXUS_MAX_FILE_SIZE_MB`; at most 1,000 lines are read for one symbol. The node of a whole file (the graph has one for each file, named like it) comes after functions and classes and has no code. When the file changed after it was indexed, so that the stored lines no longer hold the symbol, its code is left out and the result has a `warning`. A name has at most 10 entries (`more_matches` counts the rest). A symbol gets no code when less than 200 characters of the call budget are left.
 

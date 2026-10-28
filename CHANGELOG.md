@@ -192,6 +192,25 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **Security: the grep fallback of `search` passed the query as a flag.** A query that starts
+  with `-` reached `rg` or `grep` as an option. With ripgrep, `--pre=<command>` runs a command
+  on each file. The query now comes after `-e`.
+- **A failed memory migration lost the memories on the next start.** The temp table holds the
+  only copy with vectors when the refill of the new table fails. The next start dropped it as a
+  leftover. Now the rows that only the temp table holds are copied back first.
+- **A cancelled `index()` broke `_pipeline_lock`.** A cancel while the call waited for the lock
+  leaked it, and every later `index()` hung. A cancel during indexing freed the lock while the
+  work still ran. The lock and the work now run in one shielded worker thread.
+- `find_symbol` gave a cut body, not an outline, for a long class that came after big symbols
+  in one call. The decision now uses the source before the budget cut.
+- `search` could fall back to BM25 with no error when a background reindex unloaded the model
+  during the search. The search now keeps its own reference to the model.
+- `search` no longer shows stored snippets of files that changed after indexing. After a
+  restore, the stored index can come from the repository itself (a shipped `.nexus` folder).
+  Such results have `changed_since_index` and no snippet.
+- The grep fallback of `search` and the `references` of `graph` now search every root of a
+  multi-root index, not only the first. With several roots, a path starts with its root folder.
+
 - `find_symbol("Class.method", exact=False)` always returned "not found". A method is in the
   graph by its bare name, so a dotted name resolves only through the chunk table, and that
   lookup ran only with `exact=True`. It now runs in both modes. Found in the django traces: 5 of

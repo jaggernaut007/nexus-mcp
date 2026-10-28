@@ -96,9 +96,11 @@ Source files
     │           captures: name, signature, docstring, line_start/end, language
     │
     ├─ Step 3: Parse graph ────── ast-grep (sequential for consistency)
-    │           extracts: containment edges, import edges (no call/inheritance edges yet)
+    │           extracts: containment edges, import edges, callee names of each function
+    │                     (indexing/call_resolver.py makes CALLS edges after the last batch;
+    │                      no inheritance edges yet)
     │           output: UniversalGraph — nodes: modules, functions, classes;
-    │                                    edges: CONTAINS, IMPORTS
+    │                                    edges: CONTAINS, IMPORTS, CALLS
     │
     ├─ Step 4: Transfer graph ── populate rustworkx PyDiGraph
     │           O(1) node lookup by name, Rust-backed traversal
@@ -496,7 +498,7 @@ git clone https://github.com/jaggernaut007/Nexus-MCP.git
 cd Nexus-MCP
 pip install -e ".[dev]"
 
-pytest -v                    # 843 tests (831 without slow)
+pytest -v                    # 1,132 tests (1,120 without slow)
 pytest -m "not slow"         # skip performance benchmarks
 pytest tests/test_hybrid_search.py  # single module
 ruff check .                 # lint

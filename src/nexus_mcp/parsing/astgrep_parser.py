@@ -164,6 +164,7 @@ class AstGrepParser:
         self._id_token = uuid.uuid4().hex[:8]
 
     def can_parse(self, filepath: str) -> bool:
+        """True when ast-grep has structure rules for the language of this file."""
         lang = get_language_for_file(filepath)
         return lang is not None and lang in ASTGREP_LANGUAGES
 

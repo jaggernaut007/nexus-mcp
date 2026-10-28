@@ -1,5 +1,7 @@
 # Nexus-MCP Implementation Plan
 
+> Historical plan. Some parts changed after it was written. For example, the FlashRank reranker was removed on 2026-10-26 (see CHANGELOG). The code and `docs/ARCHITECTURE.md` show the current design.
+
 ## Context
 Nexus-MCP consolidates CodeGrok + code-graph-mcp into **one single MCP server** with hybrid search, code graph analysis, and semantic memory. Target: <350MB RAM.
 

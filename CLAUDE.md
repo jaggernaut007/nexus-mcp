@@ -36,7 +36,12 @@ repo to read the skill content directly.
 
 ### Known limitations
 
-- **Call edges are static and name-based.** `graph()` and the `callers`/`callees` fields of `find_symbol()` come from parsing, not runtime tracing. Edges exist for Python, JavaScript, TypeScript, Go, Java and Rust. A call gets an edge only when exactly one callee fits: in the same file, in an imported file, or with a unique name in the index. A name shared by several definitions gets no edge, so results are a lower bound. Python is covered best; see ADR-019 for the other languages. `analyze` complexity is cyclomatic and approximate (only Python counts `and`/`or`); only Python functions carry docstrings.
+- **Call edges are static and name-based.**
+  - `graph()` and the `callers`/`callees` fields of `find_symbol()` come from parsing, not runtime tracing.
+  - Edges exist for Python, JavaScript, TypeScript, Go, Java and Rust. Python has the best coverage. ADR-019 gives the other languages.
+  - A call gets an edge only when exactly one callee fits: in the same file, in an imported file, or with a unique name in the index.
+  - A name shared by several definitions gets no edge. Treat results as a lower bound.
+  - `analyze` complexity is cyclomatic and approximate. Only Python counts `and`/`or`, and only Python functions carry docstrings.
 - **The call graph only sees static edges.** `graph()` is built from
   parsing, not runtime tracing. It will **miss**: dynamic dispatch (Python monkey-patching, Ruby
   metaprogramming), calls made through callbacks/closures/lambdas (e.g.
@@ -67,7 +72,7 @@ Global default applies (see `AGENTS.md` -> Git Workflow):
 
 ```
 src/nexus_mcp/
-├── server.py              # FastMCP server: 10 thin tool wrappers (guard, audit) + graceful shutdown
+├── server.py              # FastMCP server: 8 thin tool wrappers (guard, audit) + graceful shutdown
 ├── core_api.py            # Transport-agnostic tool logic, input validation, _pipeline + lock
 ├── config.py              # Settings with NEXUS_ env prefix (security, audit, rate limit, auto-watch)
 ├── state.py               # Session state singleton + shutdown()
@@ -86,7 +91,7 @@ src/nexus_mcp/
 │   ├── live_grep.py       # rg/grep fallback
 │   ├── vector_engine.py   # LanceDB vector search (IEngine) + validate()
 │   ├── bm25_engine.py     # LanceDB native FTS
-│   ├── fusion.py          # Reciprocal Rank Fusion
+│   ├── fusion.py          # Reciprocal Rank Fusion of vector + BM25; exact names first
 ├── analysis/
 │   └── code_analyzer.py   # Complexity, smells, deps
 ├── memory/
@@ -94,6 +99,7 @@ src/nexus_mcp/
 ├── indexing/
 │   ├── embedding_service.py   # Embeddings: bge-small-en (jina-code deprecated); GPU/MPS
 │   ├── parallel_indexer.py    # ThreadPool
+│   ├── call_resolver.py       # CALLS edges from callee names, after the last parse batch (ADR-019)
 │   ├── pipeline.py            # discover → parse → chunk → embed → store + corrupt index detection + multi-folder
 │   └── chunker.py             # Symbol → CodeChunk
 ├── formatting/
@@ -107,6 +113,7 @@ src/nexus_mcp/
 └── persistence/
     └── store.py               # SQLite graph persistence
 benchmarks/                # Token-efficiency benchmark harness (ADR-018)
+evals/                     # routing/ (does the agent pick the right tool), retrieval/ (hit@1); docs/EVALS.md
 self_test/
 ├── demo_mcp.py            # End-to-end demo exercising the 8 tools and the Python API
 └── README.md              # Usage, sample project, troubleshooting
@@ -125,7 +132,7 @@ plugin/
 pip install nexus-mcp-ci   # Install from PyPI
 pip install -e ".[dev]"    # Install from source with dev deps
 ./setup.sh                 # Setup script (venv + install + verify)
-pytest -v                  # Run tests (843 tests, 831 without slow)
+pytest -v                  # Run tests (1,132 tests, 1,120 without slow)
 pytest -m "not slow"       # Skip performance benchmarks
 ruff check .               # Lint
 nexus-mcp-ci               # Run server
@@ -151,6 +158,7 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 - Auto-watch + throttled staleness detection: warn-and-background-reindex, mtime-diff covers branch switches — [ADR-015](docs/adr/ADR-015-auto-watch-and-staleness-detection.md)
 - Tool consolidation 15→10 (`graph`/`map`/`memory`), action-aware permission categories — [ADR-017](docs/adr/ADR-017-tool-consolidation.md)
 - Token-efficiency benchmark harness (`benchmarks/`) — [ADR-018](docs/adr/ADR-018-token-efficiency-benchmark.md)
+- Call-edge resolution: static, name-based, precision first, rebuilt after each index — [ADR-019](docs/adr/ADR-019-call-edge-resolution.md)
 
 ## Gotchas
 

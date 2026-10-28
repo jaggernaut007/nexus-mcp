@@ -77,3 +77,44 @@ def test_search_rg_query_starting_with_dash_is_a_pattern(temp_workspace):
     results = LiveGrepEngine(str(temp_workspace)).search("--version")
 
     assert any("flags.txt" in r["absolute_path"] for r in results)
+
+
+def test_references_without_rg_uses_grep(temp_workspace):
+    engine = LiveGrepEngine(str(temp_workspace))
+    engine.rg_path = None
+
+    refs = engine.references("hello_world")
+
+    assert refs["total_files"] == 1
+    assert refs["files"]["file1.py"] == ["1: def hello_world():"]
+
+
+def test_references_without_any_tool_returns_none(temp_workspace):
+    engine = LiveGrepEngine(str(temp_workspace))
+    engine.rg_path = engine.grep_path = None
+
+    assert engine.references("hello_world") is None
+
+
+def test_references_timeout_returns_none(temp_workspace, monkeypatch):
+    import subprocess
+
+    def slow(*args, **kwargs):
+        raise subprocess.TimeoutExpired(args[0], 10)
+
+    monkeypatch.setattr("nexus_mcp.engines.live_grep.subprocess.run", slow)
+
+    assert LiveGrepEngine(str(temp_workspace)).references("hello_world") is None
+
+
+def test_references_os_error_returns_none(temp_workspace, monkeypatch):
+    def missing(*args, **kwargs):
+        raise OSError("no such file")
+
+    monkeypatch.setattr("nexus_mcp.engines.live_grep.subprocess.run", missing)
+
+    assert LiveGrepEngine(str(temp_workspace)).references("hello_world") is None
+
+
+def test_references_empty_name_returns_none(temp_workspace):
+    assert LiveGrepEngine(str(temp_workspace)).references("Class.") is None

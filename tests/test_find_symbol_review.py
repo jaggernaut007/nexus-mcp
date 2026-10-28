@@ -107,3 +107,70 @@ class TestDottedNameFuzzy:
     def test_find_symbol_unknown_dotted_name_with_exact_false_is_not_found(self, ledger):
         result = core_api.find_symbol("Ledger.refund", exact=False)
         assert "not found" in result["error"]
+
+
+class TestDottedNameChunkFallback:
+    """Gaps found by the PR 12 testing audit (2026-10-28) in the chunk-table fallback."""
+
+    @pytest.fixture
+    def ledger(self, tmp_path):
+        (tmp_path / "ledger.py").write_text(
+            "def main():\n    return Ledger().post(1)\n\n\n"
+            "class Ledger:\n    def post(self, amount):\n        total = amount * 2\n"
+            "        return total\n"
+        )
+        _index(tmp_path, tmp_path)
+
+    def test_find_symbol_mixed_graph_and_dotted_names(self, ledger):
+        result = core_api.find_symbol("main, Ledger.post", exact=False)
+        assert "not_found" not in result, result
+        codes = " ".join(s.get("code", "") for s in result["symbols"])
+        assert "return Ledger().post(1)" in codes and "total = amount * 2" in codes
+
+    def test_find_symbol_partial_dotted_name_exact_false_is_not_found(self, ledger):
+        result = core_api.find_symbol("Ledger.pos", exact=False)
+        assert "not found" in result["error"]
+
+    def test_find_symbol_dotted_name_detail_full_gives_code(self, ledger):
+        result = core_api.find_symbol("Ledger.post", detail="full")
+        assert "total = amount * 2" in result["symbols"][0]["code"]
+
+    def test_find_symbol_chunk_lookup_failure_is_not_found(self, ledger, monkeypatch):
+        from nexus_mcp.state import get_state
+
+        def broken(names):
+            raise RuntimeError("table gone")
+
+        monkeypatch.setattr(get_state().vector_engine, "find_by_symbol_names", broken)
+        result = core_api.find_symbol("Ledger.post", exact=False)
+        assert "not found" in result["error"]
+
+    def test_find_symbol_nested_class_method(self, tmp_path):
+        (tmp_path / "outer.py").write_text(
+            "class Outer:\n    class Inner:\n        def go(self):\n"
+            "            return 41 + 1\n"
+        )
+        _index(tmp_path, tmp_path)
+        result = core_api.find_symbol("Inner.go", exact=False)
+        assert "error" not in result, result
+        assert "41 + 1" in result["symbols"][0]["code"]
+
+
+class TestFindSymbolNameErrors:
+    def test_find_symbol_empty_name_is_an_error(self, mains, tmp_path):
+        _index(mains, tmp_path)
+        assert "error" in core_api.find_symbol("")
+        assert "error" in core_api.find_symbol("   ")
+
+    def test_find_symbol_only_separators_is_not_found(self, mains, tmp_path):
+        _index(mains, tmp_path)
+        assert "error" in core_api.find_symbol(", ,")
+
+    def test_find_symbol_more_names_than_the_cap_are_cut(self, tmp_path):
+        names = [f"fn_{i}" for i in range(core_api.FIND_SYMBOL_MAX_NAMES + 3)]
+        (tmp_path / "many.py").write_text(
+            "".join(f"def {n}():\n    return {i}\n\n" for i, n in enumerate(names))
+        )
+        _index(tmp_path, tmp_path)
+        result = core_api.find_symbol(", ".join(names))
+        assert result["total"] == core_api.FIND_SYMBOL_MAX_NAMES

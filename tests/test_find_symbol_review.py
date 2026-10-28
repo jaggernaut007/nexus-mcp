@@ -78,3 +78,32 @@ class TestBudgets:
         result = core_api.find_symbol("get_item", exact=False)
         assert len(result["symbols"]) == core_api.MAX_MATCHES_PER_NAME
         assert result["more_matches"] == {"get_item": 25 - core_api.MAX_MATCHES_PER_NAME}
+
+
+class TestDottedNameFuzzy:
+    """From the django benchmark (2026-10-28): `find_symbol("Field.validate", exact=False)`
+    returned "not found" in 5 of 9 calls, and the agent went on with Grep and Read."""
+
+    @pytest.fixture
+    def ledger(self, tmp_path):
+        (tmp_path / "ledger.py").write_text(
+            "class Ledger:\n    def post(self, amount):\n        total = amount * 2\n"
+            "        return total\n\n    def close(self):\n        return None\n"
+        )
+        _index(tmp_path, tmp_path)
+
+    def test_find_symbol_dotted_name_with_exact_false_gives_code(self, ledger):
+        result = core_api.find_symbol("Ledger.post", exact=False)
+        assert "error" not in result, result
+        assert "total = amount * 2" in result["symbols"][0]["code"]
+
+    def test_find_symbol_dotted_name_gives_the_same_symbol_exact_or_not(self, ledger):
+        fuzzy = core_api.find_symbol("Ledger.post", exact=False)["symbols"]
+        exact = core_api.find_symbol("Ledger.post")["symbols"]
+        assert [(s["file"], s["start_line"]) for s in fuzzy] == [
+            (s["file"], s["start_line"]) for s in exact
+        ]
+
+    def test_find_symbol_unknown_dotted_name_with_exact_false_is_not_found(self, ledger):
+        result = core_api.find_symbol("Ledger.refund", exact=False)
+        assert "not found" in result["error"]

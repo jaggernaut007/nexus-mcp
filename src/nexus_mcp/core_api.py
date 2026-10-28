@@ -1218,7 +1218,9 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
             loc = node.location
             found.append((entry, (loc.file_path, loc.start_line, loc.end_line)))
             node_of[id(entry)] = node
-        if not found and exact:
+        # Also with exact=False: a method is in the graph by its bare name, so `Class.method`
+        # is only in the chunk table, and an exact match is a fuzzy match too.
+        if not found:
             found = _chunk_symbol_entries(state, name)
         if not found:
             not_found.append(name)

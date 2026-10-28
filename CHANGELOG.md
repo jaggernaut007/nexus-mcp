@@ -192,6 +192,13 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- `find_symbol("Class.method", exact=False)` always returned "not found". A method is in the
+  graph by its bare name, so a dotted name resolves only through the chunk table, and that
+  lookup ran only with `exact=True`. It now runs in both modes. Found in the django traces: 5 of
+  9 calls of `find_symbol("Field.validate", exact=False)` failed, and the agent went on with
+  Grep and Read. On the django index the call now gives the same 1,699 characters as with
+  `exact=True`. Not measured in a live run.
+
 - With `flashrank` installed, the default `search` raised `ValueError` (and the result was not
   JSON-serializable): the reranker returned numpy scores. The scores are plain floats now.
 

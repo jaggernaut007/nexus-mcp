@@ -3,6 +3,26 @@
 [![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 [![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/score.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 
+## Quickest way: one command
+
+You need [uv](https://docs.astral.sh/uv/getting-started/installation/). Then ask your agent
+"Install Nexus-MCP from https://github.com/jaggernaut007/Nexus-MCP", or run:
+
+```bash
+uvx nexus-mcp-ci setup
+```
+
+`setup` finds your MCP clients (Claude Code, Claude Desktop, Cursor, VS Code, Windsurf, Gemini CLI,
+Codex, Cline), shows each change, and asks before it writes. It adds the server and a short skill
+that tells the agent when to use each tool. Useful flags: `--dry-run` (show only), `--client codex`
+(one client), `--yes` (do not ask), `--no-skill`, `--uninstall`. Reload your client afterwards.
+
+Other ways in: the Claude Code plugin, a Claude Desktop extension, a Gemini CLI extension, install
+links for VS Code and Cursor, a Docker image and a GitHub Action. See
+[DISTRIBUTION.md](DISTRIBUTION.md). The rest of this page is the manual route.
+
+---
+
 ## Prerequisites
 
 - **Python 3.10, 3.11, or 3.12** (Python 3.13+ is not yet supported by tree-sitter-languages)

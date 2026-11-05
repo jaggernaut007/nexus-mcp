@@ -12,3 +12,11 @@ tests
 # src/
 # pyproject.toml
 # README.md
+.claude
+benchmarks/repos
+benchmarks/results
+site
+dist
+.hypothesis
+.nexus
+mcpb

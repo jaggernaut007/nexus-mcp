@@ -1,0 +1,52 @@
+name: "Nexus-MCP"
+description: "Measure Nexus-MCP against Grep and Read on your own repo, or run any nexus-mcp-ci command, in CI. Free and offline by default."
+author: "Shreyas Jagannath"
+branding:
+  icon: "search"
+  color: "blue"
+
+inputs:
+  args:
+    description: "Arguments for nexus-mcp-ci. Default runs the free, offline eval on the checked-out repo."
+    required: false
+    default: "eval ."
+  version:
+    description: "Version of nexus-mcp-ci to run. Empty means the latest release."
+    required: false
+    default: ""
+  python-version:
+    description: "Python version. nexus-mcp-ci supports 3.10, 3.11 and 3.12."
+    required: false
+    default: "3.12"
+  license-key:
+    description: "Commercial licence key. Pass it from a secret. Empty means noncommercial use: no network call is made."
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@v10.1.0
+
+    - name: Run nexus-mcp-ci
+      shell: bash
+      env:
+        NEXUS_LICENSE_KEY: ${{ inputs.license-key }}
+        NEXUS_STORAGE_DIR: ${{ runner.temp }}/nexus-index
+        INPUT_ARGS: ${{ inputs.args }}
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_PYTHON: ${{ inputs.python-version }}
+      run: |
+        # The inputs reach the shell as environment variables, not as text in the script,
+        # so a crafted input cannot inject a command.
+        pkg="nexus-mcp-ci"
+        if [ -n "$INPUT_VERSION" ]; then pkg="nexus-mcp-ci==$INPUT_VERSION"; fi
+        # shellcheck disable=SC2086  # INPUT_ARGS is meant to split into words
+        uvx --python "$INPUT_PYTHON" --from "$pkg" nexus-mcp-ci $INPUT_ARGS | tee "$RUNNER_TEMP/nexus-output.txt"
+        {
+          echo '### Nexus-MCP'
+          echo '```text'
+          cat "$RUNNER_TEMP/nexus-output.txt"
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"

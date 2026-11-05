@@ -168,6 +168,17 @@ ask something like "where do we retry failed payments?". The agent calls `search
 The server sends its own usage instructions when it connects, so the agent knows which tool
 answers which question even without the skill.
 
+Other ways in, each with the same server:
+
+- **VS Code:** [Install in VS Code](https://vscode.dev/redirect/mcp/install?name=nexus-mcp&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22nexus-mcp-ci%22%5D%7D)
+- **Cursor:** the "Add to Cursor" button on the [website](https://jaggernaut007.github.io/nexus-mcp/#install)
+- **Claude Desktop:** download `nexus-mcp.mcpb` from the [latest release](https://github.com/jaggernaut007/Nexus-MCP/releases/latest) and open it
+- **Gemini CLI:** `gemini extensions install https://github.com/jaggernaut007/Nexus-MCP`
+- **Docker:** `docker run -i --rm -v "$PWD:/workspace" -v nexus-data:/data ghcr.io/jaggernaut007/nexus-mcp`
+- **GitHub Actions:** [`uses: jaggernaut007/Nexus-MCP@v2`](docs/GITHUB-ACTION.md)
+
+All channels, and what each needs: [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
+
 ### Claude Code plugin
 
 The plugin registers the server and the same routing skill. It runs the server through
@@ -568,7 +579,7 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_LOG_LEVEL` | `INFO` | Logging level |
 | `NEXUS_LOG_FORMAT` | `text` | `text` or `json` |
 
-The Python package defaults to `bge-small-en`. The `Dockerfile`, `smithery.yaml` and `glama.json` use the same default. `jina-code` still loads, with a warning, so an existing index keeps working. It is deprecated and will be removed in a future major release.
+The Python package defaults to `bge-small-en`. The `Dockerfile`, `docker/Dockerfile.stdio` and `glama.json` use the same default. `jina-code` still loads, with a warning, so an existing index keeps working. It is deprecated and will be removed in a future major release.
 
 ### Embedding Models
 
@@ -1068,6 +1079,26 @@ uv cache clean nexus-mcp-ci
 
 [![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 [![jaggernaut007/Nexus-MCP MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/score.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
+
+## Quickest way: one command
+
+You need [uv](https://docs.astral.sh/uv/getting-started/installation/). Then ask your agent
+"Install Nexus-MCP from https://github.com/jaggernaut007/Nexus-MCP", or run:
+
+```bash
+uvx nexus-mcp-ci setup
+```
+
+`setup` finds your MCP clients (Claude Code, Claude Desktop, Cursor, VS Code, Windsurf, Gemini CLI,
+Codex, Cline), shows each change, and asks before it writes. It adds the server and a short skill
+that tells the agent when to use each tool. Useful flags: `--dry-run` (show only), `--client codex`
+(one client), `--yes` (do not ask), `--no-skill`, `--uninstall`. Reload your client afterwards.
+
+Other ways in: the Claude Code plugin, a Claude Desktop extension, a Gemini CLI extension, install
+links for VS Code and Cursor, a Docker image and a GitHub Action. See
+[DISTRIBUTION.md](DISTRIBUTION.md). The rest of this page is the manual route.
+
+---
 
 ## Prerequisites
 

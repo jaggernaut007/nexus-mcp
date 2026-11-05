@@ -1,0 +1,45 @@
+# Nexus-MCP over stdio, for MCP clients that run a container (Docker MCP Toolkit, `docker run -i`).
+# The root Dockerfile is the Glama image: it wraps the server in mcp-proxy. This one does not.
+#
+#   docker build -f docker/Dockerfile.stdio -t nexus-mcp .
+#   docker run -i --rm -v "$PWD:/workspace" -v nexus-data:/data nexus-mcp
+#
+# Mount the project at /workspace. The server then indexes /workspace. The index and the
+# embedding model live in the /data volume.
+FROM python:3.12-slim
+
+ARG VERSION=dev
+LABEL org.opencontainers.image.title="nexus-mcp" \
+      org.opencontainers.image.description="Local code search, call graph and project memory for AI coding agents" \
+      org.opencontainers.image.source="https://github.com/jaggernaut007/Nexus-MCP" \
+      org.opencontainers.image.licenses="PolyForm-Noncommercial-1.0.0" \
+      org.opencontainers.image.version="${VERSION}"
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates git gcc g++ ripgrep && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY . .
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir onnxruntime && \
+    pip install --no-cache-dir .
+
+# Run as a normal user. /data holds the index and the model cache.
+RUN useradd --create-home --uid 10001 nexus && \
+    mkdir -p /data /workspace && chown -R nexus:nexus /data /workspace
+USER nexus
+
+ENV HOME=/home/nexus \
+    HF_HOME=/data/huggingface \
+    NEXUS_STORAGE_DIR=/data/.nexus \
+    NEXUS_EMBEDDING_MODEL=bge-small-en \
+    NEXUS_LOG_LEVEL=INFO
+
+VOLUME /data
+WORKDIR /workspace
+
+ENTRYPOINT ["nexus-mcp-ci"]

@@ -118,7 +118,8 @@ def _digest(key: str) -> str:
 def resolve_key() -> Tuple[Optional[str], str]:
     """The key to use and where it came from: the environment first, then the saved file."""
     env = (os.environ.get("NEXUS_LICENSE_KEY") or "").strip()
-    if env:
+    # A client can pass an unfilled template such as `${user_config.license_key}`. It is no key.
+    if env and not env.startswith("${"):
         return env, "env"
     saved = _load().get("key")
     if isinstance(saved, str) and saved:

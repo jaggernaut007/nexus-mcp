@@ -1,0 +1,58 @@
+{
+  "manifest_version": "0.4",
+  "name": "nexus-mcp",
+  "display_name": "Nexus-MCP",
+  "version": "2.2.2",
+  "description": "Local code search, call graph and project memory for AI coding agents, in fewer tokens. Runs on your machine. No API keys, no telemetry.",
+  "long_description": "Nexus-MCP indexes your code on your machine and gives the agent hybrid search, a static call graph, the code of any symbol, and memory that lasts across sessions. It needs uv. The first start downloads the Python packages and the embedding model, so it takes a few minutes. Free for noncommercial use. Commercial use needs a licence key ($5 per developer per month): leave the key field empty if you do not need one.",
+  "author": {
+    "name": "Shreyas Jagannath",
+    "url": "https://github.com/jaggernaut007"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jaggernaut007/Nexus-MCP"
+  },
+  "homepage": "https://jaggernaut007.github.io/nexus-mcp/",
+  "documentation": "https://github.com/jaggernaut007/Nexus-MCP#readme",
+  "support": "https://github.com/jaggernaut007/Nexus-MCP/issues",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "keywords": ["code-search", "code-graph", "semantic-search", "memory", "code-intelligence"],
+  "server": {
+    "type": "uv",
+    "entry_point": "src/server.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": ["run", "--directory", "${__dirname}", "src/server.py"],
+      "env": {
+        "NEXUS_STORAGE_DIR": "${HOME}/.nexus-mcp/desktop-index",
+        "NEXUS_LICENSE_KEY": "${user_config.license_key}"
+      }
+    }
+  },
+  "tools": [
+    {"name": "index", "description": "Build or refresh the code index of a project."},
+    {"name": "status", "description": "Show whether a project is indexed, and the index health."},
+    {"name": "search", "description": "Find code by meaning or by keyword."},
+    {"name": "find_symbol", "description": "Get the code of functions and classes by name, with callers and callees."},
+    {"name": "graph", "description": "Show who calls a symbol and what breaks if it changes."},
+    {"name": "analyze", "description": "Find complex code, dead code and code smells."},
+    {"name": "map", "description": "Give an overview of the project layout."},
+    {"name": "memory", "description": "Store and recall project decisions and notes across sessions."}
+  ],
+  "user_config": {
+    "license_key": {
+      "type": "string",
+      "title": "Commercial licence key",
+      "description": "Optional. Leave this empty for noncommercial use. Commercial use needs a licence: https://github.com/jaggernaut007/Nexus-MCP#pricing",
+      "sensitive": true,
+      "required": false
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"],
+    "runtimes": {
+      "python": ">=3.10,<3.13"
+    }
+  }
+}

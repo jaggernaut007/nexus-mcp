@@ -51,6 +51,24 @@ def check_versions() -> List[str]:
     found["server.json"] = server["version"]
     for package in server["packages"]:
         found[f"server.json package {package['identifier']}"] = package["version"]
+    # The channel manifests: a version field and a pinned `nexus-mcp-ci==X` launch.
+    found["mcpb/manifest.json"] = json.loads((ROOT / "mcpb" / "manifest.json").read_text())[
+        "version"
+    ]
+    mcpb_toml = (ROOT / "mcpb" / "pyproject.toml").read_text()
+    found["mcpb/pyproject.toml"] = re.search(r'^version = "([^"]+)"', mcpb_toml, re.M).group(1)
+    found["mcpb/pyproject.toml dependency"] = re.search(
+        r"nexus-mcp-ci==([^\"']+)", mcpb_toml
+    ).group(1)
+    gemini = json.loads((ROOT / "gemini-extension.json").read_text())
+    found["gemini-extension.json"] = gemini["version"]
+    found["gemini-extension.json launch"] = gemini["mcpServers"]["nexus-mcp"]["args"][0].split(
+        "=="
+    )[-1]
+    plugin_mcp = json.loads((ROOT / "plugin" / ".mcp.json").read_text())
+    found["plugin/.mcp.json launch"] = plugin_mcp["mcpServers"]["nexus-mcp"]["args"][0].split(
+        "=="
+    )[-1]
     return [
         f"{where}: version {v}, pyproject.toml says {want}"
         for where, v in found.items()

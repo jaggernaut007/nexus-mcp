@@ -5,7 +5,6 @@ import logging
 from pathlib import Path
 
 import pytest
-import yaml
 
 from nexus_mcp.config import reset_settings
 from nexus_mcp.indexing import embedding_service as es
@@ -59,8 +58,9 @@ def test_jina_code_still_resolves_so_existing_indexes_keep_working():
 
 
 def test_hosted_manifests_no_longer_offer_jina_code():
-    smithery = yaml.safe_load((ROOT / "smithery.yaml").read_text())
-    assert "jina-code" not in json.dumps(smithery)
+    manifest = json.loads((ROOT / "mcpb" / "manifest.json").read_text())
+    assert "jina-code" not in json.dumps(manifest)
+    assert "jina-code" not in (ROOT / "docker" / "Dockerfile.stdio").read_text()
     assert "jina-code" not in (ROOT / "glama.json").read_text()
 
 

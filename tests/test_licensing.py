@@ -131,6 +131,14 @@ def test_validate_env_key_activates_once_then_validates(polar, monkeypatch):
     assert polar.calls[1][1]["activation_id"] == "act-1"
 
 
+def test_unfilled_client_template_is_not_a_key(polar, monkeypatch):
+    monkeypatch.setenv("NEXUS_LICENSE_KEY", "${user_config.license_key}")
+    assert licensing.resolve_key() == (None, "none")
+    assert licensing.validate().status == licensing.NONE
+    assert licensing.start_background_validation() is False
+    assert polar.calls == []
+
+
 def test_validate_env_key_is_not_written_to_disk(polar, monkeypatch):
     monkeypatch.setenv("NEXUS_LICENSE_KEY", KEY)
     licensing.validate()

@@ -11,6 +11,10 @@
   "configSchema": {
     "type": "object",
     "properties": {
+      "NEXUS_LICENSE_KEY": {
+        "type": "string",
+        "description": "Optional commercial licence key. Leave it empty for noncommercial use; with no key the server makes no network call."
+      },
       "NEXUS_LOG_LEVEL": {
         "type": "string",
         "description": "Logging level (DEBUG, INFO, WARNING, ERROR)",

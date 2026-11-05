@@ -4,6 +4,54 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **`nexus-mcp-ci setup`: one command to install the server and its skill.** It finds Claude
+  Code, Claude Desktop, Cursor, VS Code, Windsurf, Gemini CLI, Codex and Cline on the machine,
+  shows each change, and asks before it writes. `--dry-run` writes nothing, `--yes` does not
+  ask, `--client` picks one, `--uninstall` removes what it wrote. An agent can run it from
+  `llms-install.md` ("Install Nexus-MCP from the repository URL"). It keeps the other servers
+  in a config file and refuses a config that is not valid JSON.
+- **Commercial licence, $5 per developer per month** ([ADR-022](docs/adr/ADR-022-commercial-licence-check.md)).
+  Polar.sh sells the key. `nexus-mcp-ci license activate <key>|status|deactivate`, or set
+  `NEXUS_LICENSE_KEY`. Soft mode: nothing is blocked. With no key the server makes no network
+  call. With a key it sends only the key, the organization id and a random machine label, at
+  most once a day. A good check stays valid for 7 days offline. `status()` gets a one-word
+  `license` field only when a key is set. `COMMERCIAL-LICENSE.md` is a draft. The Polar
+  organization id is not set yet, so the code makes no licence call until it is.
+- **More install channels.** A Claude Desktop extension (`mcpb/`, built by `publish.yml`; it is
+  also the way to list the server on Smithery), a Gemini CLI extension, VS Code and Cursor
+  install links, a `docker/Dockerfile.stdio` image pushed to GHCR, and a composite GitHub
+  Action (`action.yml`). `scripts/bump_version.py` sets every pinned version at once.
+  [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md) lists each channel and the owner steps.
+
+### Changed
+
+- The Claude Code plugin starts the server with `uvx nexus-mcp-ci==X`, so it needs `uv` and no
+  `pip install`. The README quickstart now starts with "ask your agent" and `uvx nexus-mcp-ci setup`.
+- The skill has an install section for a client with no nexus tools. The always-loaded files
+  (rules, `AGENTS.md` block, `gemini-context.md`) and the benchmark loaders cut it.
+
+### Removed
+
+- `smithery.yaml`. Smithery now accepts only HTTP servers there, and a hosted server cannot
+  see local code. A local server goes to Smithery as the `.mcpb` bundle.
+
+### North star
+
+- Tokens: a free user pays 0 more tokens. `status()` is the same 204 characters (51 tokens,
+  4 characters per token) with no key; with a key it is 229 characters (57 tokens). The skill
+  text in the benchmark and the eval is unchanged: the loaders cut the new section.
+- Retrieval gate, hit@1 in `hybrid-exact` mode, before (commit 0430f01) and after, same
+  command (`python -m evals.retrieval.run --single bge-small-en`), each in a clean checkout:
+  `nexus_mcp` 0.67 and 0.67, `shop_repo` 0.50 and 0.62. hit@5: 0.92 and 0.92, 1.00 and 1.00.
+  The gate holds: hit@1 did not fall. Only two of the four suites ran (`flask` and `jobscout`
+  have no checkout here). No retrieval code changed. The `nexus_mcp` suite indexes this source,
+  so it grew from 773 to 854 chunks. The `shop_repo` gain is not explained by the diff: its
+  chunks are the same, BM25 and vector hit@1 are equal, and only the two fused modes moved
+  (one query of eight). Two baseline runs gave the same 0.50, and two runs of this branch gave
+  0.62, so it is not run-to-run noise. Treat it as unexplained, not as an improvement.
+
 ## [2.2.2] - 2026-11-05
 
 ### Added

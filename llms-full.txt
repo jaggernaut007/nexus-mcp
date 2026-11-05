@@ -144,33 +144,42 @@ Every location, the shell commands that do the same, and the uninstall steps:
 
 ## Quickstart (60 seconds)
 
+You need [uv](https://docs.astral.sh/uv/getting-started/installation/). Nothing else.
+
+**Ask your agent.** Open your agent (Claude Code, Codex, Cursor, Gemini CLI) in your project
+and say:
+
+> Install Nexus-MCP from https://github.com/jaggernaut007/Nexus-MCP
+
+The agent reads [`llms-install.md`](llms-install.md) and runs one command. You can run the
+same command yourself:
+
 ```bash
-# 1. Install
-pip install nexus-mcp-ci
-
-# 2. Register with Claude Code
-claude mcp add nexus-mcp -- nexus-mcp-ci
-
-# 3. Verify: start Claude Code in your project and run /mcp
-#    nexus-mcp should be listed as connected
+uvx nexus-mcp-ci setup
 ```
 
-The server sends its own usage instructions when it connects, so Claude knows which tool
-answers which question without any extra setup. Ask something like "where do we retry
-failed payments?" and it will call `search` (and `index` once, the first time in a project).
+`setup` finds the MCP clients on your machine, shows each change, and asks before it writes
+anything. It adds the server and a short skill that tells the agent when to use each tool.
+Add `--dry-run` to see the changes only, `--client codex` to pick one client, and
+`--uninstall` to remove what it wrote. Then reload your client (or start a new session) and
+ask something like "where do we retry failed payments?". The agent calls `search`, and
+`index` once, the first time in a project.
 
-### Claude Code plugin (recommended)
+The server sends its own usage instructions when it connects, so the agent knows which tool
+answers which question even without the skill.
 
-The plugin registers the server and adds a short routing skill that teaches Claude when to
-reach for each tool. Install the Python package first, then:
+### Claude Code plugin
+
+The plugin registers the server and the same routing skill. It runs the server through
+`uvx`, so it needs only uv, no `pip install`:
 
 ```
 /plugin marketplace add jaggernaut007/Nexus-MCP
 /plugin install nexus-mcp@nexus-mcp
 ```
 
-Do not register the server twice. If you use the plugin, skip the `claude mcp add` line.
-Tool names differ by route: `mcp__nexus-mcp__search` after `claude mcp add nexus-mcp`,
+Use `setup` or the plugin for Claude Code, not both, or the server is registered twice.
+Tool names differ by route: `mcp__nexus-mcp__search` after `setup`,
 `mcp__plugin_nexus-mcp_nexus-mcp__search` through the plugin. The rest of this README
 writes bare names (`search`) and you do not need the prefix in prompts.
 

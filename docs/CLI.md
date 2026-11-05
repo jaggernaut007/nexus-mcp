@@ -50,6 +50,30 @@ agent tier (paid, opt-in):
 Saved runs: `eval list`, `eval show <id>`. Your data: `nexus-mcp-ci data where`.
 ```
 
+## nexus-mcp-ci setup
+
+```text
+usage: nexus-mcp-ci setup [-h]
+                          [--client {claude-code,claude-desktop,cursor,vscode,windsurf,gemini,codex,cline}]
+                          [--yes] [--dry-run] [--uninstall] [--no-skill] [--no-index]
+                          [--project PROJECT]
+
+Add the Nexus-MCP server and its skill to your MCP client. Shows each change first. Writes nothing
+until you say yes (or pass --yes).
+
+options:
+  -h, --help            show this help message and exit
+  --client {claude-code,claude-desktop,cursor,vscode,windsurf,gemini,codex,cline}
+                        Client to set up (repeat for more). Default: every client found on this
+                        machine
+  --yes                 Do not ask; make the shown changes
+  --dry-run             Show the changes and write nothing
+  --uninstall           Remove what setup wrote
+  --no-skill            Add the server only, not the skill text
+  --no-index            Do not start an index of this folder
+  --project PROJECT     Project folder for project-level files (default: .)
+```
+
 ## nexus-mcp-ci data
 
 ```text

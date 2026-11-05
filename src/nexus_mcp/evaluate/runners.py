@@ -31,7 +31,10 @@ def skill_text() -> str:
         _SKILL_IN_CHECKOUT / "SKILL.md",
     ):
         if path.is_file():
+            # The install section is for a client that has no nexus tools. The eval has them.
             text = path.read_text()
+            if "<!-- nexus-install -->" in text:
+                text = text.split("<!-- nexus-install -->")[0].rstrip() + "\n"
             if text.startswith("---"):
                 end = text.find("\n---", 3)
                 if end != -1:

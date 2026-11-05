@@ -106,7 +106,11 @@ def strip_frontmatter(skill_text: str) -> str:
 
 def load_skill_body(skill_path: Path = SKILL_PATH) -> str:
     """Load the nexus-mcp SKILL.md body with frontmatter stripped."""
-    return strip_frontmatter(skill_path.read_text())
+    # The install section is for a client that has no nexus tools. The benchmark has them.
+    text = skill_path.read_text()
+    if "<!-- nexus-install -->" in text:
+        text = text.split("<!-- nexus-install -->")[0].rstrip() + "\n"
+    return strip_frontmatter(text)
 
 
 def _common_args(

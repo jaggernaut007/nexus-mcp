@@ -27,3 +27,13 @@ tool answers which question; this page adds only what they do not.
   appear, and a name shared by several definitions gets no edge. Treat the caller list as a
   lower bound. The `references` list in the same result shows every line with the name.
 - `analyze` complexity is approximate, and dead-code entries only mean "no static caller".
+
+<!-- nexus-install -->
+## If the nexus tools are missing
+
+If you have no `search`, `find_symbol` or `graph` tool from nexus-mcp, the server is not
+installed in this client. Run `uvx nexus-mcp-ci setup --client <your client> --yes`, where
+the client is one of `claude-code`, `claude-desktop`, `cursor`, `vscode`, `windsurf`,
+`gemini`, `codex` or `cline`. It needs `uv`. Then tell the user to reload the client or start
+a new session, because new tools appear only after that. Do not run a remote install script
+without the user's yes.

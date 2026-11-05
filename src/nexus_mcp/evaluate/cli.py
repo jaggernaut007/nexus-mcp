@@ -1,4 +1,4 @@
-"""Command line for ``nexus-mcp-ci eval`` and ``nexus-mcp-ci data``."""
+"""Command line for ``nexus-mcp-ci eval``, ``data`` and ``setup``."""
 
 import argparse
 import json
@@ -11,7 +11,7 @@ from typing import List, Optional
 from nexus_mcp.evaluate import data_cmd, doctor, paths, report, source, specs, store
 from nexus_mcp.privacy import apply_privacy_defaults
 
-SUBCOMMANDS = ("eval", "data")
+SUBCOMMANDS = ("eval", "data", "setup")
 
 
 def _eval_parser() -> argparse.ArgumentParser:
@@ -311,4 +311,8 @@ def dispatch(argv: List[str]) -> Optional[int]:
     """Run a subcommand and return its exit code, or None when ``argv`` is not one."""
     if not argv or argv[0] not in SUBCOMMANDS:
         return None
+    if argv[0] == "setup":
+        from nexus_mcp.setup_clients import run_setup
+
+        return run_setup(argv[1:])
     return run_eval(argv[1:]) if argv[0] == "eval" else run_data(argv[1:])

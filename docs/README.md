@@ -24,7 +24,7 @@ Start with the group that matches what you want to do.
 - [MEMORY.md](MEMORY.md): measured memory use
 - [EVALS.md](EVALS.md): the benchmark method and the run history
 - [RESEARCH.md](RESEARCH.md): library evaluations
-- [adr/](adr/): architecture decision records (ADR-001 to ADR-021)
+- [adr/](adr/): architecture decision records (ADR-001 to ADR-022)
 
 ## Contribute
 

@@ -790,9 +790,34 @@ Source files retain "Ported from" attribution in their module docstrings. See [A
 
 ---
 
+## Pricing
+
+| | Noncommercial | Commercial |
+|---|---|---|
+| Who | Personal projects, study, research, hobby, charity, education | Use at work, in a company, or for a paid product |
+| Price | Free | **$5 per developer per month**, or $50 per developer per year |
+| Licence | [PolyForm Noncommercial 1.0.0](LICENSE) | [Commercial license](COMMERCIAL-LICENSE.md) (draft) |
+| Features | All of them | All of them. The two tiers differ only in the licence. |
+
+Nothing is ever blocked and there is no trial timer. A commercial user buys a key, then runs:
+
+```bash
+nexus-mcp-ci license activate <your-key>
+```
+
+Or set `NEXUS_LICENSE_KEY` in the environment of the server. One key covers one developer on up
+to three machines. Payment goes through Polar.sh, which handles tax. The checkout link is added
+when 2.3.0 is released.
+
+With no key, the server makes no network call. With a key, it sends only the key, a random
+machine label and the organization id to `api.polar.sh`, at most once a day. If the server is
+offline, the key stays valid for seven days. Details: [docs/PRIVACY.md](docs/PRIVACY.md) and
+[ADR-022](docs/adr/ADR-022-commercial-licence-check.md). Check a key with
+`nexus-mcp-ci license status`.
+
 ## License
 
-[PolyForm Noncommercial License 1.0.0](https://github.com/jaggernaut007/Nexus-MCP/blob/main/LICENSE). Free to use, copy, modify, and distribute for any noncommercial purpose. Commercial use requires a separate license — contact Shreyas Jagannath to inquire.
+[PolyForm Noncommercial License 1.0.0](https://github.com/jaggernaut007/Nexus-MCP/blob/main/LICENSE). Free to use, copy, modify, and distribute for any noncommercial purpose. Commercial use requires the [commercial license](COMMERCIAL-LICENSE.md): see [Pricing](#pricing).
 
 Versions published before 2.0.1 (0.1.0, 0.1.1, 2.0.0) remain available under their original MIT terms for anyone who obtained them under that license.
 
@@ -956,8 +981,8 @@ In Claude Code, install the plugin and run `/nexus-mcp:evaluate`.
 
 # Privacy and data
 
-Nexus-MCP processes your code on your machine. The server makes no network calls. It has no
-telemetry and needs no API key.
+Nexus-MCP processes your code on your machine. The server makes no network calls unless you
+set a commercial licence key. It has no telemetry and needs no API key.
 
 ## What crosses the network
 
@@ -969,6 +994,7 @@ Only the flows below cross the network. Each one is named in the CLI output befo
 | Embedding model | in | the first index, once | `BAAI/bge-small-en-v1.5` from Hugging Face (~130 MB) | set `NEXUS_OFFLINE=1` after the first download, or copy the model cache |
 | Repo URL source | in | `eval <url>` only | `git clone --depth 1` of that public repo | use a local path |
 | Agent tier | **out** | `eval --agent` only, after you answer yes | the prompts and the code that the agent reads, sent through **your own** `claude` or `codex` CLI to Anthropic or OpenAI | do not use `--agent`; the quick tier sends nothing |
+| Licence key | **out** | only if you set a key (`NEXUS_LICENSE_KEY` or `license activate`), at most once a day | the key, the Polar organization id, and a label made of `nexus-mcp-ci` and a random machine id, sent to `api.polar.sh`. No code, no paths, no host name, no IP address from us | do not set a key; set `NEXUS_OFFLINE=1` to block it |
 | Share | **out** | `eval share`, after you answer yes to the exact payload | allow-listed numbers only: no paths, no code, no question text | do not run `share` |
 
 Defaults that protect you:
@@ -978,6 +1004,10 @@ Defaults that protect you:
   fails clearly if the model is not cached.
 - A test (`tests/test_evaluate_quick.py::test_quick_tier_makes_no_network_connection`) blocks
   every socket connection and runs the quick tier. It must pass.
+- A test (`tests/test_licensing.py::test_validate_without_a_key_makes_no_network_call`) blocks
+  every socket connection and checks that the licence code opens none when no key is set.
+- If the licence server cannot be reached, nothing breaks. A key that passed a check in the last
+  seven days stays `active`. The status word is the only thing that changes.
 
 ## What is stored, and where
 
@@ -988,6 +1018,7 @@ Defaults that protect you:
 | Code graph (SQLite) | `<project>/.nexus/graph.db` | symbol names and paths | `NEXUS_STORAGE_DIR` |
 | Embedding model | `~/.cache/huggingface/hub/` | no | `HF_HOME` |
 | Audit log | stderr (your MCP client log); a file only if you set one | tool arguments, with secrets redacted | `NEXUS_AUDIT_LOG_FILE`, `NEXUS_AUDIT_ENABLED` |
+| Licence key (only if you activate one) | `~/.nexus-mcp/license.json`, owner-only (mode 600) | no | `NEXUS_LICENSE_HOME`; `nexus-mcp-ci license deactivate` deletes it |
 | Eval results | `~/.nexus-mcp/evals/` | no: numbers only; question text stays local | `NEXUS_EVAL_HOME` |
 | Eval index | the OS temp folder, deleted at exit | yes, while the eval runs | `--keep-index` writes it to `<project>/.nexus/` |
 | Eval clones | `~/.cache/nexus-mcp/eval/repos/` | the public repo | `NEXUS_EVAL_CACHE` |
@@ -1022,8 +1053,9 @@ uv cache clean nexus-mcp-ci
 
 ## Uninstall
 
-1. Remove the server from your client: `claude mcp remove nexus-mcp`, or
-   `/plugin uninstall nexus-mcp@nexus-mcp`.
+1. Remove the server from your client: `nexus-mcp-ci setup --uninstall --yes`,
+   `claude mcp remove nexus-mcp`, or `/plugin uninstall nexus-mcp@nexus-mcp`.
+   If you set a licence key, run `nexus-mcp-ci license deactivate` first to free the activation.
 2. Remove the package: `pip uninstall nexus-mcp-ci`.
 3. Remove the data: `nexus-mcp-ci data clear --all --yes` before step 2, or the shell commands
    above after it.

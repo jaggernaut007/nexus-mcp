@@ -780,8 +780,33 @@ Source files retain "Ported from" attribution in their module docstrings. See [A
 
 ---
 
+## Pricing
+
+| | Noncommercial | Commercial |
+|---|---|---|
+| Who | Personal projects, study, research, hobby, charity, education | Use at work, in a company, or for a paid product |
+| Price | Free | **$5 per developer per month**, or $50 per developer per year |
+| Licence | [PolyForm Noncommercial 1.0.0](LICENSE) | [Commercial license](COMMERCIAL-LICENSE.md) (draft) |
+| Features | All of them | All of them. The two tiers differ only in the licence. |
+
+Nothing is ever blocked and there is no trial timer. A commercial user buys a key, then runs:
+
+```bash
+nexus-mcp-ci license activate <your-key>
+```
+
+Or set `NEXUS_LICENSE_KEY` in the environment of the server. One key covers one developer on up
+to three machines. Payment goes through Polar.sh, which handles tax. The checkout link is added
+when 2.3.0 is released.
+
+With no key, the server makes no network call. With a key, it sends only the key, a random
+machine label and the organization id to `api.polar.sh`, at most once a day. If the server is
+offline, the key stays valid for seven days. Details: [docs/PRIVACY.md](docs/PRIVACY.md) and
+[ADR-022](docs/adr/ADR-022-commercial-licence-check.md). Check a key with
+`nexus-mcp-ci license status`.
+
 ## License
 
-[PolyForm Noncommercial License 1.0.0](https://github.com/jaggernaut007/Nexus-MCP/blob/main/LICENSE). Free to use, copy, modify, and distribute for any noncommercial purpose. Commercial use requires a separate license — contact Shreyas Jagannath to inquire.
+[PolyForm Noncommercial License 1.0.0](https://github.com/jaggernaut007/Nexus-MCP/blob/main/LICENSE). Free to use, copy, modify, and distribute for any noncommercial purpose. Commercial use requires the [commercial license](COMMERCIAL-LICENSE.md): see [Pricing](#pricing).
 
 Versions published before 2.0.1 (0.1.0, 0.1.1, 2.0.0) remain available under their original MIT terms for anyone who obtained them under that license.

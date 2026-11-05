@@ -53,6 +53,23 @@ OTHER = {
         "unset",
         "Set to `1` to block the model download (sets `HF_HUB_OFFLINE` and `TRANSFORMERS_OFFLINE`).",
     ),
+    "NEXUS_LICENSE_KEY": (
+        "unset",
+        "Commercial licence key. With no key, the server makes no network call. See "
+        "[ADR-022](adr/ADR-022-commercial-licence-check.md).",
+    ),
+    "NEXUS_LICENSE_HOME": (
+        "`~/.nexus-mcp`",
+        "Folder of `license.json`, which `nexus-mcp-ci license activate` writes.",
+    ),
+    "NEXUS_LICENSE_API": (
+        "`https://api.polar.sh`",
+        "Licence server base URL. Set it only to test against the Polar sandbox.",
+    ),
+    "NEXUS_LICENSE_ORG": (
+        "built in",
+        "Polar organization id. Set it only to test against the Polar sandbox.",
+    ),
     "NEXUS_EVAL_HOME": ("`~/.nexus-mcp/evals`", "Where `nexus-mcp-ci eval` saves its reports."),
     "NEXUS_EVAL_CACHE": ("`~/.cache/nexus-mcp/eval`", "Where `eval <url>` keeps its clones."),
     "NEXUS_EVAL_PRICING": (

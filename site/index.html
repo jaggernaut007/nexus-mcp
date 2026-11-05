@@ -277,7 +277,7 @@
             <div><dt>Runs</dt><dd>Locally. No API keys.</dd></div>
             <div><dt>Transport</dt><dd>MCP over stdio</dd></div>
             <div><dt>Languages</dt><dd>25+ (tree-sitter)</dd></div>
-            <div><dt>License</dt><dd>PolyForm Noncommercial 1.0.0</dd></div>
+            <div><dt>License</dt><dd>PolyForm Noncommercial 1.0.0. Commercial use: <a href="#pricing">$5 per developer per month</a></dd></div>
             <div data-downloads hidden><dt>Downloads</dt><dd><a href="https://pepy.tech/projects/nexus-mcp-ci" rel="noopener"><span data-downloads-count></span> total</a> on PyPI (<a href="https://pypistats.org/packages/nexus-mcp-ci" rel="noopener">pypistats</a>)</dd></div>
             <div><dt>Listed on</dt><dd><a href="https://pypi.org/project/nexus-mcp-ci/" rel="noopener">PyPI</a>, <a href="https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP" rel="noopener">Glama</a>, <a href="https://github.com/jaggernaut007/Nexus-MCP" rel="noopener">GitHub</a></dd></div>
           </dl>
@@ -551,11 +551,12 @@
 
         <ol class="steps">
           <li>
-            <h3>Install the package</h3>
-            <div class="cmd wide"><span class="prompt" aria-hidden="true">$</span><code>pip install nexus-mcp-ci</code><button class="copy" data-copy="pip install nexus-mcp-ci" aria-label="Copy">Copy</button></div>
+            <h3>Install and connect, with one command</h3>
+            <div class="cmd wide"><span class="prompt" aria-hidden="true">$</span><code>uvx nexus-mcp-ci setup</code><button class="copy" data-copy="uvx nexus-mcp-ci setup" aria-label="Copy">Copy</button></div>
+            <p class="note">Needs <a href="https://docs.astral.sh/uv/" rel="noopener">uv</a>. It finds your MCP clients, shows each change, and asks before it writes. Or tell your agent: &ldquo;Install Nexus-MCP from github.com/jaggernaut007/Nexus-MCP&rdquo;.</p>
           </li>
           <li>
-            <h3>Connect your agent</h3>
+            <h3>Or connect by hand</h3>
             <div class="tabs" role="tablist" aria-label="MCP client">
               <button role="tab" aria-selected="true" aria-controls="tab-cc" id="t-cc">Claude Code</button>
               <button role="tab" aria-selected="false" aria-controls="tab-plugin" id="t-plugin" tabindex="-1">Claude Code plugin</button>
@@ -593,6 +594,26 @@
             <p>The agent calls <code>index</code> on first use. After that, it recalls memory, maps the repo and finds code for you. A file watcher keeps the index current.</p>
           </li>
         </ol>
+      </div>
+    </section>
+
+    <!-- PRICING -->
+    <section class="section what" id="pricing">
+      <div class="wrap what-grid">
+        <div>
+          <p class="kicker">Pricing</p>
+          <h2>Free to try. $5 a month to use at work.</h2>
+        </div>
+        <div class="what-copy">
+          <p>Nexus-MCP is free for noncommercial use under PolyForm Noncommercial 1.0.0. If you use it at work, buy a commercial licence. Both tiers have every feature. Nothing is blocked and there is no trial timer.</p>
+          <dl class="facts">
+            <div><dt>Noncommercial</dt><dd>Free. Personal projects, study, research, hobby, charity, education.</dd></div>
+            <div><dt>Commercial</dt><dd>$5 per developer per month, or $50 per year. One key covers one developer on three machines.</dd></div>
+            <div><dt>Activate</dt><dd><code>nexus-mcp-ci license activate &lt;key&gt;</code></dd></div>
+            <div><dt>Privacy</dt><dd>With no key, no network call. With a key, one call a day to the licence server. See <a href="https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/PRIVACY.md" rel="noopener">PRIVACY.md</a>.</dd></div>
+            <div><dt>Terms</dt><dd><a href="https://github.com/jaggernaut007/Nexus-MCP/blob/main/COMMERCIAL-LICENSE.md" rel="noopener">Commercial licence</a> (draft)</dd></div>
+          </dl>
+        </div>
       </div>
     </section>
 

@@ -75,6 +75,8 @@ src/nexus_mcp/
 ├── server.py              # FastMCP server: 8 thin tool wrappers (guard, audit) + graceful shutdown
 ├── core_api.py            # Transport-agnostic tool logic, input validation, _pipeline + lock
 ├── config.py              # Settings with NEXUS_ env prefix (security, audit, rate limit, auto-watch)
+├── licensing.py           # Optional commercial licence key check via Polar; soft mode, opt-in network (ADR-022)
+├── setup_clients.py       # `nexus-mcp-ci setup`: add the server and the skill to an MCP client
 ├── state.py               # Session state singleton + shutdown()
 ├── core/
 │   ├── models.py          # Symbol, ParsedFile, CodebaseIndex, Memory
@@ -164,6 +166,7 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 - Call-edge resolution: static, name-based, precision first, rebuilt after each index — [ADR-019](docs/adr/ADR-019-call-edge-resolution.md)
 - Adopter evaluation in the package (`eval`), ground truth from the parser — [ADR-020](docs/adr/ADR-020-adopter-evaluation.md)
 - One source for published numbers; opt-in sharing, no telemetry — [ADR-021](docs/adr/ADR-021-results-publishing-and-sharing.md)
+- Commercial licence key through Polar: $5 per developer per month, soft mode, no network call without a key — [ADR-022](docs/adr/ADR-022-commercial-licence-check.md)
 
 ## Gotchas
 

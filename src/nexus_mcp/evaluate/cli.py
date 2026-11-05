@@ -11,7 +11,7 @@ from typing import List, Optional
 from nexus_mcp.evaluate import data_cmd, doctor, paths, report, source, specs, store
 from nexus_mcp.privacy import apply_privacy_defaults
 
-SUBCOMMANDS = ("eval", "data", "setup")
+SUBCOMMANDS = ("eval", "data", "setup", "license")
 
 
 def _eval_parser() -> argparse.ArgumentParser:
@@ -311,6 +311,10 @@ def dispatch(argv: List[str]) -> Optional[int]:
     """Run a subcommand and return its exit code, or None when ``argv`` is not one."""
     if not argv or argv[0] not in SUBCOMMANDS:
         return None
+    if argv[0] == "license":
+        from nexus_mcp.licensing import run_license
+
+        return run_license(argv[1:])
     if argv[0] == "setup":
         from nexus_mcp.setup_clients import run_setup
 

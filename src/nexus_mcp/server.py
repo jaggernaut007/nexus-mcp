@@ -495,8 +495,8 @@ def create_server():
 def main():
     """Entry point for nexus-mcp CLI.
 
-    ``eval`` and ``data`` run a command and exit. With no arguments the stdio server
-    starts, as MCP clients expect.
+    ``eval``, ``data``, ``setup`` and ``license`` run a command and exit. With no arguments
+    the stdio server starts, as MCP clients expect.
     """
     import sys
 
@@ -531,6 +531,11 @@ def main():
     signal.signal(signal.SIGINT, _shutdown_handler)
 
     server = create_server()
+    from nexus_mcp import licensing
+
+    if not licensing.start_background_validation():
+        # stderr goes to the client log, not to the agent, so it costs no tokens.
+        print(licensing.notice(), file=sys.stderr)
     if settings.warm_start and settings.auto_restore:
         # Not a tool call: the first `search` then finds the index and the model loaded.
         threading.Thread(target=core_api.warm_up, name="nexus-warm-up", daemon=True).start()

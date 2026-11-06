@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-11-06
+
 ### Added
 
 - **`nexus-mcp-ci setup`: one command to install the server and its skill.** It finds Claude

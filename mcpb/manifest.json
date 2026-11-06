@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "nexus-mcp",
   "display_name": "Nexus-MCP",
-  "version": "2.2.3",
+  "version": "2.3.0",
   "description": "Local code search, call graph and project memory for AI coding agents, in fewer tokens. Runs on your machine. No API keys, no telemetry.",
   "long_description": "Nexus-MCP indexes your code on your machine and gives the agent hybrid search, a static call graph, the code of any symbol, and memory that lasts across sessions. It needs uv. The first start downloads the Python packages and the embedding model, so it takes a few minutes. Free and open source under the MIT licence.",
   "author": {

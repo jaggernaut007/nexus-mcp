@@ -35,6 +35,7 @@ def bump(new: str) -> None:
         path.write_text(text)
 
     regex("pyproject.toml", r'^version = "[^"]+"', f'version = "{new}"')
+    regex("src/nexus_mcp/__init__.py", r'^__version__ = "[^"]+"', f'__version__ = "{new}"')
     regex("CITATION.cff", r"^version: \S+", f"version: {new}")
     regex("mcpb/pyproject.toml", r'^version = "[^"]+"', f'version = "{new}"')
     regex("mcpb/pyproject.toml", r"nexus-mcp-ci==[0-9.]+", f"nexus-mcp-ci=={new}")

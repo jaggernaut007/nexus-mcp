@@ -3,7 +3,7 @@
     "nexus-mcp": {
       "command": "uvx",
       "args": [
-        "nexus-mcp-ci==2.2.3"
+        "nexus-mcp-ci==2.3.0"
       ]
     }
   }

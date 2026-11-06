@@ -29,8 +29,11 @@ removed; ADR-023 is superseded. The default install is "ask your agent" or `uvx 
 - [ ] **Owner:** GitHub Sponsors (optional), then `.github/FUNDING.yml`
 - [ ] **Owner:** social preview upload, GitHub Marketplace tick, Cline issue, Docker catalog PR (see
   [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md))
-- [ ] Not verified here: `mcpb pack` (npm install needs approval), the Docker build (no Docker
-  daemon), the real clients (Gemini CLI, Cursor, VS Code, Desktop)
+- [x] Verified 2026-11-06: `mcpb pack`, the stdio Docker build and an MCP handshake (8 tools),
+  `setup` for all 8 clients against a fake home.
+- [ ] **Todo:** install and test on the real clients: Gemini CLI, Cursor, VS Code and the Claude
+  Desktop app. None of them is installed on the dev machine.
+- [ ] **Todo:** release 2.3.0 (version files are bumped; merge, then create the GitHub release).
 
 ## Phase 1: Scaffold + Port Core Modules — COMPLETE
 - [x] Project structure created

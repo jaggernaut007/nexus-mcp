@@ -5,6 +5,7 @@
 `scripts/check_docs.py` fails in CI when these disagree with `pyproject.toml`:
 
 - `pyproject.toml` (`version`)
+- `src/nexus_mcp/__init__.py` (`__version__`; the server reports it to MCP clients)
 - `CITATION.cff` (`version`, and set `date-released`)
 - `server.json` (`version`, and the `version` of each package)
 - `plugin/.claude-plugin/plugin.json` (`version`)

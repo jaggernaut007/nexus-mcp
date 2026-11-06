@@ -363,6 +363,10 @@ Run `benchmarks/` on your own project before you rely on it.
 
 ## The 8 Tools
 
+**New in v2.3.0 (no breaking change):** `uvx nexus-mcp-ci setup` installs the server and the
+skill into your MCP clients, new install routes cover Claude Desktop, Gemini CLI, VS Code,
+Cursor, Docker and GitHub Actions, and the license is now MIT. The MCP tools do not change.
+
 **New in v2.2.0 (no breaking change):** `nexus-mcp-ci eval` measures Nexus-MCP on your own
 code ([Evaluate](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/EVALUATE.md)), and
 `nexus-mcp-ci data` shows and clears every stored file ([Privacy](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/PRIVACY.md)).

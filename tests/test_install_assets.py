@@ -130,6 +130,7 @@ def test_bump_version_changes_every_pinned_file(tmp_path, monkeypatch):
     bump = _script("bump_version")
     for rel in (
         "pyproject.toml",
+        "src/nexus_mcp/__init__.py",
         "CITATION.cff",
         "server.json",
         "plugin/.claude-plugin/plugin.json",
@@ -145,6 +146,8 @@ def test_bump_version_changes_every_pinned_file(tmp_path, monkeypatch):
     bump.bump("9.8.7")
 
     assert 'version = "9.8.7"' in (tmp_path / "pyproject.toml").read_text()
+    # The server reports __version__ to MCP clients, so the script must set it too.
+    assert '__version__ = "9.8.7"' in (tmp_path / "src/nexus_mcp/__init__.py").read_text()
     assert "version: 9.8.7" in (tmp_path / "CITATION.cff").read_text()
     server = json.loads((tmp_path / "server.json").read_text())
     assert {server["version"], *(p["version"] for p in server["packages"])} == {"9.8.7"}

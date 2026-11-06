@@ -338,3 +338,13 @@ def test_setup_indexes_only_a_folder_that_looks_like_a_project(env, monkeypatch,
     argv_home = ["--home", str(home), "--project", str(home), "--client", "cursor", "--yes"]
     assert sc.run_setup(argv_home) == 0
     assert started == []
+
+
+def test_setup_asks_for_a_star_only_after_a_successful_install(env, capsys):
+    home, project = env
+    assert _run(home, project, "--client", "cursor", "--dry-run") == 0
+    assert sc.STAR_LINE not in capsys.readouterr().out
+    assert _run(home, project, "--client", "cursor", "--yes") == 0
+    assert sc.STAR_LINE in capsys.readouterr().out
+    assert _run(home, project, "--client", "cursor", "--yes", "--uninstall") == 0
+    assert sc.STAR_LINE not in capsys.readouterr().out

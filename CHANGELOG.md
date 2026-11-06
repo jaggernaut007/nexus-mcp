@@ -13,7 +13,7 @@ All notable changes to this project will be documented in this file.
   `llms-install.md` ("Install Nexus-MCP from the repository URL"). It keeps the other servers
   in a config file and refuses a config that is not valid JSON.
 - **More install channels.** A Claude Desktop extension (`mcpb/`, built by `publish.yml`; it is
-  also the way to list the server on Smithery), a Gemini CLI extension, VS Code and Cursor
+  also a plain way to install it by hand), a Gemini CLI extension, VS Code and Cursor
   install links, a `docker/Dockerfile.stdio` image pushed to GHCR, and a composite GitHub
   Action (`action.yml`). `scripts/bump_version.py` sets every pinned version at once.
   [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md) lists each channel and the owner steps.
@@ -33,8 +33,8 @@ All notable changes to this project will be documented in this file.
 
 ### Removed
 
-- `smithery.yaml`. Smithery now accepts only HTTP servers there, and a hosted server cannot
-  see local code. A local server goes to Smithery as the `.mcpb` bundle.
+- `smithery.yaml`. Smithery shut down its CLI, API and accounts on 31 October 2026 and stays
+  only as a curated public directory, so there is nothing to publish there.
 
 ### North star
 

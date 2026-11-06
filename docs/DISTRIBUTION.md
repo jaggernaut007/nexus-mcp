@@ -11,14 +11,18 @@ run `uvx nexus-mcp-ci setup`.
 | Claude Code plugin | Claude Code | `.claude-plugin/`, `plugin/` | the repository itself |
 | MCP Registry | registry clients | `server.json` | `publish.yml` on a release |
 | Desktop Extension (`.mcpb`) | Claude Desktop | `mcpb/` | `publish.yml` attaches it to the release |
-| Smithery | Smithery users | the same `.mcpb` file | owner: `smithery mcp publish` (see below) |
 | Gemini CLI extension | Gemini CLI | `gemini-extension.json`, `gemini-context.md` | the repository itself |
 | VS Code and Cursor buttons | VS Code, Cursor | links in the README and the site | the repository itself |
 | Docker image (GHCR) | container users | `docker/Dockerfile.stdio` | `publish.yml` on a release |
 | Glama | Glama users | `glama.json`, `Dockerfile` | Glama rebuilds from the repository |
 | GitHub Action | CI | `action.yml`, [GITHUB-ACTION.md](GITHUB-ACTION.md) | owner: tick "Publish to Marketplace" |
-| Cline marketplace | Cline | `llms-install.md` | owner: open an issue (see below) |
-| Context7 | docs lookup | `context7.json` | owner: submit once |
+| Cline marketplace | Cline | `llms-install.md`, `site/logo-400.png` | owner: open an issue (see below) |
+| Docker MCP Catalog | Docker Desktop users | `docker/Dockerfile.stdio` | owner: pull request (see below) |
+| Context7 | docs lookup | `context7.json` | done: the repository is listed |
+
+Smithery is not a channel any more. On 31 October 2026 it shut down its CLI, API and accounts, and
+it stays only as a curated public directory (<https://www.smithery.ai/future>). There is nothing to
+publish there.
 
 ## What the release does by itself
 
@@ -30,22 +34,26 @@ release, and pushes `ghcr.io/jaggernaut007/nexus-mcp:<version>` and `:latest`.
 
 Nothing below runs by itself. Each one needs your account.
 
-1. **Smithery.** Smithery serves a local stdio server as an MCPB bundle. After a release, download
-   `nexus-mcp.mcpb` from it and run `smithery mcp publish ./nexus-mcp.mcpb -n jaggernaut007/nexus-mcp`.
-   The old `smithery.yaml` is gone: Smithery now accepts only HTTP servers there, and a hosted
-   server cannot see your code.
+1. **GitHub social preview.** Upload `site/social-preview.png` (1280x640) under the repository
+   Settings, "Social preview". GitHub has no API for it.
 2. **GitHub Marketplace.** On the release page, tick "Publish this Action to the GitHub
    Marketplace". The action needs a unique name there.
-3. **Cline.** Open an issue at `cline/mcp-marketplace` with the repository URL, a 400x400 PNG logo,
-   and the reason. Before you do, give Cline the `README.md` and `llms-install.md` and watch it
-   install the server. Cline asks for that test.
-4. **Docker MCP Catalog (optional).** The catalog builds the image from the root `Dockerfile` of
-   the repository and expects a plain stdio entry point. The root `Dockerfile` wraps the server in
-   `mcp-proxy` for Glama, so it does not fit. Either point the catalog entry at
-   `docker/Dockerfile.stdio`, or publish the GHCR image and let users add it by hand:
-   `docker run -i --rm -v "$PWD:/workspace" -v nexus-data:/data ghcr.io/jaggernaut007/nexus-mcp`.
-   Read the current `CONTRIBUTING.md` of `docker/mcp-registry` before you open a pull request.
-5. **Context7.** Submit the repository once at context7.com.
+3. **Cline.** Open an issue at `cline/mcp-marketplace` with the repository URL, the logo
+   `site/logo-400.png` (400x400) and the reason. Before you do, give Cline the `README.md` and
+   `llms-install.md` and watch it install the server. Cline asks for that test.
+4. **Docker MCP Catalog (optional).** The registry takes a pull request that adds
+   `servers/nexus-mcp/server.yaml`.
+   - The registry builds the image from the **root** `Dockerfile`. Ours wraps the server in
+     `mcp-proxy` for Glama, so use the second route: point the entry at the GHCR image that
+     `publish.yml` pushes. That route skips Docker's signing and SBOM benefits.
+   - Prerequisites: Docker Desktop, Go 1.24 or newer, and [Task](https://taskfile.dev/).
+   - Fork `docker/mcp-registry`, then from the clone run
+     `task create -- --category <category> --image ghcr.io/jaggernaut007/nexus-mcp:<version> https://github.com/jaggernaut007/Nexus-MCP`.
+   - Add a `tools.json` next to `server.yaml` with the 8 tools, so that the build does not have
+     to start the server. Test with `task catalog -- nexus-mcp`, then
+     `docker mcp catalog import $PWD/catalogs/nexus-mcp/catalog.yaml`.
+   - Open the pull request. The entry is live in 24 hours after the Docker team approves it.
+   - Read the current `CONTRIBUTING.md` of `docker/mcp-registry` first. It changes.
 
 ## Pins
 

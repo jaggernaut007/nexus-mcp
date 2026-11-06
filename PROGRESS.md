@@ -21,11 +21,13 @@ paid licence key (Polar, $5 per developer per month) was built and tested in the
 removed; ADR-022 is superseded. The default install is "ask your agent" or `uvx nexus-mcp-ci setup`.
 
 - [x] `nexus-mcp-ci setup` (8 clients, `--dry-run`, `--uninstall`), `llms-install.md`, plugin on `uvx`
-- [x] Channel files: `mcpb/` (Claude Desktop and Smithery), `gemini-extension.json`, VS Code and
+- [x] Channel files: `mcpb/` (Claude Desktop), `gemini-extension.json`, VS Code and
   Cursor links, `docker/Dockerfile.stdio`, `action.yml`, `publish.yml` jobs, `scripts/bump_version.py`
-- [x] `smithery.yaml` removed: Smithery takes only HTTP servers there. Local servers go as `.mcpb`.
+- [x] `smithery.yaml` removed: Smithery shut down its CLI and accounts on 2026-10-31.
+- [x] Context7 listing done by the owner. Cline logo `site/logo-400.png` and GitHub social
+  preview `site/social-preview.png` made.
 - [ ] **Owner:** GitHub Sponsors (optional), then `.github/FUNDING.yml`
-- [ ] **Owner:** Smithery publish, GitHub Marketplace tick, Cline issue, Context7 (see
+- [ ] **Owner:** social preview upload, GitHub Marketplace tick, Cline issue, Docker catalog PR (see
   [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md))
 - [ ] Not verified here: `mcpb pack` (npm install needs approval), the Docker build (no Docker
   daemon), the real clients (Gemini CLI, Cursor, VS Code, Desktop)

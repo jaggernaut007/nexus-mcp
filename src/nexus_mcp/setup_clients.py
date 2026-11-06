@@ -255,11 +255,16 @@ def _toml_block(spec: Dict[str, object]) -> str:
 
 
 def _claude_code_change(spec: Dict[str, object], home: Path) -> Change:
-    """Use the `claude` CLI when it exists. Otherwise edit ~/.claude.json."""
+    """Use the `claude` CLI when it exists. Otherwise edit ~/.claude.json.
+
+    The CLI always writes to the real home. When ``home`` is another folder (the hidden
+    ``--home`` flag, used by tests and dry runs) the CLI would change the real config, so the
+    file path is used.
+    """
     cfg = home / ".claude.json"
     fallback = _json_entry(cfg, "mcpServers", {"type": "stdio", **spec, "env": {}})
     claude = shutil.which("claude")
-    if not claude:
+    if not claude or home.resolve() != Path.home().resolve():
         return fallback
 
     def apply() -> None:

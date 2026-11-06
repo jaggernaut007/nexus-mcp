@@ -40,8 +40,8 @@ again. It names the version that the benchmark measured.
    - pushes `ghcr.io/jaggernaut007/nexus-mcp:<version>` and `:latest`.
 7. `pages.yml` deploys the site from `main`.
 8. Check Glama: it rebuilds from the repository. Re-claim the server if the listing is stale.
-9. Do the owner steps in [DISTRIBUTION.md](DISTRIBUTION.md): publish the `.mcpb` to Smithery, and
-   tick "Publish to Marketplace" for the Action.
+9. Do the owner steps in [DISTRIBUTION.md](DISTRIBUTION.md): tick "Publish to Marketplace" for
+   the Action, and open the Cline issue.
 
 ## After the release
 

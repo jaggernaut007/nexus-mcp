@@ -170,9 +170,29 @@ def test_setup_claude_code_uses_cli_when_present(env, monkeypatch):
         return R()
 
     monkeypatch.setattr(sc.subprocess, "run", fake_run)
-    assert _run(home, project, "--client", "claude-code", "--yes") == 0
+    # Requirement changed on 2026-11-06: the CLI runs only for the real home. The test now
+    # makes the fake folder the real home, instead of passing the hidden --home flag.
+    monkeypatch.setattr(sc.Path, "home", classmethod(lambda cls: home))
+    code = sc.run_setup(
+        ["--project", str(project), "--no-index", "--client", "claude-code", "--yes"]
+    )
+    assert code == 0
     assert calls[0][:5] == ["/bin/claude", "mcp", "add", "--scope", "user"]
     assert (home / ".claude" / "skills" / "nexus-mcp" / "SKILL.md").read_text().startswith("---")
+
+
+def test_setup_with_another_home_never_runs_the_claude_cli(env, monkeypatch):
+    # Regression: `setup --home <dir>` ran the real `claude mcp add` and changed the real config.
+    home, project = env
+    calls = []
+    monkeypatch.setattr(
+        sc.shutil, "which", lambda name, *a, **k: "/bin/claude" if name == "claude" else None
+    )
+    monkeypatch.setattr(sc.subprocess, "run", lambda cmd, **kw: calls.append(cmd))
+    assert _run(home, project, "--client", "claude-code", "--yes", "--no-skill") == 0
+    assert calls == []
+    cfg = json.loads((home / ".claude.json").read_text())
+    assert cfg["mcpServers"]["nexus-mcp"]["command"] == "uvx"
 
 
 def test_setup_claude_code_falls_back_to_claude_json(env):

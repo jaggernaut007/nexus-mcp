@@ -563,6 +563,9 @@ All settings via `NEXUS_` environment variables:
 | `NEXUS_AUTO_RESTORE` | `true` | A new server process reattaches to the stored index, so `status` is already `indexed: true` |
 | `NEXUS_WARM_START` | `true` | Attach the index and load the embedding model in the background while the server starts, so the first `search` does not wait about 7 s. The model then uses its memory (about 370 MB) from the start of each session |
 | `NEXUS_STALENESS_CHECK_INTERVAL` | `15` | Seconds between `status()`/`search()` staleness checks (throttled, not per-call) |
+| `NEXUS_IDLE_TIMEOUT` | `10800` | Stop the server after this many seconds with no tool call (3 hours). `0` turns it off |
+| `NEXUS_EXIT_ON_PARENT_EXIT` | `true` | Stop the server when the client process that started it is gone |
+| `NEXUS_SHUTDOWN_TIMEOUT` | `10` | Longest wait for a running index at shutdown; the process then exits |
 | `NEXUS_MAX_FILE_SIZE_MB` | `10` | Skip files larger than this |
 | `NEXUS_CHUNK_MAX_CHARS` | `4000` | Max chars per code chunk |
 | `NEXUS_EMBEDDING_BATCH_SIZE` | `32` | Chunks per embedding batch. Lower it to cut peak RAM while indexing |
@@ -805,7 +808,7 @@ Source files retain "Ported from" attribution in their module docstrings. See [A
 
 [MIT](LICENSE). Free to use, copy, modify and distribute, for any purpose, including at work.
 
-Versions 2.0.1 to 2.2.2 were released under the PolyForm Noncommercial License 1.0.0. Anyone who
+Versions 2.0.1 to 2.2.3 were released under the PolyForm Noncommercial License 1.0.0. Anyone who
 obtained one of those versions keeps the terms they got. Versions 0.1.0, 0.1.1 and 2.0.0 were MIT.
 Every new release is MIT.
 

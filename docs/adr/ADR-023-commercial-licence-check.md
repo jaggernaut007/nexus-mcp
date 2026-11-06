@@ -1,6 +1,6 @@
-# ADR-022: Commercial Licence Key Check
+# ADR-023: Commercial Licence Key Check
 
-## Status: Superseded by ADR-023 (2026-11-06). The code was removed.
+## Status: Superseded by ADR-024 (2026-11-06). The code was removed.
 ## Date: 2026-11-05
 
 ## Context

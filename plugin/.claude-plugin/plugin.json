@@ -2,7 +2,7 @@
   "name": "nexus-mcp",
   "displayName": "Nexus-MCP",
   "description": "Code search, call graph and project memory for Claude Code. Runs the nexus-mcp-ci server through uvx, so it needs uv (https://docs.astral.sh/uv/) and no pip install. It also teaches Claude when to use the tools.",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "author": {
     "name": "Shreyas Jagannath",
     "url": "https://github.com/jaggernaut007"
@@ -10,5 +10,11 @@
   "homepage": "https://github.com/jaggernaut007/Nexus-MCP",
   "repository": "https://github.com/jaggernaut007/Nexus-MCP",
   "license": "MIT",
-  "keywords": ["code-search", "code-graph", "semantic-search", "mcp", "code-intelligence"]
+  "keywords": [
+    "code-search",
+    "code-graph",
+    "semantic-search",
+    "mcp",
+    "code-intelligence"
+  ]
 }

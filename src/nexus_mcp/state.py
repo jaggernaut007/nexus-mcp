@@ -85,8 +85,14 @@ class SessionState:
             except Exception as e:
                 logger.warning("Failed to stop a file watcher: %s", e)
 
-    def shutdown(self) -> None:
-        """Gracefully shut down: stop watchers, persist graph state, and clean up resources."""
+    def shutdown(self, wait_for_index_s: float = 0.0) -> None:
+        """Gracefully shut down: stop watchers, persist graph state, and clean up resources.
+
+        The graph is saved only when no index runs: an index changes the graph while the
+        save reads it, and the save then fails or writes half a graph. The call waits up
+        to `wait_for_index_s` for a running index. If the index still runs, the graph on
+        disk stays as it was, and the next restore finds the index out of date.
+        """
         with self._shutdown_lock:
             if self._shutting_down:
                 return
@@ -119,6 +125,20 @@ class SessionState:
 
         # Persist graph to SQLite if populated
         if self._graph_engine and self.codebase_path:
+            from nexus_mcp import core_api
+
+            lock = core_api._pipeline_lock
+            if wait_for_index_s > 0:
+                acquired = lock.acquire(timeout=wait_for_index_s)
+            else:
+                acquired = lock.acquire(blocking=False)
+            if not acquired:
+                logger.warning(
+                    "An index still runs after %.0fs; the graph is not saved.",
+                    wait_for_index_s,
+                )
+                logger.info("Nexus-MCP shutdown complete.")
+                return
             try:
                 from nexus_mcp.persistence.store import GraphPersistence
 
@@ -127,6 +147,8 @@ class SessionState:
                 logger.info("Graph state persisted to %s", self.settings.graph_path)
             except Exception as e:
                 logger.warning("Failed to persist graph state: %s", e)
+            finally:
+                lock.release()
 
         logger.info("Nexus-MCP shutdown complete.")
 

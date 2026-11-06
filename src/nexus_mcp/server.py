@@ -10,11 +10,10 @@ Python process (see core_api's module docstring).
 import asyncio
 import json as _json
 import logging
-import signal
 import threading
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Optional
 
-from nexus_mcp import core_api
+from nexus_mcp import core_api, lifecycle
 
 if TYPE_CHECKING:
     from nexus_mcp.security.permissions import ToolCategory
@@ -185,6 +184,7 @@ def create_server():
             async def async_wrapper(*args, **kwargs):
                 start = _time.monotonic()
                 status = "success"
+                lifecycle.activity.begin()
                 try:
                     result = await fn(*args, **kwargs)
                     if isinstance(result, dict):
@@ -196,6 +196,7 @@ def create_server():
                     status = "error"
                     raise
                 finally:
+                    lifecycle.activity.end()
                     _log(status, kwargs, start)
 
             return async_wrapper
@@ -204,6 +205,7 @@ def create_server():
         def wrapper(*args, **kwargs):
             start = _time.monotonic()
             status = "success"
+            lifecycle.activity.begin()
             try:
                 result = fn(*args, **kwargs)
                 if isinstance(result, dict):
@@ -215,6 +217,7 @@ def create_server():
                 status = "error"
                 raise
             finally:
+                lifecycle.activity.end()
                 _log(status, kwargs, start)
 
         return wrapper
@@ -495,14 +498,13 @@ def create_server():
 def main():
     """Entry point for nexus-mcp CLI.
 
-    ``eval``, ``data``, ``setup`` and ``license`` run a command and exit. With no arguments
+    ``eval``, ``data`` and ``setup`` run a command and exit. With no arguments
     the stdio server starts, as MCP clients expect.
     """
     import sys
 
     from nexus_mcp.config import get_settings
     from nexus_mcp.privacy import apply_privacy_defaults
-    from nexus_mcp.state import get_state
 
     if len(sys.argv) > 1:
         from nexus_mcp.evaluate.cli import dispatch
@@ -523,21 +525,30 @@ def main():
     else:
         logging.basicConfig(level=log_level)
 
-    def _shutdown_handler(signum, frame):
-        logger.info("Received signal %s, shutting down...", signum)
-        raise SystemExit(0)
-
-    signal.signal(signal.SIGTERM, _shutdown_handler)
-    signal.signal(signal.SIGINT, _shutdown_handler)
-
-    server = create_server()
-    if settings.warm_start and settings.auto_restore:
-        # Not a tool call: the first `search` then finds the index and the model loaded.
-        threading.Thread(target=core_api.warm_up, name="nexus-warm-up", daemon=True).start()
+    # Every way out goes through lifecycle.finish(): clean up, then end the process.
+    lifecycle.install_signal_handlers(settings.shutdown_timeout_s)
+    exit_code = lifecycle.EXIT_CLEAN
+    monitor = None
     try:
-        server.run()
+        server = create_server()
+        if settings.warm_start and settings.auto_restore:
+            # Not a tool call: the first `search` then finds the index and the model loaded.
+            threading.Thread(
+                target=core_api.warm_up, name="nexus-warm-up", daemon=True
+            ).start()
+        monitor = lifecycle.start_monitor(settings)
+        server.run()  # returns when the client closes stdin
+    except SystemExit as e:
+        exit_code = e.code if isinstance(e.code, int) else lifecycle.EXIT_CLEAN
+    except KeyboardInterrupt:
+        pass
+    except BaseException:
+        logger.exception("The server stopped with an error.")
+        exit_code = lifecycle.EXIT_FORCED
     finally:
-        get_state().shutdown()
+        if monitor is not None:
+            monitor.stop()
+        lifecycle.finish(exit_code)
 
 
 if __name__ == "__main__":

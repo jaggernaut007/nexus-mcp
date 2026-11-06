@@ -77,6 +77,7 @@ src/nexus_mcp/
 ├── config.py              # Settings with NEXUS_ env prefix (security, audit, rate limit, auto-watch)
 ├── setup_clients.py       # `nexus-mcp-ci setup`: add the server and the skill to an MCP client
 ├── state.py               # Session state singleton + shutdown()
+├── lifecycle.py           # Idle timeout, orphan exit, signals; finish() always ends the process
 ├── core/
 │   ├── models.py          # Symbol, ParsedFile, CodebaseIndex, Memory
 │   ├── graph_models.py    # UniversalNode, Relationship
@@ -165,7 +166,8 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 - Call-edge resolution: static, name-based, precision first, rebuilt after each index — [ADR-019](docs/adr/ADR-019-call-edge-resolution.md)
 - Adopter evaluation in the package (`eval`), ground truth from the parser — [ADR-020](docs/adr/ADR-020-adopter-evaluation.md)
 - One source for published numbers; opt-in sharing, no telemetry — [ADR-021](docs/adr/ADR-021-results-publishing-and-sharing.md)
-- MIT licence, commercial licence key removed again — [ADR-022](docs/adr/ADR-022-commercial-licence-check.md) (superseded by [ADR-023](docs/adr/ADR-023-mit-licence.md))
+- Server lifecycle: idle timeout (3 h), orphan exit, `os._exit` after a bounded cleanup — [ADR-022](docs/adr/ADR-022-server-lifecycle-and-exit.md)
+- MIT licence, commercial licence key removed again — [ADR-023](docs/adr/ADR-023-commercial-licence-check.md) (superseded by [ADR-024](docs/adr/ADR-024-mit-licence.md))
 
 ## Gotchas
 
@@ -180,7 +182,10 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 6. Filter values in vector_engine are SQL-escaped to prevent injection
 7. Pipeline `_pipeline` in core_api.py is protected by `_pipeline_lock`, a threading lock, held for the full duration of `index()` (not just creation) so background reindexes can safely detect "busy" via a non-blocking acquire
 8. Input validation runs at tool entry in `core_api.py` (null bytes, length limits, path traversal)
-9. Graceful shutdown persists graph state on SIGTERM/SIGINT
+9. Graceful shutdown persists graph state on SIGTERM/SIGINT/SIGHUP, stdin close, idle
+   (`NEXUS_IDLE_TIMEOUT`, default 3 h) and orphan exit. `lifecycle.finish()` then calls
+   `os._exit`, so `server.main()` never returns and `atexit` handlers do not run. Tests
+   replace `lifecycle._hard_exit` in `conftest.py`
 10. Corrupt indexes are auto-detected and rebuilt on incremental_index
 11. Permission default is `full` (backward compat); set `NEXUS_PERMISSION_LEVEL=read` for restricted
 12. Audit logging is on by default; set `NEXUS_AUDIT_ENABLED=false` to disable

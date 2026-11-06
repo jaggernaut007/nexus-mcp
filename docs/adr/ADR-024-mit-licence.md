@@ -1,12 +1,12 @@
-# ADR-023: MIT Licence, and the Commercial Licence Key Removed
+# ADR-024: MIT Licence, and the Commercial Licence Key Removed
 
 ## Status: Accepted
 ## Date: 2026-11-06
-## Supersedes: ADR-022
+## Supersedes: ADR-023
 
 ## Context
 
-Versions 2.0.1 to 2.2.2 used PolyForm Noncommercial 1.0.0. ADR-022 added a paid commercial
+Versions 2.0.1 to 2.2.3 used PolyForm Noncommercial 1.0.0. ADR-023 added a paid commercial
 tier ($5 per developer per month, sold through Polar, with a licence key check).
 
 The owner wants more adoption first. PolyForm is not an OSI open-source licence. Some
@@ -16,7 +16,7 @@ decide on a commercial model when the project has enough users.
 ## Decision
 
 - **Licence: MIT**, for every new release. Copyright Shreyas Jagannath.
-- **Old versions keep their terms.** Anyone who got 2.0.1 to 2.2.2 keeps the PolyForm terms
+- **Old versions keep their terms.** Anyone who got 2.0.1 to 2.2.3 keeps the PolyForm terms
   they received. Versions 0.1.0, 0.1.1 and 2.0.0 were already MIT.
 - **The licence key feature is removed**: `licensing.py`, the `license` CLI command, the
   `license` word in `status()`, the `NEXUS_LICENSE_*` variables, the optional key fields in

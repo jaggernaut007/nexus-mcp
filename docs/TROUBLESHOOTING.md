@@ -9,6 +9,16 @@
 on stdin with no error. A virtualenv install needs the full path to the binary in the client
 config (`which nexus-mcp-ci`).
 
+**The server is disconnected after a long break.** The server stops after 3 hours with no tool
+call (`NEXUS_IDLE_TIMEOUT`), and when the client process that started it is gone. Reconnect it
+in the client (`/mcp` in Claude Code); the stored index attaches again. Set
+`NEXUS_IDLE_TIMEOUT=0` to keep it running.
+
+**The server does not stop.** Each stop (stdin close, SIGTERM, SIGINT, SIGHUP, idle, orphan)
+ends the process within `NEXUS_SHUTDOWN_TIMEOUT` (10 s) plus 5 s. A second Ctrl-C ends it at
+once. A running index can delay the stop; the graph is then not saved, and the next start
+finds the index out of date.
+
 ## The embedding model
 
 **The first index is slow or fails with a network error.** The first run downloads

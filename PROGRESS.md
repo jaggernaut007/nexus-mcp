@@ -16,15 +16,15 @@ Lower token use for an agent, with the same accuracy. Set by the owner on 2026-1
 
 ## MIT licence and install channels — 2026-11-06 (branch, not released)
 
-Decisions: MIT for every new release ([ADR-023](docs/adr/ADR-023-mit-licence.md)), for adoption. A
+Decisions: MIT for every new release ([ADR-024](docs/adr/ADR-024-mit-licence.md)), for adoption. A
 paid licence key (Polar, $5 per developer per month) was built and tested in the sandbox, then
-removed; ADR-022 is superseded. The default install is "ask your agent" or `uvx nexus-mcp-ci setup`.
+removed; ADR-023 is superseded. The default install is "ask your agent" or `uvx nexus-mcp-ci setup`.
 
 - [x] `nexus-mcp-ci setup` (8 clients, `--dry-run`, `--uninstall`), `llms-install.md`, plugin on `uvx`
 - [x] Channel files: `mcpb/` (Claude Desktop), `gemini-extension.json`, VS Code and
   Cursor links, `docker/Dockerfile.stdio`, `action.yml`, `publish.yml` jobs, `scripts/bump_version.py`
 - [x] `smithery.yaml` removed: Smithery shut down its CLI and accounts on 2026-10-31.
-- [x] Context7 listing done by the owner. Cline logo `site/logo-400.png` and GitHub social
+- [x] Glama, awesome-mcp-servers (`punkpeye`) and Context7 listings done by the owner. Cline logo `site/logo-400.png` and GitHub social
   preview `site/social-preview.png` made.
 - [ ] **Owner:** GitHub Sponsors (optional), then `.github/FUNDING.yml`
 - [ ] **Owner:** social preview upload, GitHub Marketplace tick, Cline issue, Docker catalog PR (see

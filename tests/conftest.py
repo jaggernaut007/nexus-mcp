@@ -36,11 +36,19 @@ def clean_state(monkeypatch):
     Tests of the restore itself switch it back on.
     """
     monkeypatch.setenv("NEXUS_AUTO_RESTORE", "false")
+    # server.main() now ends the process (lifecycle.finish -> os._exit). Record the
+    # exit code instead, so a test of main() does not end pytest.
+    from nexus_mcp import lifecycle
+
+    lifecycle.reset()
+    monkeypatch.setattr(lifecycle, "_hard_exit", lambda code: lifecycle.exits.append(code))
+    lifecycle.exits = []
     reset_settings()
     reset_state()
     core_api._pipeline = None
     yield
     _stop_watchers()
+    lifecycle.reset()
     reset_state()
     core_api._pipeline = None
 

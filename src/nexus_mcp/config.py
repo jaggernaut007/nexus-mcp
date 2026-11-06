@@ -44,6 +44,12 @@ class Settings:
     auto_watch_enabled: bool = True
     staleness_check_interval_s: float = 15.0
 
+    # Lifecycle: when the server stops by itself (see lifecycle.py)
+    idle_timeout_s: float = 10800.0  # 3 hours with no tool call; 0 turns it off
+    exit_on_parent_exit: bool = True  # stop when the client process is gone
+    shutdown_timeout_s: float = 10.0  # longest wait for a running index at shutdown
+    lifecycle_check_interval_s: float = 5.0
+
     # Logging
     log_level: str = "INFO"
     log_format: str = "text"  # "text" or "json"
@@ -84,6 +90,10 @@ class Settings:
             "NEXUS_WARM_START": ("warm_start", _bool),
             "NEXUS_AUTO_WATCH": ("auto_watch_enabled", _bool),
             "NEXUS_STALENESS_CHECK_INTERVAL": ("staleness_check_interval_s", float),
+            "NEXUS_IDLE_TIMEOUT": ("idle_timeout_s", float),
+            "NEXUS_EXIT_ON_PARENT_EXIT": ("exit_on_parent_exit", _bool),
+            "NEXUS_SHUTDOWN_TIMEOUT": ("shutdown_timeout_s", float),
+            "NEXUS_LIFECYCLE_CHECK_INTERVAL": ("lifecycle_check_interval_s", float),
             "NEXUS_LOG_LEVEL": ("log_level", str),
             "NEXUS_LOG_FORMAT": ("log_format", str),
             "NEXUS_TRUST_REMOTE_CODE": ("trust_remote_code", _bool),

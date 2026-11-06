@@ -26,20 +26,14 @@ _SKILL_IN_CHECKOUT = Path(__file__).resolve().parents[3] / "plugin" / "skills" /
 
 def skill_text() -> str:
     """The routing skill body (frontmatter removed) for the ``nexus`` condition."""
+    from nexus_mcp.setup_clients import skill_body
+
     for path in (
         Path(__file__).parent / "data" / "SKILL.md",
         _SKILL_IN_CHECKOUT / "SKILL.md",
     ):
         if path.is_file():
-            # The install section is for a client that has no nexus tools. The eval has them.
-            text = path.read_text()
-            if "<!-- nexus-install -->" in text:
-                text = text.split("<!-- nexus-install -->")[0].rstrip() + "\n"
-            if text.startswith("---"):
-                end = text.find("\n---", 3)
-                if end != -1:
-                    text = text[end + 4 :].lstrip("\n")
-            return text
+            return skill_body(path.read_text())
     return ""
 
 

@@ -239,6 +239,24 @@ def test_skill_loaders_cut_the_install_section():
 # --- regressions from the code review of PR 24 ------------------------------------------
 
 
+def test_launch_spec_is_not_pinned_for_a_source_install(monkeypatch):
+    import importlib.metadata as md
+
+    class Dist:
+        version = "9.9.9"
+
+        def __init__(self, direct_url):
+            self._direct_url = direct_url
+
+        def read_text(self, name):
+            return self._direct_url
+
+    monkeypatch.setattr(md, "distribution", lambda name: Dist('{"url": "file:///src"}'))
+    assert sc.launch_spec()["args"] == ["nexus-mcp-ci"]
+    monkeypatch.setattr(md, "distribution", lambda name: Dist(None))
+    assert sc.launch_spec()["args"] == ["nexus-mcp-ci==9.9.9"]
+
+
 def test_write_atomic_keeps_the_file_mode(tmp_path):
     cfg = tmp_path / ".claude.json"
     cfg.write_text("{}")

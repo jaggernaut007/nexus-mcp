@@ -69,10 +69,14 @@ class Plan:
 
 
 def package_version() -> Optional[str]:
+    """The installed version, or None for a source or editable install (it may not be on PyPI)."""
     try:
-        from importlib.metadata import version
+        from importlib.metadata import distribution
 
-        return version(PACKAGE)
+        dist = distribution(PACKAGE)
+        if dist.read_text("direct_url.json"):  # pip and uv write it for local and VCS installs
+            return None
+        return dist.version
     except Exception:
         return None
 
@@ -95,13 +99,18 @@ def skill_text() -> str:
     raise SetupError("The skill file was not found in this install.")
 
 
-def _body(text: str) -> str:
-    """The skill text for an always-loaded file: no front matter, no install section.
+INSTALL_MARKER = "<!-- nexus-install -->"
 
-    The install section is for a client that has no nexus tools. A rules file or an
-    ``AGENTS.md`` block exists only after setup, and it is read in every session.
+
+def skill_body(text: str) -> str:
+    """The skill text without front matter and without the install section.
+
+    The install section is for a client that has no nexus tools. A rules file, an ``AGENTS.md``
+    block, the eval and the benchmark all have them, so none of them carries it. This is the one
+    place that cuts it: ``evaluate/runners.py`` and ``benchmarks/conditions.py`` call it.
     """
-    text = text.split("<!-- nexus-install -->")[0].rstrip() + "\n"
+    if INSTALL_MARKER in text:
+        text = text.split(INSTALL_MARKER)[0].rstrip() + "\n"
     if text.startswith("---"):
         end = text.find("\n---", 3)
         if end != -1:
@@ -357,7 +366,7 @@ def build_plan(client: str, project: Path, home: Path, with_skill: bool = True) 
         if with_skill:
             mdc = (
                 "---\ndescription: Use the nexus-mcp tools for code questions\n"
-                "alwaysApply: false\n---\n\n" + _body(skill)
+                "alwaysApply: false\n---\n\n" + skill_body(skill)
             )
             changes.append(
                 _own_file(
@@ -380,7 +389,7 @@ def build_plan(client: str, project: Path, home: Path, with_skill: bool = True) 
             changes.append(
                 _marked_block(
                     project / "GEMINI.md",
-                    _body(skill),
+                    skill_body(skill),
                     BEGIN,
                     END,
                     f"add a marked nexus-mcp block to {project / 'GEMINI.md'}",
@@ -401,7 +410,7 @@ def build_plan(client: str, project: Path, home: Path, with_skill: bool = True) 
             changes.append(
                 _marked_block(
                     project / "AGENTS.md",
-                    _body(skill),
+                    skill_body(skill),
                     BEGIN,
                     END,
                     f"add a marked nexus-mcp block to {project / 'AGENTS.md'}",

@@ -1,5 +1,5 @@
-project,files,commit,date,condition,cost_usd,turns,correct,of
-Private Python project,460,a67e5b4,2026-10-28,grep_and_read,0.571,55,36,36
-Private Python project,460,a67e5b4,2026-10-28,nexus_mcp,0.446,35,35,36
-Django,3000,a67e5b4,2026-10-28,grep_and_read,0.894,93,34,36
-Django,3000,a67e5b4,2026-10-28,nexus_mcp,0.863,71,36,36
+project,files,commit,date,condition,cost_usd,turns,correct,of,language,phase,nexus_version,median_tokens,hit_at_1,index_seconds,fn_nodes,calls_per_fn
+Private Python project,460,a67e5b4,2026-10-28,grep_and_read,0.571,55,36,36,,,,,,,,
+Private Python project,460,a67e5b4,2026-10-28,nexus_mcp,0.446,35,35,36,,,,,,,,
+Django,3000,a67e5b4,2026-10-28,grep_and_read,0.894,93,34,36,,,,,,,,
+Django,3000,a67e5b4,2026-10-28,nexus_mcp,0.863,71,36,36,,,,,,,,

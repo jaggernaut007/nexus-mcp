@@ -1,0 +1,95 @@
+repo:
+  name: prometheus
+  url: https://github.com/prometheus/prometheus.git
+  pin: 4bfb6bb5b3dbecb86f81c687cae9885ecfefb3a2
+  pinned_date: "2026-11-05"
+  sparse: ["tsdb", "promql"]
+  why: >-
+    Prometheus tsdb/ and promql/ (274 Go files). Go has symbols, function nodes and call
+    edges in 2.2.2 but no class nodes.
+
+defaults:
+  max_budget_usd: 1.00
+  timeout_s: 600
+
+tasks:
+  - id: pm-concept-compaction
+    category: conceptual
+    prompt: >
+      How does the TSDB decide which on-disk blocks to merge, and where is the merge
+      done? Name the file, the compactor type and the key methods.
+    ground_truth:
+      relevant_files: [tsdb/compact.go]
+      acceptable_extra_files: [tsdb/db.go]
+      facts:
+        - any_of: ["LeveledCompactor"]
+        - any_of: ["Plan"]
+        - any_of: ["Compact"]
+      must_mention_files: [tsdb/compact.go]
+
+  - id: pm-concept-rate
+    category: conceptual
+    prompt: >
+      How does PromQL compute rate() over a range, including counter resets and the
+      extrapolation to the window edges? Name the file and the key function.
+    ground_truth:
+      relevant_files: [promql/functions.go]
+      acceptable_extra_files: [promql/engine.go]
+      facts:
+        - any_of: ["extrapolatedRate"]
+        - any_of: ["counter reset", "resultFloat", "isCounter"]
+      must_mention_files: [promql/functions.go]
+
+  - id: pm-impact-bucket-quantile
+    category: impact
+    prompt: >
+      I want to change the signature of BucketQuantile. Outside of tests, which functions
+      call it? List each caller with its file path.
+    ground_truth:
+      relevant_files: [promql/functions.go, promql/quantile.go]
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["funcHistogramQuantile"]
+        - any_of: ["funcHistogramQuantiles"]
+      must_mention_files: [promql/functions.go]
+
+  - id: pm-impact-postings-for-matchers
+    category: impact
+    prompt: >
+      I want to change the signature of PostingsForMatchers in tsdb. Outside of tests,
+      which functions call it directly? List each caller with its file path.
+    ground_truth:
+      relevant_files: [tsdb/querier.go, tsdb/head.go, tsdb/block.go]
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["selectSeriesSet"]
+        - any_of: ["labelValuesWithMatchers"]
+        - any_of: ["Delete"]
+      must_mention_files: [tsdb/querier.go, tsdb/head.go, tsdb/block.go]
+
+  - id: pm-arch-query-path
+    category: architecture
+    prompt: >
+      Trace an instant query from the moment the engine receives the query text to the
+      moment the expression is evaluated. List the files and functions in call order.
+    ground_truth:
+      relevant_files: [promql/engine.go, promql/parser/parse.go]
+      acceptable_extra_files: [promql/value.go]
+      facts:
+        - any_of: ["NewInstantQuery"]
+        - any_of: ["exec"]
+        - any_of: ["execEvalStmt"]
+        - any_of: ["eval"]
+      must_mention_files: [promql/engine.go]
+
+  - id: pm-needle-bucket-quantile-line
+    category: needle
+    prompt: >
+      What file and line number define the function BucketQuantile?
+    ground_truth:
+      relevant_files: [promql/quantile.go]
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["105"]
+        - any_of: ["func BucketQuantile"]
+      must_mention_files: [promql/quantile.go]

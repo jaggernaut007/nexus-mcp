@@ -1,0 +1,20 @@
+{
+  "javascript": {
+    "files": 160,
+    "symbols": 34,
+    "functions": 32,
+    "classes": 1,
+    "calls": 1,
+    "calls_per_fn": 0.03,
+    "fn_with_calls": 0.031
+  },
+  "typescript": {
+    "files": 269,
+    "symbols": 1834,
+    "functions": 1689,
+    "classes": 48,
+    "calls": 2368,
+    "calls_per_fn": 1.4,
+    "fn_with_calls": 0.465
+  }
+}

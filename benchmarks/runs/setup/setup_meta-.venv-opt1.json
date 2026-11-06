@@ -1,0 +1,19 @@
+{
+  "redis": {
+    "index_seconds": 1611.9,
+    "peak_rss_mb": 1145,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 229,
+      "total_symbols": 16960,
+      "total_chunks": 16960,
+      "parse_errors": 1,
+      "graph_nodes": 7158,
+      "graph_relationships": 28707,
+      "time_seconds": 1606.4808690547943,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  }
+}

@@ -1,0 +1,78 @@
+[corpora] flask already at d73fa1cdcb
+[flask] done: retrieval
+[corpora] django already at 318a316a4c
+[django] done: 
+[corpora] vite already at 483512809b
+[vite] done: retrieval
+[corpora] webpack already at f6366b0bc2
+[webpack] done: retrieval
+[corpora] commons-lang already at e547d704b2
+[commons-lang] done: retrieval
+[corpora] newtonsoft-json already at 52fa3aef1f
+[newtonsoft-json] retrieval tier failed:     root = SgRoot(content, ast_grep_id) |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | pyo3_runtime.PanicException: called `Result::unwrap()` on an `Err` value: LanguageNotSupported("c_sharp")
+[newtonsoft-json] done: retrieval
+[corpora] laravel already at 7d6d8e8613
+[laravel] done: retrieval
+[corpora] chromium-base already at d8ebdd2598
+[chromium-base] done: retrieval
+[corpora] redis already at a05f30c971
+[redis] done: retrieval
+[corpora] prometheus already at 4bfb6bb5b3
+[prometheus] done: retrieval
+[corpora] tokio already at 695a07dd5e
+[tokio] done: retrieval
+Wrote /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-before.json
+[corpora] flask already at d73fa1cdcb
+[flask] done: quick, retrieval, graph
+[corpora] django already at 318a316a4c
+[django] done: 
+[corpora] vite already at 483512809b
+[vite] done: quick, retrieval, graph
+[corpora] webpack already at f6366b0bc2
+[webpack] done: quick, retrieval, graph
+[corpora] commons-lang already at e547d704b2
+[commons-lang] done: quick, retrieval, graph
+[corpora] newtonsoft-json already at 52fa3aef1f
+[newtonsoft-json] done: quick, retrieval, graph
+[corpora] laravel already at 7d6d8e8613
+[laravel] done: quick, retrieval, graph
+[corpora] chromium-base already at d8ebdd2598
+[index] chromium-base with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-after/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 04:40:20.029000 48931 .venv-after/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-after/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] chromium-base indexed in 2620.9s
+[chromium-base] done: quick, retrieval, graph
+[corpora] redis already at a05f30c971
+[index] redis with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-after/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 05:52:40.814000 49287 .venv-after/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-after/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] redis indexed in 848.5s
+[redis] done: quick, retrieval, graph
+[corpora] prometheus already at 4bfb6bb5b3
+[index] prometheus with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-after/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 06:11:09.933000 49451 .venv-after/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-after/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] prometheus indexed in 116.4s
+[prometheus] done: quick, retrieval, graph
+[corpora] tokio already at 695a07dd5e
+[index] tokio with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-after/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 06:21:49.936000 49599 .venv-after/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-after/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] tokio indexed in 256.8s
+[tokio] done: quick, retrieval, graph
+Wrote /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-after.json

@@ -16,12 +16,15 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "benchmarks" / "published" / "results.json"
 COMMUNITY = ROOT / "site" / "data" / "community-results.json"
 START, END = "<!-- results:start -->", "<!-- results:end -->"
+# Version 2 adds the optional "languages" list (one entry per language, with a "before" run
+# and an optional "after" run). Version 1 files have no "languages" key and still work.
+SCHEMA_VERSIONS = (1, 2)
 SITE_URL = "https://jaggernaut007.github.io/nexus-mcp"
 REPO_URL = "https://github.com/jaggernaut007/Nexus-MCP"
 
@@ -65,6 +68,125 @@ def comparison_md(comp: Dict) -> List[str]:
     return lines
 
 
+def _get(phase: Optional[Dict], *keys: str):
+    """The value at keys in a nested dict, or None when a key is missing."""
+    cur = phase
+    for key in keys:
+        if not isinstance(cur, dict):
+            return None
+        cur = cur.get(key)
+    return cur
+
+
+def _num(fmt: str, *keys: str) -> Callable[[Dict], Optional[str]]:
+    """A getter that formats the number at keys, or gives None when it is missing."""
+
+    def get(phase: Dict) -> Optional[str]:
+        value = _get(phase, *keys)
+        return None if value is None else format(value, fmt)
+
+    return get
+
+
+def _correct(side: str) -> Callable[[Dict], Optional[str]]:
+    def get(phase: Dict) -> Optional[str]:
+        live = _get(phase, "live", side)
+        if not isinstance(live, dict) or live.get("correct") is None:
+            return None
+        return f"{live['correct']} of {live['of']}"
+
+    return get
+
+
+def _text(*keys: str) -> Callable[[Dict], Optional[str]]:
+    def get(phase: Dict) -> Optional[str]:
+        value = _get(phase, *keys)
+        return None if value is None else str(value)
+
+    return get
+
+
+# Columns of the per-language table: (header, getter, compare). A column with compare=True
+# shows "before → after" when the entry has an "after" run. A column with compare=False is the
+# Grep and Read baseline: it does not change with the Nexus-MCP version, so it shows the
+# latest run only.
+LANGUAGE_COLUMNS = [
+    ("Nexus-MCP version", _text("nexus_version"), True),
+    ("Index time (s)", _num(",.1f", "index_seconds"), True),
+    ("Right file first: Grep and Read", _num(".0%", "quick_tier", "grep", "hit_at_1"), False),
+    ("Right file first: Nexus-MCP", _num(".0%", "quick_tier", "nexus", "hit_at_1"), True),
+    (
+        "Tokens to the right file: Grep and Read",
+        _num(",.0f", "quick_tier", "grep", "median_tokens"),
+        False,
+    ),
+    (
+        "Tokens to the right file: Nexus-MCP",
+        _num(",.0f", "quick_tier", "nexus", "median_tokens"),
+        True,
+    ),
+    ("Search hit@1", _num(".2f", "retrieval_hit_at_1"), True),
+    ("Calls per function", _num(".2f", "graph", "calls_per_fn"), True),
+    ("Live tokens: Grep and Read", _num(",.0f", "live", "baseline", "median_tokens"), False),
+    ("Live tokens: Nexus-MCP", _num(",.0f", "live", "nexus", "median_tokens"), True),
+    ("Correct: Grep and Read", _correct("baseline"), False),
+    ("Correct: Nexus-MCP", _correct("nexus"), True),
+]
+LANGUAGE_NOTE = (
+    "One row for each language, on one pinned public project. A Nexus-MCP cell with an arrow "
+    "shows the value before and after a fix: before → after. A Grep and Read cell shows the "
+    "latest run. Right file first and tokens come from `nexus-mcp-ci eval` (no LLM); search "
+    "hit@1 from the retrieval suite; live tokens and correct answers from the live benchmark."
+)
+
+
+def language_cell(
+    entry: Dict,
+    getter: Callable[[Dict], Optional[str]],
+    compare: bool,
+    arrow: str = " → ",
+    missing: str = "–",
+) -> str:
+    """One cell: the "before" value, or "before → after" when both runs exist and differ."""
+    before, after = entry.get("before") or {}, entry.get("after")
+    if not compare:
+        return getter(after or before) or missing
+    first = getter(before) or missing
+    if not after:
+        return first
+    second = getter(after) or missing
+    return first if second == first else f"{first}{arrow}{second}"
+
+
+def language_setup(entry: Dict) -> str:
+    """The agent setup of the live runs, such as "sonnet, medium effort, bare"."""
+    effort = f"{entry['effort']} effort" if entry.get("effort") else None
+    parts = [p for p in (entry.get("model"), effort, entry.get("isolation")) if p]
+    return ", ".join(str(p) for p in parts) or "–"
+
+
+def languages_md(langs: List[Dict]) -> List[str]:
+    """The per-language results as Markdown lines. No lines when there are no languages."""
+    if not langs:
+        return []
+    heads = ["Language", "Project", *(h for h, _, _ in LANGUAGE_COLUMNS), "Agent"]
+    lines = [
+        "Results per language:",
+        "",
+        "| " + " | ".join(heads) + " |",
+        "|---|---|" + "---:|" * len(LANGUAGE_COLUMNS) + "---|",
+    ]
+    for e in langs:
+        name = f"[{e['project']}]({e['url']})" if e.get("url") else e["project"]
+        cells = [language_cell(e, g, c) for _, g, c in LANGUAGE_COLUMNS]
+        lines.append(
+            f"| {e['language']} | {name} ({e['files']:,} files) | "
+            + " | ".join(cells)
+            + f" | {language_setup(e)} |"
+        )
+    return [*lines, "", LANGUAGE_NOTE]
+
+
 def readme_block(data: Dict) -> str:
     m = data["method"]
     lines = [
@@ -99,6 +221,8 @@ def readme_block(data: Dict) -> str:
             f"{q['grep']['median_tokens']:,} → **{q['nexus']['median_tokens']:,}** | "
             f"{q['grep']['hit_at_1']:.0%} → {q['nexus']['hit_at_1']:.0%} |"
         )
+    if data.get("languages"):
+        lines += ["", *languages_md(data["languages"])]
     for c in data.get("comparisons", []):
         lines += ["", *comparison_md(c)]
     lines += [
@@ -135,6 +259,17 @@ def site_block(data: Dict) -> str:
             f"<tr><td>{html.escape(q['project'])}, {q['files']:,} files: tokens to the right "
             f'file (<code>eval</code>, no LLM)</td><td><span class="pill">{g:,} → {n:,}'
             "</span></td></tr>"
+        )
+    for e in data.get("languages", []):
+        # A break point after each "/" lets a long owner/repo name wrap at phone width.
+        project = html.escape(e["project"]).replace("/", "/<wbr>")
+        label = f"{html.escape(e['language'])}, {project}: right file first"
+        version = language_cell(e, _text("nexus_version"), True)
+        label += f", Nexus-MCP {html.escape(version)}" if e.get("after") else " with Nexus-MCP"
+        hit = language_cell(e, _num(".0%", "quick_tier", "nexus", "hit_at_1"), True)
+        rows.append(
+            f'<tr><td>{label} (<code>eval</code>, no LLM)</td><td><span class="pill">'
+            f"{html.escape(hit)}</span></td></tr>"
         )
     return "\n".join("            " + row for row in rows)
 
@@ -173,16 +308,96 @@ def llms_block(data: Dict) -> str:
             f"- {comp['title']}, {comp['project']} ({comp['language']}, {comp['tasks']} tasks, "
             f"{comp['runs_per_task']} runs each, medians per task): {conds}."
         )
+    lines += languages_llms(data.get("languages", []))
     lines.append(f"- {data['method']['noise']}")
     return "\n".join(lines)
+
+
+def languages_llms(langs: List[Dict]) -> List[str]:
+    """One plain-text line for each language, for llms.txt ("to" in place of an arrow)."""
+    lines = []
+    for e in langs:
+        cells = {
+            h: language_cell(e, g, c, arrow=" to ", missing="n/a") for h, g, c in LANGUAGE_COLUMNS
+        }
+        lines.append(
+            f"- Language {e['language']}, {e['project']} ({e['files']} files, "
+            f"Nexus-MCP {cells['Nexus-MCP version']}): right file first "
+            f"{cells['Right file first: Grep and Read']} (Grep and Read) and "
+            f"{cells['Right file first: Nexus-MCP']} (Nexus-MCP); median tokens to the right file "
+            f"{cells['Tokens to the right file: Grep and Read']} and "
+            f"{cells['Tokens to the right file: Nexus-MCP']}; search hit@1 {cells['Search hit@1']}; "
+            f"calls per function {cells['Calls per function']}; live median tokens "
+            f"{cells['Live tokens: Grep and Read']} and {cells['Live tokens: Nexus-MCP']}; "
+            f"correct {cells['Correct: Grep and Read']} and {cells['Correct: Nexus-MCP']}."
+        )
+    return lines
+
+
+CSV_HEAD = [
+    "project", "files", "commit", "date", "condition", "cost_usd", "turns", "correct", "of",
+    "language", "phase", "nexus_version", "median_tokens", "hit_at_1",
+    "index_seconds", "fn_nodes", "calls_per_fn",
+]  # fmt: skip
+
+
+def language_csv_rows(langs: List[Dict]) -> List[List]:
+    """CSV rows for each language and run ("before", "after"): one row per condition.
+
+    Conditions: eval_grep_and_read and eval_nexus_mcp (quick tier), nexus_mcp_index (index
+    time, graph and search hit@1), grep_and_read and nexus_mcp (live). A missing part of a run
+    gives no row.
+    """
+    rows = []
+    for e in langs:
+        for phase_name in ("before", "after"):
+            p = e.get(phase_name)
+            if not p:
+                continue
+
+            def row(condition: str, **values) -> List:
+                cols = {
+                    "project": e["project"], "files": e["files"], "commit": e.get("pin"),
+                    "date": p.get("date"), "condition": condition, "language": e["language"],
+                    "phase": phase_name, "nexus_version": p.get("nexus_version"), **values,
+                }  # fmt: skip
+                return ["" if cols.get(k) is None else cols[k] for k in CSV_HEAD]
+
+            for side, name in (("grep", "eval_grep_and_read"), ("nexus", "eval_nexus_mcp")):
+                q = _get(p, "quick_tier", side)
+                if isinstance(q, dict):
+                    rows.append(
+                        row(name, median_tokens=q.get("median_tokens"), hit_at_1=q.get("hit_at_1"))
+                    )
+            graph = p.get("graph") or {}
+            index = {
+                "hit_at_1": p.get("retrieval_hit_at_1"),
+                "index_seconds": p.get("index_seconds"),
+                "fn_nodes": graph.get("fn_nodes"),
+                "calls_per_fn": graph.get("calls_per_fn"),
+            }
+            if any(v is not None for v in index.values()):
+                rows.append(row("nexus_mcp_index", **index))
+            for side, name in (("baseline", "grep_and_read"), ("nexus", "nexus_mcp")):
+                s = _get(p, "live", side)
+                if isinstance(s, dict):
+                    rows.append(
+                        row(
+                            name,
+                            cost_usd=s.get("cost_usd"),
+                            correct=s.get("correct"),
+                            of=s.get("of"),
+                            median_tokens=s.get("median_tokens"),
+                        )
+                    )
+    return rows
 
 
 def csv_text(data: Dict) -> str:
     out = io.StringIO()
     writer = csv.writer(out, lineterminator="\n")
-    writer.writerow(
-        ["project", "files", "commit", "date", "condition", "cost_usd", "turns", "correct", "of"]
-    )
+    writer.writerow(CSV_HEAD)
+    blank = [""] * (len(CSV_HEAD) - 9)
     for r in data["runs"]:
         for side, name in (("baseline", "grep_and_read"), ("nexus", "nexus_mcp")):
             s = r[side]
@@ -197,8 +412,10 @@ def csv_text(data: Dict) -> str:
                     s["turns"],
                     s["correct"],
                     s["of"],
+                    *blank,
                 ]
             )
+    writer.writerows(language_csv_rows(data.get("languages", [])))
     return out.getvalue()
 
 
@@ -279,6 +496,41 @@ def comparison_html(comp: Dict) -> str:
 """
 
 
+def languages_html(langs: List[Dict]) -> str:
+    """The per-language section of the benchmarks page. Empty when there are no languages.
+
+    The table scrolls in its own box (class "scroll") and keeps the language column in view,
+    so a phone gets no horizontal page scroll.
+    """
+    if not langs:
+        return ""
+    heads = "".join(
+        f"<th>{html.escape(h)}</th>"
+        for h in ("Language", "Project", *(h for h, _, _ in LANGUAGE_COLUMNS), "Agent")
+    )
+    rows = []
+    for e in langs:
+        name = html.escape(e["project"])
+        if e.get("url"):
+            name = f'<a href="{html.escape(e["url"])}">{name}</a>'
+        pin = f", <code>{html.escape(str(e['pin'])[:7])}</code>" if e.get("pin") else ""
+        cells = "".join(
+            f"<td>{html.escape(language_cell(e, g, c))}</td>" for _, g, c in LANGUAGE_COLUMNS
+        )
+        rows.append(
+            f'<tr><th scope="row">{html.escape(e["language"])}</th>'
+            f"<td>{name} ({e['files']:,} files{pin})</td>{cells}"
+            f"<td>{html.escape(language_setup(e))}</td></tr>"
+        )
+    note = re.sub(r"`([^`]+)`", r"<code>\1</code>", html.escape(LANGUAGE_NOTE))
+    return (
+        f"<h2>Results per language</h2>\n<p>{note}</p>\n"
+        f'<div class="scroll"><table class="lang"><thead><tr>{heads}</tr></thead><tbody>'
+        + "".join(rows)
+        + "</tbody></table></div>\n"
+    )
+
+
 def page_html(data: Dict, community: Optional[List[Dict]] = None) -> str:
     community = load_community() if community is None else community
     m = data["method"]
@@ -357,11 +609,12 @@ body {{ margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 system-ui
 main {{ max-width:960px; margin:0 auto; padding:32px 16px 64px; }}
 h1 {{ font-size:2rem; margin:0 0 8px; }} h2 {{ margin-top:40px; }}
 p, li {{ color:var(--muted); }} a {{ color:var(--accent); }}
-.scroll {{ overflow-x:auto; }}
+.scroll {{ overflow-x:auto; max-width:100%; }}
 table {{ border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }}
 th, td {{ text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }}
 th {{ font-size:.85rem; color:var(--muted); font-weight:600; }}
 code {{ font-size:.9em; }}
+.lang tr > :first-child {{ position:sticky; left:0; background:var(--bg); color:var(--fg); }}
 </style>
 </head>
 <body>
@@ -381,7 +634,7 @@ code {{ font-size:.9em; }}
 <h2>Quick tier: <code>nexus-mcp-ci eval</code> (no LLM)</h2>
 <p>The free offline check: about 30 to 40 questions made from each project, with the right file from the parser. Tokens are a proxy (characters divided by 4). Chromium <code>base/</code> took 25 minutes to index on a laptop; the Nexus-MCP source takes about 30 seconds (<code>--example</code>).</p>
 {quick_table}
-{"".join(comparison_html(c) for c in data.get("comparisons", []))}{community_html(community)}<h2>Run it on your own code</h2>
+{languages_html(data.get("languages", []))}{"".join(comparison_html(c) for c in data.get("comparisons", []))}{community_html(community)}<h2>Run it on your own code</h2>
 <p><code>uvx nexus-mcp-ci eval</code> runs the free offline check on the current folder. <code>uvx nexus-mcp-ci eval --agent claude</code> runs the paid A/B with your own Claude Code login, after it shows the cost.</p>
 <h2>Data</h2>
 <ul>
@@ -432,6 +685,8 @@ def main(argv=None) -> int:
     parser.add_argument("--check", action="store_true", help="Fail when output is out of date")
     args = parser.parse_args(argv)
     data = json.loads(DATA.read_text())
+    if data.get("schema_version") not in SCHEMA_VERSIONS:
+        raise SystemExit(f"{_show(DATA)}: schema_version must be one of {SCHEMA_VERSIONS}")
     stale = []
     for path, text in outputs(data).items():
         current = path.read_text() if path.exists() else None

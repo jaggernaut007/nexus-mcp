@@ -1,0 +1,590 @@
+{
+  "id": "20261106-085512-fe2b",
+  "created": "2026-11-06T08:55:12+00:00",
+  "source": {
+    "kind": "path",
+    "label": "chromium-base",
+    "label_public": null,
+    "sha": null
+  },
+  "kept_index": false,
+  "env": {
+    "nexus_mcp_ci": "2.2.2",
+    "python": "3.12.13",
+    "os": "Darwin"
+  },
+  "tier": "quick",
+  "repo": {
+    "files": 3641,
+    "chunks": 46486,
+    "size_band": "500-5k files",
+    "languages": [
+      "c",
+      "cpp",
+      "java",
+      "javascript",
+      "python",
+      "rust"
+    ],
+    "index_seconds": 2606.4
+  },
+  "questions": 30,
+  "seed": 7,
+  "summary": {
+    "grep": {
+      "questions": 30,
+      "hit_at_1": 0.433,
+      "hit_at_3": 0.6,
+      "median_tokens": 19768.0,
+      "median_ms": 1851.1
+    },
+    "nexus": {
+      "questions": 30,
+      "hit_at_1": 0.8,
+      "hit_at_3": 0.9,
+      "median_tokens": 1243.0,
+      "median_ms": 88.0
+    }
+  },
+  "by_kind": {
+    "concept": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.6,
+        "hit_at_3": 0.7,
+        "median_tokens": 18487.0,
+        "median_ms": 3179.0
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.5,
+        "hit_at_3": 0.7,
+        "median_tokens": 1434.5,
+        "median_ms": 68.0
+      }
+    },
+    "described": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.1,
+        "hit_at_3": 0.2,
+        "median_tokens": 28273.5,
+        "median_ms": 2975.4
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.9,
+        "hit_at_3": 1.0,
+        "median_tokens": 1031.5,
+        "median_ms": 66.8
+      }
+    },
+    "lookup": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.6,
+        "hit_at_3": 0.9,
+        "median_tokens": 7291.0,
+        "median_ms": 1097.1
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "median_tokens": 1186.0,
+        "median_ms": 127.3
+      }
+    }
+  },
+  "verdict": {
+    "label": "Strong fit",
+    "token_saving": 0.937,
+    "hit3_gain": 0.3,
+    "reasons": [
+      "Tokens to reach the right file: Nexus-MCP 1243, Grep and Read 19768 (94% fewer with Nexus-MCP).",
+      "Right file in the top 3: 90% against 60%."
+    ]
+  },
+  "results": [
+    {
+      "id": "concept-PartitionAllocTest.GetNumPagesPerSlotSpan",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 20137,
+        "ms": 3673.1
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1296,
+        "ms": 1156.2
+      }
+    },
+    {
+      "id": "concept-MallocIntrospectionCheck",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 24868,
+        "ms": 3621.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1474,
+        "ms": 67.3
+      }
+    },
+    {
+      "id": "concept-ParseEncoding",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 16837,
+        "ms": 3586.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1094,
+        "ms": 69.1
+      }
+    },
+    {
+      "id": "concept-Extension.AddSubtag",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 3194,
+        "ms": 1667.4
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 9085,
+        "ms": 68.2
+      }
+    },
+    {
+      "id": "concept-TrivialAbiWithCountingOperations",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 20537,
+        "ms": 1991.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1395,
+        "ms": 66.1
+      }
+    },
+    {
+      "id": "concept-RunLoop.run_until_idle",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 33422,
+        "ms": 4790.7
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1209,
+        "ms": 464.5
+      }
+    },
+    {
+      "id": "concept-RawPtrAsanService.AllocationMetadata",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2679,
+        "ms": 2771.8
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 3334,
+        "ms": 250.8
+      }
+    },
+    {
+      "id": "concept-FreelistCorruptionDetected",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 767,
+        "ms": 1925.6
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 29134,
+        "ms": 67.7
+      }
+    },
+    {
+      "id": "concept-SlotSpanMetadata.RegisterEmpty",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 4638,
+        "ms": 4345.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2270,
+        "ms": 67.2
+      }
+    },
+    {
+      "id": "concept-DumpNormalizationFailure",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 60172,
+        "ms": 2215.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1310,
+        "ms": 67.4
+      }
+    },
+    {
+      "id": "described-PreFreezeBackgroundMemoryTrimmerTest.measurements_count",
+      "kind": "described",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 10714,
+        "ms": 4524.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 773,
+        "ms": 412.2
+      }
+    },
+    {
+      "id": "described-StringSlice",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 58666,
+        "ms": 1101.4
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 761,
+        "ms": 65.2
+      }
+    },
+    {
+      "id": "described-TaskQueueImpl.AddOnTaskPostedHandler",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 18368,
+        "ms": 3466.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1187,
+        "ms": 71.0
+      }
+    },
+    {
+      "id": "described-TokenType.TokenType",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 35855,
+        "ms": 1066.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 717,
+        "ms": 67.4
+      }
+    },
+    {
+      "id": "described-ThreadGroupImpl.ScopedCommandsExecutor.ScopedCommandsExecutor",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 32135,
+        "ms": 3548.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 987,
+        "ms": 67.9
+      }
+    },
+    {
+      "id": "described-MaybeSetFatalMilestoneCrashKey",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 24412,
+        "ms": 3692.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1076,
+        "ms": 66.1
+      }
+    },
+    {
+      "id": "described-MockMemoryConsumerRegistry.MockMemoryConsumerRegistry",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 58314,
+        "ms": 2483.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1405,
+        "ms": 412.3
+      }
+    },
+    {
+      "id": "described-ObserverList.Iter.Iter",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 58207,
+        "ms": 1776.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1112,
+        "ms": 65.0
+      }
+    },
+    {
+      "id": "described-set_device_name_for_testing",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 23135,
+        "ms": 1682.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 813,
+        "ms": 65.8
+      }
+    },
+    {
+      "id": "described-PartitionAllocTest.GetNumPagesPerSlotSpan",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 22230,
+        "ms": 4233.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1713,
+        "ms": 64.9
+      }
+    },
+    {
+      "id": "lookup-PreFreezeBackgroundMemoryTrimmerTest.measurements_count",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 10117,
+        "ms": 1612.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1277,
+        "ms": 186.0
+      }
+    },
+    {
+      "id": "lookup-StringSlice",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1306,
+        "ms": 766.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 761,
+        "ms": 104.9
+      }
+    },
+    {
+      "id": "lookup-TaskQueueImpl.AddOnTaskPostedHandler",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 38633,
+        "ms": 1520.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1662,
+        "ms": 151.7
+      }
+    },
+    {
+      "id": "lookup-TokenType.TokenType",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 3727,
+        "ms": 764.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1095,
+        "ms": 105.4
+      }
+    },
+    {
+      "id": "lookup-ThreadGroupImpl.ScopedCommandsExecutor.ScopedCommandsExecutor",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 11258,
+        "ms": 1557.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1293,
+        "ms": 497.0
+      }
+    },
+    {
+      "id": "lookup-MaybeSetFatalMilestoneCrashKey",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 4465,
+        "ms": 823.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 776,
+        "ms": 106.4
+      }
+    },
+    {
+      "id": "lookup-MockMemoryConsumerRegistry.MockMemoryConsumerRegistry",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1574,
+        "ms": 809.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 804,
+        "ms": 106.0
+      }
+    },
+    {
+      "id": "lookup-ObserverList.Iter.Iter",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 22241,
+        "ms": 1371.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1620,
+        "ms": 107.0
+      }
+    },
+    {
+      "id": "lookup-set_device_name_for_testing",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1563,
+        "ms": 795.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 813,
+        "ms": 159.6
+      }
+    },
+    {
+      "id": "lookup-PartitionAllocTest.GetNumPagesPerSlotSpan",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 19399,
+        "ms": 1553.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1415,
+        "ms": 147.7
+      }
+    }
+  ]
+}

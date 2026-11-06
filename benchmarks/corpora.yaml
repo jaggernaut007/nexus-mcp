@@ -1,0 +1,135 @@
+# Per-language benchmark corpora. One source for every tier of the language benchmark
+# (benchmarks/run_languages.py). Clone them with:
+#   python -m benchmarks.corpora setup [--languages C#,PHP]
+#
+# Each entry is one pinned checkout under benchmarks/repos/<name>.
+#   tiers: which tiers use it. quick = `nexus-mcp-ci eval`, retrieval = evals/retrieval hit@1,
+#          graph = evals/graph_coverage.py, live = benchmarks/runner.py (paid).
+#   sparse: folders to check out (cone mode). Empty: the whole repo.
+#   tasks / task_ids: the live task suite and the 6 tasks of the language set
+#          (2 conceptual, 2 impact, 1 architecture, 1 needle), so each language has the same mix.
+#   suite: the retrieval suite name in evals/retrieval/queries*.yaml.
+# Pins were taken on 2026-11-05 unless an existing suite fixed them earlier.
+
+corpora:
+  - name: flask
+    language: Python
+    repo: pallets/flask
+    url: https://github.com/pallets/flask.git
+    pin: d73fa1cdcbd8b1465c151db8924ba58b1dd14e35
+    sparse: []
+    tiers: [quick, retrieval, graph]
+    suite: flask
+
+  - name: django
+    language: Python
+    repo: django/django
+    url: https://github.com/django/django.git
+    pin: 318a316a4c86a65bede68144f9546a6056d91379
+    sparse: []
+    tiers: [live]
+    tasks: benchmarks/tasks/django.yaml
+    task_ids:
+      - dj-concept-signal-dispatch
+      - dj-concept-field-validation
+      - dj-impact-sqlcompiler-as-sql
+      - dj-impact-field-validate
+      - dj-arch-request-to-query
+      - dj-needle-charfield-class
+
+  - name: vite
+    language: TypeScript
+    repo: vitejs/vite
+    url: https://github.com/vitejs/vite.git
+    pin: 483512809bbdb399d66be59af0f5aeb01ccb7181
+    sparse: [packages/vite/src]
+    tiers: [quick, retrieval, graph, live]
+    tasks: benchmarks/tasks/vite.yaml
+    suite: vite
+
+  - name: webpack
+    language: JavaScript
+    repo: webpack/webpack
+    url: https://github.com/webpack/webpack.git
+    pin: f6366b0bc2afbf1f5494f33e81f2bd0588b802cc
+    sparse: [lib]
+    tiers: [quick, retrieval, graph, live]
+    tasks: benchmarks/tasks/webpack.yaml
+    suite: webpack
+
+  - name: commons-lang
+    language: Java
+    repo: apache/commons-lang
+    url: https://github.com/apache/commons-lang.git
+    pin: e547d704b21a1b10a2dae0158f7288d7afa4d064
+    sparse: [src/main]
+    tiers: [quick, retrieval, graph, live]
+    tasks: benchmarks/tasks/commons-lang.yaml
+    suite: commons_lang
+
+  - name: newtonsoft-json
+    language: C#
+    repo: JamesNK/Newtonsoft.Json
+    url: https://github.com/JamesNK/Newtonsoft.Json.git
+    pin: 52fa3aef1f2cadcd3a3f874251eddc98d3efbbaa
+    sparse: [Src/Newtonsoft.Json]
+    tiers: [quick, retrieval, graph, live]
+    tasks: benchmarks/tasks/newtonsoft-json.yaml
+    suite: newtonsoft_json
+
+  - name: laravel
+    language: PHP
+    repo: laravel/framework
+    url: https://github.com/laravel/framework.git
+    pin: 7d6d8e86138e9dcc250a29bd72cfe5d5dd7b3d6c
+    sparse: [src/Illuminate]
+    tiers: [quick, retrieval, graph, live]
+    tasks: benchmarks/tasks/laravel.yaml
+    suite: laravel
+
+  - name: chromium-base
+    language: C++
+    repo: chromium/chromium
+    url: https://chromium.googlesource.com/chromium/src
+    pin: d8ebdd25980e38badccc265758aa508e6592000e
+    sparse: [base]
+    tiers: [quick, retrieval, graph, live]
+    tasks: benchmarks/tasks/chromium-base.yaml
+    task_ids:
+      - cr-concept-weakptr-invalidate
+      - cr-concept-json-reader-backend
+      - cr-impact-atexit-registercallback
+      - cr-impact-histogram-bucket-ranges
+      - cr-arch-task-scheduling
+      - cr-needle-json-max-depth
+    suite: chromium_base
+
+  - name: redis
+    language: C
+    repo: redis/redis
+    url: https://github.com/redis/redis.git
+    pin: a05f30c971ad5c291b9a5b2c688b43ee13ac0c13
+    sparse: [src]
+    tiers: [quick, retrieval, graph, live]
+    tasks: benchmarks/tasks/redis.yaml
+    suite: redis
+
+  - name: prometheus
+    language: Go
+    repo: prometheus/prometheus
+    url: https://github.com/prometheus/prometheus.git
+    pin: 4bfb6bb5b3dbecb86f81c687cae9885ecfefb3a2
+    sparse: [tsdb, promql]
+    tiers: [quick, retrieval, graph, live]
+    tasks: benchmarks/tasks/prometheus.yaml
+    suite: prometheus
+
+  - name: tokio
+    language: Rust
+    repo: tokio-rs/tokio
+    url: https://github.com/tokio-rs/tokio.git
+    pin: 695a07dd5e5baae82eb8b6931afa61029cd9b854
+    sparse: [tokio/src]
+    tiers: [quick, retrieval, graph, live]
+    tasks: benchmarks/tasks/tokio.yaml
+    suite: tokio

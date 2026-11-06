@@ -1,0 +1,11 @@
+{
+  "java": {
+    "files": 264,
+    "symbols": 4973,
+    "functions": 4177,
+    "classes": 284,
+    "calls": 3133,
+    "calls_per_fn": 0.75,
+    "fn_with_calls": 0.463
+  }
+}

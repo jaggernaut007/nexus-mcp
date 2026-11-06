@@ -1,0 +1,172 @@
+{
+  "flask": {
+    "index_seconds": 90.8,
+    "peak_rss_mb": 1069,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 83,
+      "total_symbols": 1632,
+      "total_chunks": 1632,
+      "parse_errors": 0,
+      "graph_nodes": 1705,
+      "graph_relationships": 2387,
+      "time_seconds": 89.72019505500793,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "vite": {
+    "index_seconds": 114.0,
+    "peak_rss_mb": 1206,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 429,
+      "total_symbols": 1868,
+      "total_chunks": 1868,
+      "parse_errors": 0,
+      "graph_nodes": 2199,
+      "graph_relationships": 4139,
+      "time_seconds": 113.08687996864319,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "webpack": {
+    "index_seconds": 495.1,
+    "peak_rss_mb": 1345,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 822,
+      "total_symbols": 8687,
+      "total_chunks": 8687,
+      "parse_errors": 0,
+      "graph_nodes": 6813,
+      "graph_relationships": 12938,
+      "time_seconds": 494.19394302368164,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "commons-lang": {
+    "index_seconds": 270.7,
+    "peak_rss_mb": 1524,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 264,
+      "total_symbols": 4973,
+      "total_chunks": 4973,
+      "parse_errors": 0,
+      "graph_nodes": 4725,
+      "graph_relationships": 7594,
+      "time_seconds": 269.7234718799591,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "newtonsoft-json": {
+    "index_seconds": 180.0,
+    "peak_rss_mb": 1155,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 242,
+      "total_symbols": 3029,
+      "total_chunks": 3029,
+      "parse_errors": 0,
+      "graph_nodes": 3307,
+      "graph_relationships": 6261,
+      "time_seconds": 179.06219291687012,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "laravel": {
+    "index_seconds": 1021.2,
+    "peak_rss_mb": 1272,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 1751,
+      "total_symbols": 16119,
+      "total_chunks": 16119,
+      "parse_errors": 0,
+      "graph_nodes": 17876,
+      "graph_relationships": 31456,
+      "time_seconds": 1019.5447068214417,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "chromium-base": {
+    "index_seconds": 2620.9,
+    "peak_rss_mb": 1522,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 3641,
+      "total_symbols": 46504,
+      "total_chunks": 46504,
+      "parse_errors": 0,
+      "graph_nodes": 49245,
+      "graph_relationships": 99647,
+      "time_seconds": 2619.851973295212,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "redis": {
+    "index_seconds": 848.5,
+    "peak_rss_mb": 1388,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 229,
+      "total_symbols": 16960,
+      "total_chunks": 16960,
+      "parse_errors": 1,
+      "graph_nodes": 7158,
+      "graph_relationships": 28707,
+      "time_seconds": 847.5887050628662,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "prometheus": {
+    "index_seconds": 116.4,
+    "peak_rss_mb": 1308,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 201,
+      "total_symbols": 1818,
+      "total_chunks": 1818,
+      "parse_errors": 0,
+      "graph_nodes": 3796,
+      "graph_relationships": 10182,
+      "time_seconds": 115.50581502914429,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "tokio": {
+    "index_seconds": 256.8,
+    "peak_rss_mb": 1333,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 381,
+      "total_symbols": 4733,
+      "total_chunks": 4733,
+      "parse_errors": 0,
+      "graph_nodes": 4746,
+      "graph_relationships": 7762,
+      "time_seconds": 255.8597550392151,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  }
+}

@@ -28,6 +28,9 @@ KNOWN_CONDITIONS = ("baseline", "mcp-only", "nexus", "nexus-plugin")
 # The embedding device of the per-model servers and indexes. Pinned to CPU so every model runs
 # on the same device (the retrieval eval does too) and the CoreML provider is never used.
 BENCH_EMBEDDING_DEVICE = "cpu"
+# One effort level for every condition, so the reasoning budget is the same on both sides.
+# Without the flag the CLI takes the effort from the user's own settings.
+DEFAULT_EFFORT = "medium"
 # These two have no server of ours to configure, so `<name>@<model>` is an error.
 NO_MODEL_CONDITIONS = ("baseline", "nexus-plugin")
 
@@ -109,10 +112,42 @@ def load_skill_body(skill_path: Path = SKILL_PATH) -> str:
     return strip_frontmatter(skill_path.read_text())
 
 
+def pinned_mcp_config(nexus_bin: Path, storage_dir: Path) -> Dict[str, Any]:
+    """MCP config that starts one pinned `nexus-mcp-ci` with its index outside the repo.
+
+    `nexus_bin` is the entry point in a venv made by `benchmarks/install_nexus.sh`, so the
+    measured version is the installed one, not whatever is on PATH. The index folder is
+    outside the corpus, so the Grep of the baseline never sees index files. The watcher is
+    off because the corpus does not change during a run.
+    """
+    return {
+        "mcpServers": {
+            "nexus-mcp": {
+                "command": str(nexus_bin),
+                "args": [],
+                "env": {
+                    "NEXUS_STORAGE_DIR": str(storage_dir),
+                    "NEXUS_EMBEDDING_DEVICE": BENCH_EMBEDDING_DEVICE,
+                    "NEXUS_AUTO_WATCH": "false",
+                },
+            }
+        }
+    }
+
+
+def write_pinned_mcp_config(path: Path, nexus_bin: Path, storage_dir: Path) -> Path:
+    """Write `pinned_mcp_config` to `path` (parents are created) and return the path."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(pinned_mcp_config(nexus_bin, storage_dir), indent=2))
+    return path
+
+
 def _common_args(
     model: str,
     max_budget_usd: float,
+    effort: Optional[str] = None,
 ) -> List[str]:
+    effort_args = ["--effort", effort] if effort else []
     return [
         "claude",
         "-p",
@@ -121,6 +156,7 @@ def _common_args(
         "stream-json",
         "--model",
         model,
+        *effort_args,
         "--permission-mode",
         "dontAsk",
         "--allowedTools",
@@ -142,6 +178,7 @@ def build_argv(
     skill_path: Path = SKILL_PATH,
     plugin_dir: Path = PLUGIN_DIR,
     builtin_tools: str = BASELINE_TOOLS,
+    effort: Optional[str] = None,
 ) -> List[str]:
     """Build the full argv for a `claude` invocation under the given condition.
 
@@ -155,7 +192,7 @@ def build_argv(
         raise ValueError(f"Unknown condition: {condition!r}, expected one of {KNOWN_CONDITIONS}")
     condition = base
 
-    argv = _common_args(model, max_budget_usd)
+    argv = _common_args(model, max_budget_usd, effort)
     argv += ["--tools", builtin_tools]
     # --strict-mcp-config ignores every MCP server except the ones in --mcp-config.
     # The plugin condition gets its server from the plugin itself, so it must not
@@ -247,11 +284,12 @@ def build_run(
     tool_search: Optional[bool] = None,
     builtin_tools: str = BASELINE_TOOLS,
     mcp_config_path: Path = NEXUS_MCP_CONFIG,
+    effort: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Build the full (argv, env, isolation_mode) triple for one run."""
     argv = build_argv(
         condition, prompt, model, max_budget_usd, mcp_config_path=mcp_config_path,
-        builtin_tools=builtin_tools,
+        builtin_tools=builtin_tools, effort=effort,
     )
     # --mcp-config, --tools and similar options take a list of values and swallow a
     # prompt that follows them. Take the prompt off, add the isolation flags, then put

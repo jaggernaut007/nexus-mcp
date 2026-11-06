@@ -8,13 +8,13 @@
     "url": "https://github.com/jaggernaut007/Nexus-MCP",
     "source": "github"
   },
-  "version": "2.2.2",
+  "version": "2.4.0",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "nexus-mcp-ci",
-      "version": "2.2.2",
+      "version": "2.4.0",
       "transport": {
         "type": "stdio"
       },

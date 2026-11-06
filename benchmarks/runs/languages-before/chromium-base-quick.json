@@ -1,0 +1,589 @@
+{
+  "id": "20261105-163112-fbd9",
+  "created": "2026-11-05T16:31:12+00:00",
+  "source": {
+    "kind": "path",
+    "label": "chromium-base",
+    "label_public": null,
+    "sha": null
+  },
+  "kept_index": false,
+  "env": {
+    "nexus_mcp_ci": "2.2.2",
+    "python": "3.12.13",
+    "os": "Darwin"
+  },
+  "tier": "quick",
+  "repo": {
+    "files": 3641,
+    "chunks": 46299,
+    "size_band": "500-5k files",
+    "languages": [
+      "c",
+      "cpp",
+      "java",
+      "javascript",
+      "python"
+    ],
+    "index_seconds": 4373.5
+  },
+  "questions": 30,
+  "seed": 7,
+  "summary": {
+    "grep": {
+      "questions": 30,
+      "hit_at_1": 0.367,
+      "hit_at_3": 0.633,
+      "median_tokens": 16096.5,
+      "median_ms": 1844.0
+    },
+    "nexus": {
+      "questions": 30,
+      "hit_at_1": 0.833,
+      "hit_at_3": 0.933,
+      "median_tokens": 953.0,
+      "median_ms": 88.8
+    }
+  },
+  "by_kind": {
+    "concept": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.5,
+        "hit_at_3": 0.6,
+        "median_tokens": 12806.0,
+        "median_ms": 3662.2
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.8,
+        "hit_at_3": 0.9,
+        "median_tokens": 1013.5,
+        "median_ms": 69.3
+      }
+    },
+    "described": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.1,
+        "hit_at_3": 0.4,
+        "median_tokens": 34930.0,
+        "median_ms": 1931.8
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.7,
+        "hit_at_3": 0.9,
+        "median_tokens": 788.5,
+        "median_ms": 66.5
+      }
+    },
+    "lookup": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.5,
+        "hit_at_3": 0.9,
+        "median_tokens": 5703.5,
+        "median_ms": 803.5
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "median_tokens": 941.0,
+        "median_ms": 129.9
+      }
+    }
+  },
+  "verdict": {
+    "label": "Strong fit",
+    "token_saving": 0.941,
+    "hit3_gain": 0.3,
+    "reasons": [
+      "Tokens to reach the right file: Nexus-MCP 953, Grep and Read 16096 (94% fewer with Nexus-MCP).",
+      "Right file in the top 3: 93% against 63%."
+    ]
+  },
+  "results": [
+    {
+      "id": "concept-FieldTrial.CreateSimulatedFieldTrial",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 11514,
+        "ms": 3683.3
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 920,
+        "ms": 1167.7
+      }
+    },
+    {
+      "id": "concept-leak",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 51820,
+        "ms": 3091.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 988,
+        "ms": 71.3
+      }
+    },
+    {
+      "id": "concept-Vector.~Vector",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 42299,
+        "ms": 2434.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 852,
+        "ms": 67.4
+      }
+    },
+    {
+      "id": "concept-TrackedRef.TrackedRef",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2186,
+        "ms": 3817.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1077,
+        "ms": 68.4
+      }
+    },
+    {
+      "id": "concept-BindPostTaskTrampoline.BindPostTaskTrampoline",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 58013,
+        "ms": 3728.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 813,
+        "ms": 67.1
+      }
+    },
+    {
+      "id": "concept-CheckRoundtripsT",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2050,
+        "ms": 2235.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1039,
+        "ms": 462.5
+      }
+    },
+    {
+      "id": "concept-WorkQueue.TakeTaskFromWorkQueue",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 3369,
+        "ms": 4048.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1430,
+        "ms": 70.1
+      }
+    },
+    {
+      "id": "concept-WorkTracker.WillReloadImmediateWorkQueues",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 14098,
+        "ms": 3641.2
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 10027,
+        "ms": 107.3
+      }
+    },
+    {
+      "id": "concept-CheckFailureInFunction",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 41957,
+        "ms": 1463.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 742,
+        "ms": 66.4
+      }
+    },
+    {
+      "id": "concept-DigitGen",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 8556,
+        "ms": 4788.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1260,
+        "ms": 68.5
+      }
+    },
+    {
+      "id": "described-FilePath.ReadFromPickle",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 51373,
+        "ms": 1821.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 787,
+        "ms": 412.7
+      }
+    },
+    {
+      "id": "described-LockMetricTagList.LockMetricTagList",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 43122,
+        "ms": 2229.1
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 767,
+        "ms": 63.8
+      }
+    },
+    {
+      "id": "described-U16ToBigEndian",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 21612,
+        "ms": 1997.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 777,
+        "ms": 67.2
+      }
+    },
+    {
+      "id": "described-JNI_JniCallbacksTest_GetOnceCallbackResult",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 26738,
+        "ms": 3667.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 790,
+        "ms": 63.2
+      }
+    },
+    {
+      "id": "described-SecurityDescriptor.set_sacl_protected",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 7916,
+        "ms": 3100.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1143,
+        "ms": 63.1
+      }
+    },
+    {
+      "id": "described-WorkQueue.SetWorkTime",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 57258,
+        "ms": 1866.1
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 986,
+        "ms": 63.8
+      }
+    },
+    {
+      "id": "described-HostToNet32",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 4110,
+        "ms": 1478.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 680,
+        "ms": 415.3
+      }
+    },
+    {
+      "id": "described-PolymorphicStruct.~PolymorphicStruct",
+      "kind": "described",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 19842,
+        "ms": 1181.1
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 676,
+        "ms": 66.9
+      }
+    },
+    {
+      "id": "described-SplitStringUsingSubstrT",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 56004,
+        "ms": 1743.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1233,
+        "ms": 66.8
+      }
+    },
+    {
+      "id": "described-NonThreadSafeQueue.NonThreadSafeQueue",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 57262,
+        "ms": 2073.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1643,
+        "ms": 66.3
+      }
+    },
+    {
+      "id": "lookup-FilePath.ReadFromPickle",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 18095,
+        "ms": 1467.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 786,
+        "ms": 150.9
+      }
+    },
+    {
+      "id": "lookup-LockMetricTagList.LockMetricTagList",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 21476,
+        "ms": 799.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1096,
+        "ms": 110.9
+      }
+    },
+    {
+      "id": "lookup-U16ToBigEndian",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 11072,
+        "ms": 628.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 698,
+        "ms": 107.0
+      }
+    },
+    {
+      "id": "lookup-JNI_JniCallbacksTest_GetOnceCallbackResult",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1745,
+        "ms": 849.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 748,
+        "ms": 150.7
+      }
+    },
+    {
+      "id": "lookup-SecurityDescriptor.set_sacl_protected",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 3078,
+        "ms": 1550.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1183,
+        "ms": 189.4
+      }
+    },
+    {
+      "id": "lookup-WorkQueue.SetWorkTime",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 6664,
+        "ms": 1459.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1295,
+        "ms": 149.0
+      }
+    },
+    {
+      "id": "lookup-HostToNet32",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 3560,
+        "ms": 763.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 697,
+        "ms": 106.2
+      }
+    },
+    {
+      "id": "lookup-PolymorphicStruct.~PolymorphicStruct",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 19423,
+        "ms": 772.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 678,
+        "ms": 107.9
+      }
+    },
+    {
+      "id": "lookup-SplitStringUsingSubstrT",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 3172,
+        "ms": 791.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1121,
+        "ms": 454.3
+      }
+    },
+    {
+      "id": "lookup-NonThreadSafeQueue.NonThreadSafeQueue",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 4743,
+        "ms": 807.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1104,
+        "ms": 106.9
+      }
+    }
+  ]
+}

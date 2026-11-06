@@ -1,0 +1,11 @@
+{
+  "go": {
+    "files": 201,
+    "symbols": 1818,
+    "functions": 3595,
+    "classes": 0,
+    "calls": 6587,
+    "calls_per_fn": 1.83,
+    "fn_with_calls": 0.606
+  }
+}

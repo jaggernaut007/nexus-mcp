@@ -1,6 +1,8 @@
 """Tests for benchmarks.conditions: pure argv/env builders."""
 
 
+import json
+
 import pytest
 
 from benchmarks.conditions import (
@@ -217,3 +219,33 @@ class TestPromptPlacement:
         built = build_run("nexus", "q", "sonnet", 1.0, tmp_path, env={"ANTHROPIC_API_KEY": "k"})
         assert built["argv"][2] == "--bare"
         assert built["argv"][-2:] == ["--", "q"]
+
+
+class TestEffortAndPinnedConfig:
+    def test_build_argv_effort_passes_the_flag(self):
+        argv = build_argv("baseline", "hello", "sonnet", 1.0, effort="medium")
+        assert argv[argv.index("--effort") + 1] == "medium"
+
+    def test_build_argv_no_effort_omits_the_flag(self):
+        argv = build_argv("baseline", "hello", "sonnet", 1.0)
+        assert "--effort" not in argv
+
+    def test_build_run_effort_is_the_same_for_both_conditions(self, tmp_path):
+        sides = [
+            build_run(c, "q", "sonnet", 1.0, tmp_path, env={}, effort="medium")["argv"]
+            for c in ("baseline", "nexus")
+        ]
+        for argv in sides:
+            assert argv[argv.index("--effort") + 1] == "medium"
+
+    def test_pinned_mcp_config_points_at_the_venv_and_an_outside_index(self, tmp_path):
+        from benchmarks.conditions import pinned_mcp_config, write_pinned_mcp_config
+
+        nexus_bin = tmp_path / ".venv-v2.2.2" / "bin" / "nexus-mcp-ci"
+        storage = tmp_path / "indexes" / "flask"
+        server = pinned_mcp_config(nexus_bin, storage)["mcpServers"]["nexus-mcp"]
+        assert server["command"] == str(nexus_bin)
+        assert server["env"]["NEXUS_STORAGE_DIR"] == str(storage)
+        assert server["env"]["NEXUS_AUTO_WATCH"] == "false"
+        path = write_pinned_mcp_config(tmp_path / "cfg" / "x.json", nexus_bin, storage)
+        assert json.loads(path.read_text())["mcpServers"]["nexus-mcp"]["command"] == str(nexus_bin)

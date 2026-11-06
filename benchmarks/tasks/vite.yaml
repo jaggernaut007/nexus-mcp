@@ -1,0 +1,109 @@
+repo:
+  name: vite
+  url: https://github.com/vitejs/vite.git
+  pin: 483512809bbdb399d66be59af0f5aeb01ccb7181
+  pinned_date: "2026-11-05"
+  sparse: ["packages/vite/src"]
+  why: >-
+    Vite's own source (packages/vite/src, 591 files, mostly TypeScript). TypeScript has
+    symbols, graph nodes and call edges in 2.2.2.
+
+defaults:
+  max_budget_usd: 1.00
+  timeout_s: 600
+
+tasks:
+  - id: vt-concept-hmr
+    category: conceptual
+    prompt: >
+      When a file changes, where does the dev server decide which modules to update in
+      the browser, and when does it fall back to a full page reload? Name the file and
+      the key functions.
+    ground_truth:
+      relevant_files: [packages/vite/src/node/server/hmr.ts]
+      acceptable_extra_files: [packages/vite/src/node/server/moduleGraph.ts]
+      facts:
+        - any_of: ["handleHMRUpdate"]
+        - any_of: ["updateModules"]
+        - any_of: ["full-reload"]
+      must_mention_files: [packages/vite/src/node/server/hmr.ts]
+
+  - id: vt-concept-prebundle
+    category: conceptual
+    prompt: >
+      How does Vite find the third-party dependencies to pre-bundle and decide when to
+      bundle them again? Name the files and the key functions.
+    ground_truth:
+      relevant_files:
+        - packages/vite/src/node/optimizer/index.ts
+        - packages/vite/src/node/optimizer/scan.ts
+      acceptable_extra_files: [packages/vite/src/node/optimizer/optimizer.ts]
+      facts:
+        - any_of: ["discoverProjectDependencies"]
+        - any_of: ["optimizeDeps", "runOptimizeDeps"]
+        - any_of: ["scan"]
+      must_mention_files: [packages/vite/src/node/optimizer/index.ts]
+
+  - id: vt-impact-transform-request
+    category: impact
+    prompt: >
+      I want to change the signature of the transformRequest function in
+      server/transformRequest.ts. Outside of tests, which functions or methods call it?
+      List each caller with its file path.
+    ground_truth:
+      relevant_files:
+        - packages/vite/src/node/server/environment.ts
+        - packages/vite/src/node/server/transformRequest.ts
+      acceptable_extra_files: [packages/vite/src/node/server/index.ts]
+      facts:
+        - any_of: ["DevEnvironment", "transformRequest"]
+        - any_of: ["warmupRequest"]
+      must_mention_files: [packages/vite/src/node/server/environment.ts]
+
+  - id: vt-impact-create-server
+    category: impact
+    prompt: >
+      I want to change the signature of createServer in server/index.ts. Outside of
+      tests, which functions in the vite package source call it? List each caller with
+      its file path.
+    ground_truth:
+      relevant_files:
+        - packages/vite/src/node/server/index.ts
+        - packages/vite/src/node/cli.ts
+      acceptable_extra_files: [packages/vite/src/node/index.ts, packages/vite/src/node/ssr/runnerImport.ts]
+      facts:
+        - any_of: ["createServer"]
+      must_mention_files: [packages/vite/src/node/cli.ts]
+
+  - id: vt-arch-request-path
+    category: architecture
+    prompt: >
+      Trace a browser request for a source module such as /src/main.ts from the dev
+      server middleware to the plugin hooks that transform it. List the files and
+      functions in call order.
+    ground_truth:
+      relevant_files:
+        - packages/vite/src/node/server/middlewares/transform.ts
+        - packages/vite/src/node/server/transformRequest.ts
+        - packages/vite/src/node/server/pluginContainer.ts
+      acceptable_extra_files: [packages/vite/src/node/server/environment.ts]
+      facts:
+        - any_of: ["transformMiddleware"]
+        - any_of: ["transformRequest"]
+        - any_of: ["transform"]
+      must_mention_files:
+        - packages/vite/src/node/server/middlewares/transform.ts
+        - packages/vite/src/node/server/transformRequest.ts
+
+  - id: vt-needle-createserver-line
+    category: needle
+    prompt: >
+      What file and line number define the exported function createServer in the dev
+      server?
+    ground_truth:
+      relevant_files: [packages/vite/src/node/server/index.ts]
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["505"]
+        - any_of: ["export function createServer"]
+      must_mention_files: [packages/vite/src/node/server/index.ts]

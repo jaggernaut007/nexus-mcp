@@ -1,0 +1,5877 @@
+{
+  "label": "before",
+  "rows": {
+    "flask": {
+      "name": "flask",
+      "language": "Python",
+      "repo": "pallets/flask",
+      "url": "https://github.com/pallets/flask.git",
+      "pin": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35",
+      "label": "before",
+      "nexus_version": "2.2.2",
+      "nexus_ref": "0430f01d2f1196e51dd3f8a3602222a9f9c3f27f",
+      "index": "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/indexes/.venv-v2.2.2/flask",
+      "quick": {
+        "id": "20261105-140355-574f",
+        "created": "2026-11-05T14:03:55+00:00",
+        "source": {
+          "kind": "path",
+          "label": "flask",
+          "label_public": null,
+          "sha": null
+        },
+        "kept_index": false,
+        "env": {
+          "nexus_mcp_ci": "2.2.2",
+          "python": "3.12.13",
+          "os": "Darwin"
+        },
+        "tier": "quick",
+        "repo": {
+          "files": 83,
+          "chunks": 1632,
+          "size_band": "50-500 files",
+          "languages": [
+            "python"
+          ],
+          "index_seconds": 362.5
+        },
+        "questions": 30,
+        "seed": 7,
+        "summary": {
+          "grep": {
+            "questions": 30,
+            "hit_at_1": 0.2,
+            "hit_at_3": 0.433,
+            "median_tokens": 26720.5,
+            "median_ms": 415.6
+          },
+          "nexus": {
+            "questions": 30,
+            "hit_at_1": 0.933,
+            "hit_at_3": 0.933,
+            "median_tokens": 1428.5,
+            "median_ms": 237.7
+          }
+        },
+        "by_kind": {
+          "concept": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.4,
+              "hit_at_3": 0.7,
+              "median_tokens": 25536.5,
+              "median_ms": 504.8
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 1.0,
+              "hit_at_3": 1.0,
+              "median_tokens": 1451.0,
+              "median_ms": 180.7
+            }
+          },
+          "described": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.0,
+              "hit_at_3": 0.1,
+              "median_tokens": 27470.0,
+              "median_ms": 374.7
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.9,
+              "hit_at_3": 0.9,
+              "median_tokens": 1423.5,
+              "median_ms": 304.0
+            }
+          },
+          "lookup": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.2,
+              "hit_at_3": 0.5,
+              "median_tokens": 26588.0,
+              "median_ms": 183.1
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.9,
+              "hit_at_3": 0.9,
+              "median_tokens": 1341.5,
+              "median_ms": 261.8
+            }
+          }
+        },
+        "verdict": {
+          "label": "Strong fit",
+          "token_saving": 0.947,
+          "hit3_gain": 0.5,
+          "reasons": [
+            "Tokens to reach the right file: Nexus-MCP 1428, Grep and Read 26720 (95% fewer with Nexus-MCP).",
+            "Right file in the top 3: 93% against 43%."
+          ]
+        },
+        "results": [
+          {
+            "id": "concept-get_post",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 24829,
+              "ms": 710.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1062,
+              "ms": 2140.1
+            }
+          },
+          {
+            "id": "concept-create_logger",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 31236,
+              "ms": 487.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1244,
+              "ms": 243.3
+            }
+          },
+          {
+            "id": "concept-Config.from_pyfile",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 3590,
+              "ms": 443.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1908,
+              "ms": 152.4
+            }
+          },
+          {
+            "id": "concept-SessionInterface.should_set_cookie",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 4029,
+              "ms": 593.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1540,
+              "ms": 112.7
+            }
+          },
+          {
+            "id": "concept-FormDataRoutingRedirect",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 36573,
+              "ms": 556.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1443,
+              "ms": 328.2
+            }
+          },
+          {
+            "id": "concept-App._find_error_handler",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26244,
+              "ms": 515.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1459,
+              "ms": 140.6
+            }
+          },
+          {
+            "id": "concept-SecureCookieSessionInterface.get_signing_serializer",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 4011,
+              "ms": 494.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 970,
+              "ms": 133.9
+            }
+          },
+          {
+            "id": "concept-MethodView",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2035,
+              "ms": 457.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1760,
+              "ms": 212.8
+            }
+          },
+          {
+            "id": "concept-App.inject_url_defaults",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 26528,
+              "ms": 565.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1855,
+              "ms": 208.9
+            }
+          },
+          {
+            "id": "concept-_path_is_ancestor",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 44282,
+              "ms": 450.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 931,
+              "ms": 145.7
+            }
+          },
+          {
+            "id": "described-App.template_test",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 27146,
+              "ms": 295.5
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 869,
+              "ms": 219.9
+            }
+          },
+          {
+            "id": "described-get_post",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 31288,
+              "ms": 186.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1019,
+              "ms": 103.3
+            }
+          },
+          {
+            "id": "described-create_logger",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 30550,
+              "ms": 291.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1209,
+              "ms": 274.1
+            }
+          },
+          {
+            "id": "described-Request.max_content_length",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 27794,
+              "ms": 502.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1247,
+              "ms": 401.0
+            }
+          },
+          {
+            "id": "described-Config.from_pyfile",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26982,
+              "ms": 198.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1742,
+              "ms": 536.0
+            }
+          },
+          {
+            "id": "described-SessionInterface.should_set_cookie",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 31510,
+              "ms": 718.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1884,
+              "ms": 333.9
+            }
+          },
+          {
+            "id": "described-FormDataRoutingRedirect",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26808,
+              "ms": 388.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1414,
+              "ms": 147.2
+            }
+          },
+          {
+            "id": "described-App._find_error_handler",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 29078,
+              "ms": 361.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1471,
+              "ms": 112.4
+            }
+          },
+          {
+            "id": "described-SecureCookieSessionInterface.get_signing_serializer",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 22436,
+              "ms": 805.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1433,
+              "ms": 1075.9
+            }
+          },
+          {
+            "id": "described-MethodView",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 25911,
+              "ms": 555.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2069,
+              "ms": 369.3
+            }
+          },
+          {
+            "id": "lookup-App.template_test",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 37307,
+              "ms": 191.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 959,
+              "ms": 282.5
+            }
+          },
+          {
+            "id": "lookup-_default",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26633,
+              "ms": 122.8
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26854,
+              "ms": 293.4
+            }
+          },
+          {
+            "id": "lookup-get_post",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 3691,
+              "ms": 159.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1022,
+              "ms": 424.2
+            }
+          },
+          {
+            "id": "lookup-create_logger",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 605,
+              "ms": 139.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1259,
+              "ms": 241.0
+            }
+          },
+          {
+            "id": "lookup-Request.max_content_length",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 27803,
+              "ms": 221.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1032,
+              "ms": 199.5
+            }
+          },
+          {
+            "id": "lookup-result",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 27121,
+              "ms": 134.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 717,
+              "ms": 234.3
+            }
+          },
+          {
+            "id": "lookup-Config.from_pyfile",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26982,
+              "ms": 196.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1838,
+              "ms": 370.2
+            }
+          },
+          {
+            "id": "lookup-SessionInterface.should_set_cookie",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 3776,
+              "ms": 463.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1445,
+              "ms": 445.1
+            }
+          },
+          {
+            "id": "lookup-FormDataRoutingRedirect",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 17895,
+              "ms": 223.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1424,
+              "ms": 195.1
+            }
+          },
+          {
+            "id": "lookup-App._find_error_handler",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 26543,
+              "ms": 175.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1845,
+              "ms": 230.7
+            }
+          }
+        ]
+      },
+      "retrieval": {
+        "files": 24,
+        "chunks": 450,
+        "index_seconds": 35.7,
+        "modes": {
+          "bm25": {
+            "hit@1": 0.5909090909090909,
+            "hit@5": 0.7727272727272727,
+            "recall@5": 0.7272727272727273,
+            "recall@10": 0.8181818181818182,
+            "mrr@10": 0.6826298701298701,
+            "queries": 22,
+            "median_query_ms": 3.9,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.5294117647058824,
+                "hit@5": 0.7058823529411765,
+                "recall@5": 0.6470588235294118,
+                "recall@10": 0.7647058823529411,
+                "mrr@10": 0.6186974789915967,
+                "queries": 17
+              },
+              "identifier": {
+                "hit@1": 0.8,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.9,
+                "queries": 5
+              }
+            }
+          },
+          "vector": {
+            "hit@1": 0.7272727272727273,
+            "hit@5": 0.9545454545454546,
+            "recall@5": 0.9090909090909091,
+            "recall@10": 0.9318181818181818,
+            "mrr@10": 0.8083333333333335,
+            "queries": 22,
+            "median_query_ms": 15.2,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.7058823529411765,
+                "hit@5": 0.9411764705882353,
+                "recall@5": 0.8823529411764706,
+                "recall@10": 0.9117647058823529,
+                "mrr@10": 0.7813725490196078,
+                "queries": 17
+              },
+              "identifier": {
+                "hit@1": 0.8,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.9,
+                "queries": 5
+              }
+            }
+          },
+          "hybrid-source-first": {
+            "hit@1": 0.5909090909090909,
+            "hit@5": 0.9090909090909091,
+            "recall@5": 0.8409090909090909,
+            "recall@10": 0.9318181818181818,
+            "mrr@10": 0.7386363636363636,
+            "queries": 22,
+            "median_query_ms": 8.6,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.5294117647058824,
+                "hit@5": 0.8823529411764706,
+                "recall@5": 0.7941176470588235,
+                "recall@10": 0.9117647058823529,
+                "mrr@10": 0.6911764705882353,
+                "queries": 17
+              },
+              "identifier": {
+                "hit@1": 0.8,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.9,
+                "queries": 5
+              }
+            }
+          },
+          "hybrid-exact": {
+            "hit@1": 0.6363636363636364,
+            "hit@5": 0.9090909090909091,
+            "recall@5": 0.8409090909090909,
+            "recall@10": 0.9318181818181818,
+            "mrr@10": 0.7613636363636364,
+            "queries": 22,
+            "median_query_ms": 9.1,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.5294117647058824,
+                "hit@5": 0.8823529411764706,
+                "recall@5": 0.7941176470588235,
+                "recall@10": 0.9117647058823529,
+                "mrr@10": 0.6911764705882353,
+                "queries": 17
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 5
+              }
+            }
+          }
+        }
+      },
+      "index_meta": {
+        "index_seconds": 138.3,
+        "peak_rss_mb": 851,
+        "embedding_model": "default",
+        "result": {
+          "total_files": 83,
+          "total_symbols": 1632,
+          "total_chunks": 1632,
+          "parse_errors": 0,
+          "graph_nodes": 1705,
+          "graph_relationships": 2387,
+          "time_seconds": 136.00812530517578,
+          "files_added": 0,
+          "files_modified": 0,
+          "files_deleted": 0
+        }
+      },
+      "graph": {
+        "python": {
+          "files": 83,
+          "symbols": 1632,
+          "functions": 1462,
+          "classes": 160,
+          "calls": 765,
+          "calls_per_fn": 0.52,
+          "fn_with_calls": 0.35
+        }
+      }
+    },
+    "django": {
+      "name": "django",
+      "language": "Python",
+      "repo": "django/django",
+      "url": "https://github.com/django/django.git",
+      "pin": "318a316a4c86a65bede68144f9546a6056d91379",
+      "label": "before",
+      "nexus_version": "2.2.2",
+      "nexus_ref": "0430f01d2f1196e51dd3f8a3602222a9f9c3f27f",
+      "index": "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/indexes/.venv-v2.2.2/django",
+      "index_meta": {
+        "index_seconds": 6223.6,
+        "peak_rss_mb": 1270,
+        "embedding_model": "default",
+        "result": {
+          "total_files": 3036,
+          "total_symbols": 46052,
+          "total_chunks": 46052,
+          "parse_errors": 0,
+          "graph_nodes": 46893,
+          "graph_relationships": 71366,
+          "time_seconds": 6222.227183103561,
+          "files_added": 0,
+          "files_modified": 0,
+          "files_deleted": 0
+        }
+      },
+      "live": {
+        "model": "sonnet",
+        "effort": "medium",
+        "reps": 3,
+        "isolation": [
+          "reduced"
+        ],
+        "errors": 0,
+        "conditions": {
+          "baseline": {
+            "n_tasks": 6,
+            "tasks_correct": 5,
+            "wasted_read_ratio": 0.0,
+            "wasted_read_ratio_iqr": 0.3333333333333333,
+            "total_tokens": 59562.5,
+            "fresh_tokens": 7474.0,
+            "total_cost_usd": 0.0519961,
+            "num_turns": 5.5,
+            "wall_seconds": 22.064999999999998
+          },
+          "nexus": {
+            "n_tasks": 6,
+            "tasks_correct": 6,
+            "wasted_read_ratio": 0.5,
+            "wasted_read_ratio_iqr": 0.375,
+            "total_tokens": 69144.5,
+            "fresh_tokens": 9074.0,
+            "total_cost_usd": 0.05603910000000001,
+            "num_turns": 3.5,
+            "wall_seconds": 27.935000000000002
+          }
+        }
+      }
+    },
+    "vite": {
+      "name": "vite",
+      "language": "TypeScript",
+      "repo": "vitejs/vite",
+      "url": "https://github.com/vitejs/vite.git",
+      "pin": "483512809bbdb399d66be59af0f5aeb01ccb7181",
+      "label": "before",
+      "nexus_version": "2.2.2",
+      "nexus_ref": "0430f01d2f1196e51dd3f8a3602222a9f9c3f27f",
+      "index": "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/indexes/.venv-v2.2.2/vite",
+      "quick": {
+        "id": "20261105-141238-89c0",
+        "created": "2026-11-05T14:12:38+00:00",
+        "source": {
+          "kind": "path",
+          "label": "vite",
+          "label_public": null,
+          "sha": null
+        },
+        "kept_index": false,
+        "env": {
+          "nexus_mcp_ci": "2.2.2",
+          "python": "3.12.13",
+          "os": "Darwin"
+        },
+        "tier": "quick",
+        "repo": {
+          "files": 429,
+          "chunks": 1868,
+          "size_band": "50-500 files",
+          "languages": [
+            "javascript",
+            "typescript"
+          ],
+          "index_seconds": 362.6
+        },
+        "questions": 30,
+        "seed": 7,
+        "summary": {
+          "grep": {
+            "questions": 30,
+            "hit_at_1": 0.433,
+            "hit_at_3": 0.633,
+            "median_tokens": 16519.5,
+            "median_ms": 272.4
+          },
+          "nexus": {
+            "questions": 30,
+            "hit_at_1": 0.833,
+            "hit_at_3": 0.933,
+            "median_tokens": 1321.5,
+            "median_ms": 65.0
+          }
+        },
+        "by_kind": {
+          "concept": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.6,
+              "hit_at_3": 0.8,
+              "median_tokens": 13908.0,
+              "median_ms": 855.5
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 1.0,
+              "hit_at_3": 1.0,
+              "median_tokens": 1512.5,
+              "median_ms": 68.5
+            }
+          },
+          "described": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.1,
+              "hit_at_3": 0.2,
+              "median_tokens": 72426.0,
+              "median_ms": 294.1
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.5,
+              "hit_at_3": 0.8,
+              "median_tokens": 1339.0,
+              "median_ms": 63.4
+            }
+          },
+          "lookup": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.6,
+              "hit_at_3": 0.9,
+              "median_tokens": 10233.5,
+              "median_ms": 162.6
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 1.0,
+              "hit_at_3": 1.0,
+              "median_tokens": 1059.0,
+              "median_ms": 65.0
+            }
+          }
+        },
+        "verdict": {
+          "label": "Strong fit",
+          "token_saving": 0.92,
+          "hit3_gain": 0.3,
+          "reasons": [
+            "Tokens to reach the right file: Nexus-MCP 1322, Grep and Read 16520 (92% fewer with Nexus-MCP).",
+            "Right file in the top 3: 93% against 63%."
+          ]
+        },
+        "results": [
+          {
+            "id": "concept-BundledDev.triggerLazyBundling",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 12333,
+              "ms": 1182.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1313,
+              "ms": 833.4
+            }
+          },
+          {
+            "id": "concept-resolvePostcssConfig",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 71336,
+              "ms": 383.3
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1575,
+              "ms": 56.4
+            }
+          },
+          {
+            "id": "concept-isEntirelyImport",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 14800,
+              "ms": 1332.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1696,
+              "ms": 80.7
+            }
+          },
+          {
+            "id": "concept-matchImportsToPreloadMarkers",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 8892,
+              "ms": 1238.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1455,
+              "ms": 58.1
+            }
+          },
+          {
+            "id": "concept-minifyCSS",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 16791,
+              "ms": 905.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1928,
+              "ms": 49.8
+            }
+          },
+          {
+            "id": "concept-watchPackageDataPlugin",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 76564,
+              "ms": 610.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1523,
+              "ms": 111.2
+            }
+          },
+          {
+            "id": "concept-handlePrunedModules",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 9110,
+              "ms": 567.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1169,
+              "ms": 52.2
+            }
+          },
+          {
+            "id": "concept-renderAssetUrlInJS",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 13016,
+              "ms": 239.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1548,
+              "ms": 78.8
+            }
+          },
+          {
+            "id": "concept-resolvePreviewOptions",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2939,
+              "ms": 805.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1302,
+              "ms": 100.5
+            }
+          },
+          {
+            "id": "concept-getRenderedModule",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 16775,
+              "ms": 1042.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1502,
+              "ms": 50.7
+            }
+          },
+          {
+            "id": "described-setFnpdCache",
+            "kind": "described",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 3363,
+              "ms": 325.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1291,
+              "ms": 77.2
+            }
+          },
+          {
+            "id": "described-EnvironmentPluginContainer._getPluginContext",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 87211,
+              "ms": 442.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 816,
+              "ms": 42.5
+            }
+          },
+          {
+            "id": "described-urlToBuiltUrl",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 60917,
+              "ms": 168.4
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 18594,
+              "ms": 68.7
+            }
+          },
+          {
+            "id": "described-hasCorrectCase",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 71719,
+              "ms": 223.2
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 674,
+              "ms": 41.7
+            }
+          },
+          {
+            "id": "described-resolvePlugins",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 82681,
+              "ms": 152.5
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 20130,
+              "ms": 58.1
+            }
+          },
+          {
+            "id": "described-UserConfigExport",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 74309,
+              "ms": 258.4
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 2012,
+              "ms": 42.9
+            }
+          },
+          {
+            "id": "described-generateWorkerEntryUrlExpr",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 78303,
+              "ms": 487.3
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1384,
+              "ms": 77.7
+            }
+          },
+          {
+            "id": "described-splitWorkerRequest",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 72768,
+              "ms": 338.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1471,
+              "ms": 45.8
+            }
+          },
+          {
+            "id": "described-getCssResolversKeys",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 18861,
+              "ms": 435.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1294,
+              "ms": 77.0
+            }
+          },
+          {
+            "id": "described-getShortName",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 72084,
+              "ms": 262.9
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 690,
+              "ms": 69.4
+            }
+          },
+          {
+            "id": "lookup-setFnpdCache",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2811,
+              "ms": 162.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 834,
+              "ms": 88.7
+            }
+          },
+          {
+            "id": "lookup-EnvironmentPluginContainer._getPluginContext",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 10090,
+              "ms": 281.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1208,
+              "ms": 96.4
+            }
+          },
+          {
+            "id": "lookup-urlToBuiltUrl",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 6393,
+              "ms": 185.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 916,
+              "ms": 70.5
+            }
+          },
+          {
+            "id": "lookup-Queue",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 10377,
+              "ms": 165.3
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 943,
+              "ms": 55.2
+            }
+          },
+          {
+            "id": "lookup-hasCorrectCase",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 14672,
+              "ms": 160.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 707,
+              "ms": 49.2
+            }
+          },
+          {
+            "id": "lookup-resolvePlugins",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 17508,
+              "ms": 156.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1948,
+              "ms": 61.6
+            }
+          },
+          {
+            "id": "lookup-UserConfigExport",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 28656,
+              "ms": 146.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 666,
+              "ms": 68.3
+            }
+          },
+          {
+            "id": "lookup-generateWorkerEntryUrlExpr",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 7058,
+              "ms": 162.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1712,
+              "ms": 48.0
+            }
+          },
+          {
+            "id": "lookup-splitWorkerRequest",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 7752,
+              "ms": 166.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1330,
+              "ms": 54.6
+            }
+          },
+          {
+            "id": "lookup-getCssResolversKeys",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 16264,
+              "ms": 157.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1175,
+              "ms": 82.5
+            }
+          }
+        ]
+      },
+      "retrieval": {
+        "files": 422,
+        "chunks": 1832,
+        "index_seconds": 108.1,
+        "modes": {
+          "bm25": {
+            "hit@1": 0.2,
+            "hit@5": 0.6,
+            "recall@5": 0.5666666666666667,
+            "recall@10": 0.7,
+            "mrr@10": 0.3685185185185185,
+            "queries": 15,
+            "median_query_ms": 4.9,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.14285714285714285,
+                "hit@5": 0.5714285714285714,
+                "recall@5": 0.5357142857142857,
+                "recall@10": 0.6785714285714286,
+                "mrr@10": 0.32341269841269843,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "vector": {
+            "hit@1": 0.5333333333333333,
+            "hit@5": 0.6666666666666666,
+            "recall@5": 0.6666666666666666,
+            "recall@10": 0.6666666666666666,
+            "mrr@10": 0.56,
+            "queries": 15,
+            "median_query_ms": 17.1,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.5,
+                "hit@5": 0.6428571428571429,
+                "recall@5": 0.6428571428571429,
+                "recall@10": 0.6428571428571429,
+                "mrr@10": 0.5285714285714286,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-source-first": {
+            "hit@1": 0.4666666666666667,
+            "hit@5": 0.7333333333333333,
+            "recall@5": 0.7,
+            "recall@10": 0.8,
+            "mrr@10": 0.5362962962962963,
+            "queries": 15,
+            "median_query_ms": 12.3,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.42857142857142855,
+                "hit@5": 0.7142857142857143,
+                "recall@5": 0.6785714285714286,
+                "recall@10": 0.7857142857142857,
+                "mrr@10": 0.5031746031746032,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-exact": {
+            "hit@1": 0.4666666666666667,
+            "hit@5": 0.7333333333333333,
+            "recall@5": 0.7,
+            "recall@10": 0.8,
+            "mrr@10": 0.5362962962962963,
+            "queries": 15,
+            "median_query_ms": 12.2,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.42857142857142855,
+                "hit@5": 0.7142857142857143,
+                "recall@5": 0.6785714285714286,
+                "recall@10": 0.7857142857142857,
+                "mrr@10": 0.5031746031746032,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          }
+        }
+      },
+      "index_meta": {
+        "index_seconds": 266.4,
+        "peak_rss_mb": 1023,
+        "embedding_model": "default",
+        "result": {
+          "total_files": 429,
+          "total_symbols": 1868,
+          "total_chunks": 1868,
+          "parse_errors": 0,
+          "graph_nodes": 2199,
+          "graph_relationships": 4139,
+          "time_seconds": 264.72574400901794,
+          "files_added": 0,
+          "files_modified": 0,
+          "files_deleted": 0
+        }
+      },
+      "graph": {
+        "javascript": {
+          "files": 160,
+          "symbols": 34,
+          "functions": 32,
+          "classes": 1,
+          "calls": 1,
+          "calls_per_fn": 0.03,
+          "fn_with_calls": 0.031
+        },
+        "typescript": {
+          "files": 269,
+          "symbols": 1834,
+          "functions": 1689,
+          "classes": 48,
+          "calls": 2368,
+          "calls_per_fn": 1.4,
+          "fn_with_calls": 0.465
+        }
+      },
+      "live": {
+        "model": "sonnet",
+        "effort": "medium",
+        "reps": 3,
+        "isolation": [
+          "reduced"
+        ],
+        "errors": 0,
+        "conditions": {
+          "baseline": {
+            "n_tasks": 6,
+            "tasks_correct": 6,
+            "wasted_read_ratio": 0.0,
+            "wasted_read_ratio_iqr": 0.0,
+            "total_tokens": 71166.0,
+            "fresh_tokens": 9930.5,
+            "total_cost_usd": 0.061601800000000005,
+            "num_turns": 7.0,
+            "wall_seconds": 28.1
+          },
+          "nexus": {
+            "n_tasks": 6,
+            "tasks_correct": 6,
+            "wasted_read_ratio": 0.25,
+            "wasted_read_ratio_iqr": 0.5777777777777777,
+            "total_tokens": 57268.0,
+            "fresh_tokens": 7862.5,
+            "total_cost_usd": 0.0478051,
+            "num_turns": 3.5,
+            "wall_seconds": 23.53
+          }
+        }
+      }
+    },
+    "webpack": {
+      "name": "webpack",
+      "language": "JavaScript",
+      "repo": "webpack/webpack",
+      "url": "https://github.com/webpack/webpack.git",
+      "pin": "f6366b0bc2afbf1f5494f33e81f2bd0588b802cc",
+      "label": "before",
+      "nexus_version": "2.2.2",
+      "nexus_ref": "0430f01d2f1196e51dd3f8a3602222a9f9c3f27f",
+      "index": "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/indexes/.venv-v2.2.2/webpack",
+      "quick": {
+        "id": "20261105-143825-07ed",
+        "created": "2026-11-05T14:38:25+00:00",
+        "source": {
+          "kind": "path",
+          "label": "webpack",
+          "label_public": null,
+          "sha": null
+        },
+        "kept_index": false,
+        "env": {
+          "nexus_mcp_ci": "2.2.2",
+          "python": "3.12.13",
+          "os": "Darwin"
+        },
+        "tier": "quick",
+        "repo": {
+          "files": 822,
+          "chunks": 8687,
+          "size_band": "500-5k files",
+          "languages": [
+            "javascript",
+            "typescript"
+          ],
+          "index_seconds": 1209.0
+        },
+        "questions": 30,
+        "seed": 7,
+        "summary": {
+          "grep": {
+            "questions": 30,
+            "hit_at_1": 0.367,
+            "hit_at_3": 0.567,
+            "median_tokens": 25634.0,
+            "median_ms": 903.2
+          },
+          "nexus": {
+            "questions": 30,
+            "hit_at_1": 0.667,
+            "hit_at_3": 0.833,
+            "median_tokens": 1287.0,
+            "median_ms": 70.8
+          }
+        },
+        "by_kind": {
+          "concept": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.4,
+              "hit_at_3": 0.5,
+              "median_tokens": 17549.5,
+              "median_ms": 963.2
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.6,
+              "hit_at_3": 0.6,
+              "median_tokens": 1991.0,
+              "median_ms": 69.0
+            }
+          },
+          "described": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.0,
+              "hit_at_3": 0.3,
+              "median_tokens": 66531.0,
+              "median_ms": 1043.6
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.4,
+              "hit_at_3": 0.9,
+              "median_tokens": 1371.5,
+              "median_ms": 60.8
+            }
+          },
+          "lookup": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.7,
+              "hit_at_3": 0.9,
+              "median_tokens": 17214.0,
+              "median_ms": 842.0
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 1.0,
+              "hit_at_3": 1.0,
+              "median_tokens": 1233.0,
+              "median_ms": 117.2
+            }
+          }
+        },
+        "verdict": {
+          "label": "Strong fit",
+          "token_saving": 0.95,
+          "hit3_gain": 0.266,
+          "reasons": [
+            "Tokens to reach the right file: Nexus-MCP 1287, Grep and Read 25634 (95% fewer with Nexus-MCP).",
+            "Right file in the top 3: 83% against 57%."
+          ]
+        },
+        "results": [
+          {
+            "id": "concept-harmonyImportTargets",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 3755,
+              "ms": 353.6
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 37737,
+              "ms": 872.0
+            }
+          },
+          {
+            "id": "concept-WebpackParser.parseArrowExpression",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17570,
+              "ms": 2141.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2178,
+              "ms": 64.7
+            }
+          },
+          {
+            "id": "concept-SyntaxParser.parseImportSpecifiers",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17509,
+              "ms": 526.8
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 4424,
+              "ms": 102.9
+            }
+          },
+          {
+            "id": "concept-HtmlGenerator._renderHtml",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 68223,
+              "ms": 1032.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 743,
+              "ms": 61.0
+            }
+          },
+          {
+            "id": "concept-Compilation._codeGenerationModule",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 63070,
+              "ms": 1677.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1622,
+              "ms": 68.0
+            }
+          },
+          {
+            "id": "concept-WebpackParser.parseFunctionBody",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17529,
+              "ms": 2206.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1268,
+              "ms": 104.1
+            }
+          },
+          {
+            "id": "concept-DependenciesBlock.getRootBlock",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 34014,
+              "ms": 491.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1222,
+              "ms": 71.7
+            }
+          },
+          {
+            "id": "concept-SerializerMiddleware",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 36948,
+              "ms": 893.6
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26667,
+              "ms": 60.2
+            }
+          },
+          {
+            "id": "concept-ModuleLibraryPlugin._checkStarReexportedExternals",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 3764,
+              "ms": 268.3
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 18280,
+              "ms": 70.0
+            }
+          },
+          {
+            "id": "concept-findSourceMappingURL",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 3171,
+              "ms": 2540.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1804,
+              "ms": 60.2
+            }
+          },
+          {
+            "id": "described-LazyBucketSortedSet._addInternal",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 37305,
+              "ms": 1605.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1785,
+              "ms": 84.0
+            }
+          },
+          {
+            "id": "described-MinifierLabel",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 51601,
+              "ms": 685.6
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 34211,
+              "ms": 134.0
+            }
+          },
+          {
+            "id": "described-WebpackParser.treatFunctionsAsVarInScope",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 72714,
+              "ms": 1342.3
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 697,
+              "ms": 67.0
+            }
+          },
+          {
+            "id": "described-WebpackParser._takeModuleDeclarations",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 63648,
+              "ms": 922.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 689,
+              "ms": 60.2
+            }
+          },
+          {
+            "id": "described-AsyncDependenciesBlock.chunkName",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 78721,
+              "ms": 1065.9
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 1366,
+              "ms": 56.5
+            }
+          },
+          {
+            "id": "described-Compilation._attachPendingRuntimeModules",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 63105,
+              "ms": 1419.6
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 1377,
+              "ms": 56.3
+            }
+          },
+          {
+            "id": "described-ChunkSiblingIds",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 70553,
+              "ms": 965.4
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 633,
+              "ms": 61.4
+            }
+          },
+          {
+            "id": "described-Logger.trace",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 19344,
+              "ms": 837.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1715,
+              "ms": 54.1
+            }
+          },
+          {
+            "id": "described-WebpackParser.insertSemicolon",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 88472,
+              "ms": 1021.2
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 595,
+              "ms": 53.9
+            }
+          },
+          {
+            "id": "described-DependenciesBlock.removeDependency",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 69414,
+              "ms": 1072.0
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 1529,
+              "ms": 65.4
+            }
+          },
+          {
+            "id": "lookup-LazyBucketSortedSet._addInternal",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1963,
+              "ms": 833.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1278,
+              "ms": 199.6
+            }
+          },
+          {
+            "id": "lookup-MinifierLabel",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 16221,
+              "ms": 484.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1370,
+              "ms": 85.3
+            }
+          },
+          {
+            "id": "lookup-WebpackParser.treatFunctionsAsVarInScope",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17214,
+              "ms": 900.3
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1182,
+              "ms": 90.1
+            }
+          },
+          {
+            "id": "lookup-WebpackParser._takeModuleDeclarations",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17214,
+              "ms": 753.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1248,
+              "ms": 168.9
+            }
+          },
+          {
+            "id": "lookup-AsyncDependenciesBlock.chunkName",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 31924,
+              "ms": 850.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1218,
+              "ms": 103.6
+            }
+          },
+          {
+            "id": "lookup-Compilation._attachPendingRuntimeModules",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17864,
+              "ms": 642.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 783,
+              "ms": 158.6
+            }
+          },
+          {
+            "id": "lookup-ChunkSiblingIds",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 37914,
+              "ms": 459.3
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 638,
+              "ms": 155.2
+            }
+          },
+          {
+            "id": "lookup-Logger.trace",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 19344,
+              "ms": 890.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1274,
+              "ms": 55.5
+            }
+          },
+          {
+            "id": "lookup-WebpackParser.insertSemicolon",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17214,
+              "ms": 930.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1296,
+              "ms": 130.1
+            }
+          },
+          {
+            "id": "lookup-DependenciesBlock.removeDependency",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1387,
+              "ms": 906.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1214,
+              "ms": 104.4
+            }
+          }
+        ]
+      },
+      "retrieval": {
+        "files": 814,
+        "chunks": 7428,
+        "index_seconds": 422.5,
+        "modes": {
+          "bm25": {
+            "hit@1": 0.06666666666666667,
+            "hit@5": 0.3333333333333333,
+            "recall@5": 0.26666666666666666,
+            "recall@10": 0.4,
+            "mrr@10": 0.18185185185185185,
+            "queries": 15,
+            "median_query_ms": 5.0,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.07142857142857142,
+                "hit@5": 0.35714285714285715,
+                "recall@5": 0.2857142857142857,
+                "recall@10": 0.35714285714285715,
+                "mrr@10": 0.18293650793650792,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.16666666666666666,
+                "queries": 1
+              }
+            }
+          },
+          "vector": {
+            "hit@1": 0.2,
+            "hit@5": 0.4,
+            "recall@5": 0.36666666666666664,
+            "recall@10": 0.4666666666666667,
+            "mrr@10": 0.28833333333333333,
+            "queries": 15,
+            "median_query_ms": 22.4,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.14285714285714285,
+                "hit@5": 0.35714285714285715,
+                "recall@5": 0.32142857142857145,
+                "recall@10": 0.42857142857142855,
+                "mrr@10": 0.23750000000000002,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-source-first": {
+            "hit@1": 0.2,
+            "hit@5": 0.4666666666666667,
+            "recall@5": 0.43333333333333335,
+            "recall@10": 0.5333333333333333,
+            "mrr@10": 0.30777777777777776,
+            "queries": 15,
+            "median_query_ms": 17.9,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.21428571428571427,
+                "hit@5": 0.42857142857142855,
+                "recall@5": 0.39285714285714285,
+                "recall@10": 0.5,
+                "mrr@10": 0.294047619047619,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.5,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-exact": {
+            "hit@1": 0.2,
+            "hit@5": 0.4666666666666667,
+            "recall@5": 0.43333333333333335,
+            "recall@10": 0.5333333333333333,
+            "mrr@10": 0.30777777777777776,
+            "queries": 15,
+            "median_query_ms": 17.7,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.21428571428571427,
+                "hit@5": 0.42857142857142855,
+                "recall@5": 0.39285714285714285,
+                "recall@10": 0.5,
+                "mrr@10": 0.294047619047619,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.5,
+                "queries": 1
+              }
+            }
+          }
+        }
+      },
+      "index_meta": {
+        "index_seconds": 1146.5,
+        "peak_rss_mb": 1102,
+        "embedding_model": "default",
+        "result": {
+          "total_files": 822,
+          "total_symbols": 8687,
+          "total_chunks": 8687,
+          "parse_errors": 0,
+          "graph_nodes": 6813,
+          "graph_relationships": 12938,
+          "time_seconds": 1144.6291499137878,
+          "files_added": 0,
+          "files_modified": 0,
+          "files_deleted": 0
+        }
+      },
+      "graph": {
+        "javascript": {
+          "files": 818,
+          "symbols": 7430,
+          "functions": 5030,
+          "classes": 764,
+          "calls": 6947,
+          "calls_per_fn": 1.38,
+          "fn_with_calls": 0.433
+        },
+        "typescript": {
+          "files": 4,
+          "symbols": 1257,
+          "functions": 0,
+          "classes": 197,
+          "calls": 0,
+          "calls_per_fn": 0.0,
+          "fn_with_calls": 0.0
+        }
+      }
+    },
+    "commons-lang": {
+      "name": "commons-lang",
+      "language": "Java",
+      "repo": "apache/commons-lang",
+      "url": "https://github.com/apache/commons-lang.git",
+      "pin": "e547d704b21a1b10a2dae0158f7288d7afa4d064",
+      "label": "before",
+      "nexus_version": "2.2.2",
+      "nexus_ref": "0430f01d2f1196e51dd3f8a3602222a9f9c3f27f",
+      "index": "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/indexes/.venv-v2.2.2/commons-lang",
+      "quick": {
+        "id": "20261105-150610-7166",
+        "created": "2026-11-05T15:06:10+00:00",
+        "source": {
+          "kind": "path",
+          "label": "commons-lang",
+          "label_public": null,
+          "sha": null
+        },
+        "kept_index": false,
+        "env": {
+          "nexus_mcp_ci": "2.2.2",
+          "python": "3.12.13",
+          "os": "Darwin"
+        },
+        "tier": "quick",
+        "repo": {
+          "files": 264,
+          "chunks": 4973,
+          "size_band": "50-500 files",
+          "languages": [
+            "java"
+          ],
+          "index_seconds": 633.3
+        },
+        "questions": 30,
+        "seed": 7,
+        "summary": {
+          "grep": {
+            "questions": 30,
+            "hit_at_1": 0.233,
+            "hit_at_3": 0.7,
+            "median_tokens": 48175.5,
+            "median_ms": 317.6
+          },
+          "nexus": {
+            "questions": 30,
+            "hit_at_1": 0.867,
+            "hit_at_3": 1.0,
+            "median_tokens": 1277.0,
+            "median_ms": 74.8
+          }
+        },
+        "by_kind": {
+          "described": {
+            "grep": {
+              "questions": 15,
+              "hit_at_1": 0.067,
+              "hit_at_3": 0.533,
+              "median_tokens": 56802,
+              "median_ms": 395.4
+            },
+            "nexus": {
+              "questions": 15,
+              "hit_at_1": 0.733,
+              "hit_at_3": 1.0,
+              "median_tokens": 1330,
+              "median_ms": 66.8
+            }
+          },
+          "lookup": {
+            "grep": {
+              "questions": 15,
+              "hit_at_1": 0.4,
+              "hit_at_3": 0.867,
+              "median_tokens": 39953,
+              "median_ms": 301.1
+            },
+            "nexus": {
+              "questions": 15,
+              "hit_at_1": 1.0,
+              "hit_at_3": 1.0,
+              "median_tokens": 1264,
+              "median_ms": 83.1
+            }
+          }
+        },
+        "verdict": {
+          "label": "Strong fit",
+          "token_saving": 0.973,
+          "hit3_gain": 0.3,
+          "reasons": [
+            "Tokens to reach the right file: Nexus-MCP 1277, Grep and Read 48176 (97% fewer with Nexus-MCP).",
+            "Right file in the top 3: 100% against 70%."
+          ]
+        },
+        "results": [
+          {
+            "id": "described-StringUtils.leftPad",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 59363,
+              "ms": 534.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1459,
+              "ms": 7733.7
+            }
+          },
+          {
+            "id": "described-CharSequenceTranslator.with",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 47103,
+              "ms": 409.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1637,
+              "ms": 122.8
+            }
+          },
+          {
+            "id": "described-JavaVersion",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 2742,
+              "ms": 68.4
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 825,
+              "ms": 43.4
+            }
+          },
+          {
+            "id": "described-EnumUtils",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 53805,
+              "ms": 200.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1330,
+              "ms": 46.4
+            }
+          },
+          {
+            "id": "described-ExceptionUtils.getRootCauseStackTrace",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 56802,
+              "ms": 738.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1353,
+              "ms": 104.3
+            }
+          },
+          {
+            "id": "described-ClassUtils.toEncodedName",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 59331,
+              "ms": 376.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2037,
+              "ms": 66.8
+            }
+          },
+          {
+            "id": "described-DurationUtils",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 57824,
+              "ms": 225.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1327,
+              "ms": 56.9
+            }
+          },
+          {
+            "id": "described-WeekDateRecorder.setTimeZone",
+            "kind": "described",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 13960,
+              "ms": 704.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1441,
+              "ms": 86.1
+            }
+          },
+          {
+            "id": "described-ComparableCheckBuilder.ComparableCheckBuilder",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 72959,
+              "ms": 325.5
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 1282,
+              "ms": 55.5
+            }
+          },
+          {
+            "id": "described-TypeUtils.containsTypeVariables",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 60959,
+              "ms": 395.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1907,
+              "ms": 60.4
+            }
+          },
+          {
+            "id": "described-CharSet.getCharRanges",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 40548,
+              "ms": 385.0
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 910,
+              "ms": 52.2
+            }
+          },
+          {
+            "id": "described-LocaleUtils.getCcToLocalesMap",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 42961,
+              "ms": 574.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1399,
+              "ms": 66.8
+            }
+          },
+          {
+            "id": "described-RandomStringUtils.randomPrint",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 50043,
+              "ms": 415.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 710,
+              "ms": 84.2
+            }
+          },
+          {
+            "id": "described-NoMatcher.NoMatcher",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 67616,
+              "ms": 146.0
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 925,
+              "ms": 111.9
+            }
+          },
+          {
+            "id": "described-StringUtils.isNoneBlank",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 64269,
+              "ms": 401.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 795,
+              "ms": 58.1
+            }
+          },
+          {
+            "id": "lookup-StringUtils.leftPad",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 59302,
+              "ms": 311.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1143,
+              "ms": 126.0
+            }
+          },
+          {
+            "id": "lookup-CharSequenceTranslator.with",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 46517,
+              "ms": 168.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1332,
+              "ms": 83.1
+            }
+          },
+          {
+            "id": "lookup-JavaVersion",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 39953,
+              "ms": 157.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1272,
+              "ms": 115.6
+            }
+          },
+          {
+            "id": "lookup-EnumUtils",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 42823,
+              "ms": 207.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1299,
+              "ms": 105.3
+            }
+          },
+          {
+            "id": "lookup-ExceptionUtils.getRootCauseStackTrace",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 49248,
+              "ms": 336.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1305,
+              "ms": 71.4
+            }
+          },
+          {
+            "id": "lookup-ClassUtils.toEncodedName",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 21612,
+              "ms": 301.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1730,
+              "ms": 96.1
+            }
+          },
+          {
+            "id": "lookup-DurationUtils",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 57172,
+              "ms": 171.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1264,
+              "ms": 56.4
+            }
+          },
+          {
+            "id": "lookup-WeekDateRecorder.setTimeZone",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 13300,
+              "ms": 321.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1247,
+              "ms": 77.8
+            }
+          },
+          {
+            "id": "lookup-ComparableCheckBuilder.ComparableCheckBuilder",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 39704,
+              "ms": 167.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1266,
+              "ms": 54.5
+            }
+          },
+          {
+            "id": "lookup-TypeUtils.containsTypeVariables",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 59469,
+              "ms": 330.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1721,
+              "ms": 71.9
+            }
+          },
+          {
+            "id": "lookup-CharSet.getCharRanges",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2662,
+              "ms": 308.3
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1198,
+              "ms": 111.2
+            }
+          },
+          {
+            "id": "lookup-LocaleUtils.getCcToLocalesMap",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 5033,
+              "ms": 314.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1222,
+              "ms": 88.8
+            }
+          },
+          {
+            "id": "lookup-RandomStringUtils.randomPrint",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 49371,
+              "ms": 336.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 758,
+              "ms": 67.2
+            }
+          },
+          {
+            "id": "lookup-NoMatcher.NoMatcher",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 3757,
+              "ms": 185.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 920,
+              "ms": 61.8
+            }
+          },
+          {
+            "id": "lookup-StringUtils.isNoneBlank",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 22016,
+              "ms": 283.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1242,
+              "ms": 115.2
+            }
+          }
+        ]
+      },
+      "retrieval": {
+        "files": 264,
+        "chunks": 4973,
+        "index_seconds": 268.5,
+        "modes": {
+          "bm25": {
+            "hit@1": 0.4666666666666667,
+            "hit@5": 0.7333333333333333,
+            "recall@5": 0.6666666666666666,
+            "recall@10": 0.7333333333333333,
+            "mrr@10": 0.6,
+            "queries": 15,
+            "median_query_ms": 5.2,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.42857142857142855,
+                "hit@5": 0.7142857142857143,
+                "recall@5": 0.6428571428571429,
+                "recall@10": 0.7142857142857143,
+                "mrr@10": 0.5714285714285714,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "vector": {
+            "hit@1": 0.8,
+            "hit@5": 0.8,
+            "recall@5": 0.7666666666666667,
+            "recall@10": 0.8,
+            "mrr@10": 0.8,
+            "queries": 15,
+            "median_query_ms": 20.3,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.7857142857142857,
+                "hit@5": 0.7857142857142857,
+                "recall@5": 0.75,
+                "recall@10": 0.7857142857142857,
+                "mrr@10": 0.7857142857142857,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-source-first": {
+            "hit@1": 0.7333333333333333,
+            "hit@5": 0.8,
+            "recall@5": 0.7666666666666667,
+            "recall@10": 0.8,
+            "mrr@10": 0.7666666666666667,
+            "queries": 15,
+            "median_query_ms": 15.3,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.7142857142857143,
+                "hit@5": 0.7857142857142857,
+                "recall@5": 0.75,
+                "recall@10": 0.7857142857142857,
+                "mrr@10": 0.75,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-exact": {
+            "hit@1": 0.7333333333333333,
+            "hit@5": 0.8,
+            "recall@5": 0.7666666666666667,
+            "recall@10": 0.8,
+            "mrr@10": 0.7666666666666667,
+            "queries": 15,
+            "median_query_ms": 15.3,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.7142857142857143,
+                "hit@5": 0.7857142857142857,
+                "recall@5": 0.75,
+                "recall@10": 0.7857142857142857,
+                "mrr@10": 0.75,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          }
+        }
+      },
+      "index_meta": {
+        "index_seconds": 639.1,
+        "peak_rss_mb": 887,
+        "embedding_model": "default",
+        "result": {
+          "total_files": 264,
+          "total_symbols": 4973,
+          "total_chunks": 4973,
+          "parse_errors": 0,
+          "graph_nodes": 4725,
+          "graph_relationships": 7594,
+          "time_seconds": 637.4439599514008,
+          "files_added": 0,
+          "files_modified": 0,
+          "files_deleted": 0
+        }
+      },
+      "graph": {
+        "java": {
+          "files": 264,
+          "symbols": 4973,
+          "functions": 4177,
+          "classes": 284,
+          "calls": 3133,
+          "calls_per_fn": 0.75,
+          "fn_with_calls": 0.463
+        }
+      },
+      "live": {
+        "model": "sonnet",
+        "effort": "medium",
+        "reps": 3,
+        "isolation": [
+          "reduced"
+        ],
+        "errors": 0,
+        "conditions": {
+          "baseline": {
+            "n_tasks": 6,
+            "tasks_correct": 6,
+            "wasted_read_ratio": 0.0,
+            "wasted_read_ratio_iqr": 0.0,
+            "total_tokens": 58755.0,
+            "fresh_tokens": 7238.0,
+            "total_cost_usd": 0.0471446,
+            "num_turns": 5.0,
+            "wall_seconds": 18.295
+          },
+          "nexus": {
+            "n_tasks": 6,
+            "tasks_correct": 6,
+            "wasted_read_ratio": 0.0,
+            "wasted_read_ratio_iqr": 0.5,
+            "total_tokens": 34601.0,
+            "fresh_tokens": 3750.0,
+            "total_cost_usd": 0.023004200000000002,
+            "num_turns": 2.0,
+            "wall_seconds": 16.13
+          }
+        }
+      }
+    },
+    "laravel": {
+      "name": "laravel",
+      "language": "PHP",
+      "repo": "laravel/framework",
+      "url": "https://github.com/laravel/framework.git",
+      "pin": "7d6d8e86138e9dcc250a29bd72cfe5d5dd7b3d6c",
+      "label": "before",
+      "nexus_version": "2.2.2",
+      "nexus_ref": "0430f01d2f1196e51dd3f8a3602222a9f9c3f27f",
+      "index": "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/indexes/.venv-v2.2.2/laravel",
+      "quick": {
+        "unsupported": true,
+        "reason": "No source code was indexed"
+      },
+      "retrieval": {
+        "files": 1750,
+        "chunks": 0,
+        "index_seconds": 0.8,
+        "modes": {
+          "bm25": {
+            "hit@1": 0.0,
+            "hit@5": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "queries": 15,
+            "median_query_ms": 0.1,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 1
+              }
+            }
+          },
+          "vector": {
+            "hit@1": 0.0,
+            "hit@5": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "queries": 15,
+            "median_query_ms": 0.1,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-source-first": {
+            "hit@1": 0.0,
+            "hit@5": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "queries": 15,
+            "median_query_ms": 0.2,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-exact": {
+            "hit@1": 0.0,
+            "hit@5": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "queries": 15,
+            "median_query_ms": 0.2,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 1
+              }
+            }
+          }
+        }
+      },
+      "index_meta": {
+        "index_seconds": 2.9,
+        "peak_rss_mb": 203,
+        "embedding_model": "default",
+        "result": {
+          "total_files": 1751,
+          "total_symbols": 0,
+          "total_chunks": 0,
+          "parse_errors": 1749,
+          "graph_nodes": 1753,
+          "graph_relationships": 2,
+          "time_seconds": 1.3746140003204346,
+          "files_added": 0,
+          "files_modified": 0,
+          "files_deleted": 0
+        }
+      },
+      "graph": {
+        "javascript": {
+          "files": 2,
+          "symbols": 0,
+          "functions": 2,
+          "classes": 0,
+          "calls": 0,
+          "calls_per_fn": 0.0,
+          "fn_with_calls": 0.0
+        },
+        "php": {
+          "files": 1749,
+          "symbols": 0,
+          "functions": 0,
+          "classes": 0,
+          "calls": 0,
+          "calls_per_fn": 0.0,
+          "fn_with_calls": 0.0
+        }
+      },
+      "live": {
+        "model": "sonnet",
+        "effort": "medium",
+        "reps": 3,
+        "isolation": [
+          "reduced"
+        ],
+        "errors": 0,
+        "conditions": {
+          "baseline": {
+            "n_tasks": 6,
+            "tasks_correct": 5,
+            "wasted_read_ratio": 0.0,
+            "wasted_read_ratio_iqr": 0.0,
+            "total_tokens": 62045.0,
+            "fresh_tokens": 8994.0,
+            "total_cost_usd": 0.060331800000000005,
+            "num_turns": 5.0,
+            "wall_seconds": 17.92
+          },
+          "nexus": {
+            "n_tasks": 6,
+            "tasks_correct": 4,
+            "wasted_read_ratio": 0.0,
+            "wasted_read_ratio_iqr": 0.0,
+            "total_tokens": 73495.5,
+            "fresh_tokens": 8016.5,
+            "total_cost_usd": 0.05581680000000001,
+            "num_turns": 6.0,
+            "wall_seconds": 22.725
+          }
+        }
+      }
+    },
+    "chromium-base": {
+      "name": "chromium-base",
+      "language": "C++",
+      "repo": "chromium/chromium",
+      "url": "https://chromium.googlesource.com/chromium/src",
+      "pin": "d8ebdd25980e38badccc265758aa508e6592000e",
+      "label": "before",
+      "nexus_version": "2.2.2",
+      "nexus_ref": "0430f01d2f1196e51dd3f8a3602222a9f9c3f27f",
+      "index": "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/indexes/.venv-v2.2.2/chromium-base",
+      "quick": {
+        "id": "20261105-163112-fbd9",
+        "created": "2026-11-05T16:31:12+00:00",
+        "source": {
+          "kind": "path",
+          "label": "chromium-base",
+          "label_public": null,
+          "sha": null
+        },
+        "kept_index": false,
+        "env": {
+          "nexus_mcp_ci": "2.2.2",
+          "python": "3.12.13",
+          "os": "Darwin"
+        },
+        "tier": "quick",
+        "repo": {
+          "files": 3641,
+          "chunks": 46299,
+          "size_band": "500-5k files",
+          "languages": [
+            "c",
+            "cpp",
+            "java",
+            "javascript",
+            "python"
+          ],
+          "index_seconds": 4373.5
+        },
+        "questions": 30,
+        "seed": 7,
+        "summary": {
+          "grep": {
+            "questions": 30,
+            "hit_at_1": 0.367,
+            "hit_at_3": 0.633,
+            "median_tokens": 16096.5,
+            "median_ms": 1844.0
+          },
+          "nexus": {
+            "questions": 30,
+            "hit_at_1": 0.833,
+            "hit_at_3": 0.933,
+            "median_tokens": 953.0,
+            "median_ms": 88.8
+          }
+        },
+        "by_kind": {
+          "concept": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.5,
+              "hit_at_3": 0.6,
+              "median_tokens": 12806.0,
+              "median_ms": 3662.2
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.8,
+              "hit_at_3": 0.9,
+              "median_tokens": 1013.5,
+              "median_ms": 69.3
+            }
+          },
+          "described": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.1,
+              "hit_at_3": 0.4,
+              "median_tokens": 34930.0,
+              "median_ms": 1931.8
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.7,
+              "hit_at_3": 0.9,
+              "median_tokens": 788.5,
+              "median_ms": 66.5
+            }
+          },
+          "lookup": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.5,
+              "hit_at_3": 0.9,
+              "median_tokens": 5703.5,
+              "median_ms": 803.5
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 1.0,
+              "hit_at_3": 1.0,
+              "median_tokens": 941.0,
+              "median_ms": 129.9
+            }
+          }
+        },
+        "verdict": {
+          "label": "Strong fit",
+          "token_saving": 0.941,
+          "hit3_gain": 0.3,
+          "reasons": [
+            "Tokens to reach the right file: Nexus-MCP 953, Grep and Read 16096 (94% fewer with Nexus-MCP).",
+            "Right file in the top 3: 93% against 63%."
+          ]
+        },
+        "results": [
+          {
+            "id": "concept-FieldTrial.CreateSimulatedFieldTrial",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 11514,
+              "ms": 3683.3
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 920,
+              "ms": 1167.7
+            }
+          },
+          {
+            "id": "concept-leak",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 51820,
+              "ms": 3091.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 988,
+              "ms": 71.3
+            }
+          },
+          {
+            "id": "concept-Vector.~Vector",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 42299,
+              "ms": 2434.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 852,
+              "ms": 67.4
+            }
+          },
+          {
+            "id": "concept-TrackedRef.TrackedRef",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2186,
+              "ms": 3817.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1077,
+              "ms": 68.4
+            }
+          },
+          {
+            "id": "concept-BindPostTaskTrampoline.BindPostTaskTrampoline",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 58013,
+              "ms": 3728.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 813,
+              "ms": 67.1
+            }
+          },
+          {
+            "id": "concept-CheckRoundtripsT",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2050,
+              "ms": 2235.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1039,
+              "ms": 462.5
+            }
+          },
+          {
+            "id": "concept-WorkQueue.TakeTaskFromWorkQueue",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 3369,
+              "ms": 4048.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1430,
+              "ms": 70.1
+            }
+          },
+          {
+            "id": "concept-WorkTracker.WillReloadImmediateWorkQueues",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 14098,
+              "ms": 3641.2
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 10027,
+              "ms": 107.3
+            }
+          },
+          {
+            "id": "concept-CheckFailureInFunction",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 41957,
+              "ms": 1463.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 742,
+              "ms": 66.4
+            }
+          },
+          {
+            "id": "concept-DigitGen",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 8556,
+              "ms": 4788.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1260,
+              "ms": 68.5
+            }
+          },
+          {
+            "id": "described-FilePath.ReadFromPickle",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 51373,
+              "ms": 1821.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 787,
+              "ms": 412.7
+            }
+          },
+          {
+            "id": "described-LockMetricTagList.LockMetricTagList",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 43122,
+              "ms": 2229.1
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 767,
+              "ms": 63.8
+            }
+          },
+          {
+            "id": "described-U16ToBigEndian",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 21612,
+              "ms": 1997.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 777,
+              "ms": 67.2
+            }
+          },
+          {
+            "id": "described-JNI_JniCallbacksTest_GetOnceCallbackResult",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26738,
+              "ms": 3667.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 790,
+              "ms": 63.2
+            }
+          },
+          {
+            "id": "described-SecurityDescriptor.set_sacl_protected",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 7916,
+              "ms": 3100.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1143,
+              "ms": 63.1
+            }
+          },
+          {
+            "id": "described-WorkQueue.SetWorkTime",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 57258,
+              "ms": 1866.1
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 986,
+              "ms": 63.8
+            }
+          },
+          {
+            "id": "described-HostToNet32",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 4110,
+              "ms": 1478.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 680,
+              "ms": 415.3
+            }
+          },
+          {
+            "id": "described-PolymorphicStruct.~PolymorphicStruct",
+            "kind": "described",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 19842,
+              "ms": 1181.1
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 676,
+              "ms": 66.9
+            }
+          },
+          {
+            "id": "described-SplitStringUsingSubstrT",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 56004,
+              "ms": 1743.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1233,
+              "ms": 66.8
+            }
+          },
+          {
+            "id": "described-NonThreadSafeQueue.NonThreadSafeQueue",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 57262,
+              "ms": 2073.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1643,
+              "ms": 66.3
+            }
+          },
+          {
+            "id": "lookup-FilePath.ReadFromPickle",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 18095,
+              "ms": 1467.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 786,
+              "ms": 150.9
+            }
+          },
+          {
+            "id": "lookup-LockMetricTagList.LockMetricTagList",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 21476,
+              "ms": 799.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1096,
+              "ms": 110.9
+            }
+          },
+          {
+            "id": "lookup-U16ToBigEndian",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 11072,
+              "ms": 628.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 698,
+              "ms": 107.0
+            }
+          },
+          {
+            "id": "lookup-JNI_JniCallbacksTest_GetOnceCallbackResult",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1745,
+              "ms": 849.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 748,
+              "ms": 150.7
+            }
+          },
+          {
+            "id": "lookup-SecurityDescriptor.set_sacl_protected",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 3078,
+              "ms": 1550.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1183,
+              "ms": 189.4
+            }
+          },
+          {
+            "id": "lookup-WorkQueue.SetWorkTime",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 6664,
+              "ms": 1459.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1295,
+              "ms": 149.0
+            }
+          },
+          {
+            "id": "lookup-HostToNet32",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 3560,
+              "ms": 763.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 697,
+              "ms": 106.2
+            }
+          },
+          {
+            "id": "lookup-PolymorphicStruct.~PolymorphicStruct",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 19423,
+              "ms": 772.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 678,
+              "ms": 107.9
+            }
+          },
+          {
+            "id": "lookup-SplitStringUsingSubstrT",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 3172,
+              "ms": 791.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1121,
+              "ms": 454.3
+            }
+          },
+          {
+            "id": "lookup-NonThreadSafeQueue.NonThreadSafeQueue",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 4743,
+              "ms": 807.3
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1104,
+              "ms": 106.9
+            }
+          }
+        ]
+      },
+      "retrieval": {
+        "files": 3638,
+        "chunks": 45518,
+        "index_seconds": 2578.7,
+        "modes": {
+          "bm25": {
+            "hit@1": 0.26666666666666666,
+            "hit@5": 0.6,
+            "recall@5": 0.43333333333333335,
+            "recall@10": 0.6,
+            "mrr@10": 0.37962962962962965,
+            "queries": 15,
+            "median_query_ms": 5.8,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.2857142857142857,
+                "hit@5": 0.6428571428571429,
+                "recall@5": 0.4642857142857143,
+                "recall@10": 0.5714285714285714,
+                "mrr@10": 0.3988095238095238,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.1111111111111111,
+                "queries": 1
+              }
+            }
+          },
+          "vector": {
+            "hit@1": 0.26666666666666666,
+            "hit@5": 0.5333333333333333,
+            "recall@5": 0.4666666666666667,
+            "recall@10": 0.6,
+            "mrr@10": 0.38896825396825396,
+            "queries": 15,
+            "median_query_ms": 58.9,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.2857142857142857,
+                "hit@5": 0.5714285714285714,
+                "recall@5": 0.5,
+                "recall@10": 0.6428571428571429,
+                "mrr@10": 0.4167517006802721,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-source-first": {
+            "hit@1": 0.4,
+            "hit@5": 0.6,
+            "recall@5": 0.4666666666666667,
+            "recall@10": 0.7333333333333333,
+            "mrr@10": 0.488042328042328,
+            "queries": 15,
+            "median_query_ms": 54.3,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.42857142857142855,
+                "hit@5": 0.6428571428571429,
+                "recall@5": 0.5,
+                "recall@10": 0.7142857142857143,
+                "mrr@10": 0.5149659863945578,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.1111111111111111,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-exact": {
+            "hit@1": 0.4666666666666667,
+            "hit@5": 0.6666666666666666,
+            "recall@5": 0.5333333333333333,
+            "recall@10": 0.7333333333333333,
+            "mrr@10": 0.5473015873015873,
+            "queries": 15,
+            "median_query_ms": 53.6,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.42857142857142855,
+                "hit@5": 0.6428571428571429,
+                "recall@5": 0.5,
+                "recall@10": 0.7142857142857143,
+                "mrr@10": 0.5149659863945578,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          }
+        }
+      },
+      "index_meta": {
+        "index_seconds": 5711.9,
+        "peak_rss_mb": 1220,
+        "embedding_model": "default",
+        "result": {
+          "total_files": 3641,
+          "total_symbols": 46299,
+          "total_chunks": 46299,
+          "parse_errors": 30,
+          "graph_nodes": 10218,
+          "graph_relationships": 14582,
+          "time_seconds": 5710.279680967331,
+          "files_added": 0,
+          "files_modified": 0,
+          "files_deleted": 0
+        }
+      },
+      "graph": {
+        "c": {
+          "files": 1350,
+          "symbols": 119,
+          "functions": 0,
+          "classes": 0,
+          "calls": 0,
+          "calls_per_fn": 0.0,
+          "fn_with_calls": 0.0
+        },
+        "cpp": {
+          "files": 1740,
+          "symbols": 39167,
+          "functions": 0,
+          "classes": 0,
+          "calls": 0,
+          "calls_per_fn": 0.0,
+          "fn_with_calls": 0.0
+        },
+        "java": {
+          "files": 482,
+          "symbols": 5798,
+          "functions": 4659,
+          "classes": 678,
+          "calls": 5764,
+          "calls_per_fn": 1.24,
+          "fn_with_calls": 0.569
+        },
+        "javascript": {
+          "files": 1,
+          "symbols": 4,
+          "functions": 3,
+          "classes": 0,
+          "calls": 2,
+          "calls_per_fn": 0.67,
+          "fn_with_calls": 0.667
+        },
+        "python": {
+          "files": 38,
+          "symbols": 1211,
+          "functions": 921,
+          "classes": 135,
+          "calls": 2119,
+          "calls_per_fn": 2.3,
+          "fn_with_calls": 0.733
+        },
+        "rust": {
+          "files": 30,
+          "symbols": 0,
+          "functions": 162,
+          "classes": 19,
+          "calls": 120,
+          "calls_per_fn": 0.74,
+          "fn_with_calls": 0.407
+        }
+      },
+      "live": {
+        "model": "sonnet",
+        "effort": "medium",
+        "reps": 3,
+        "isolation": [
+          "reduced"
+        ],
+        "errors": 0,
+        "conditions": {
+          "baseline": {
+            "n_tasks": 6,
+            "tasks_correct": 6,
+            "wasted_read_ratio": 0.0,
+            "wasted_read_ratio_iqr": 0.0,
+            "total_tokens": 70495.0,
+            "fresh_tokens": 9673.5,
+            "total_cost_usd": 0.0650715,
+            "num_turns": 6.5,
+            "wall_seconds": 22.005
+          },
+          "nexus": {
+            "n_tasks": 6,
+            "tasks_correct": 6,
+            "wasted_read_ratio": 0.125,
+            "wasted_read_ratio_iqr": 0.4642857142857143,
+            "total_tokens": 60622.0,
+            "fresh_tokens": 7883.0,
+            "total_cost_usd": 0.0546316,
+            "num_turns": 4.5,
+            "wall_seconds": 25.29
+          }
+        }
+      }
+    },
+    "redis": {
+      "name": "redis",
+      "language": "C",
+      "repo": "redis/redis",
+      "url": "https://github.com/redis/redis.git",
+      "pin": "a05f30c971ad5c291b9a5b2c688b43ee13ac0c13",
+      "label": "before",
+      "nexus_version": "2.2.2",
+      "nexus_ref": "0430f01d2f1196e51dd3f8a3602222a9f9c3f27f",
+      "index": "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/indexes/.venv-v2.2.2/redis",
+      "quick": {
+        "id": "20261105-172831-8e40",
+        "created": "2026-11-05T17:28:31+00:00",
+        "source": {
+          "kind": "path",
+          "label": "redis",
+          "label_public": null,
+          "sha": null
+        },
+        "kept_index": false,
+        "env": {
+          "nexus_mcp_ci": "2.2.2",
+          "python": "3.12.13",
+          "os": "Darwin"
+        },
+        "tier": "quick",
+        "repo": {
+          "files": 229,
+          "chunks": 16967,
+          "size_band": "50-500 files",
+          "languages": [
+            "c"
+          ],
+          "index_seconds": 845.9
+        },
+        "questions": 30,
+        "seed": 7,
+        "summary": {
+          "grep": {
+            "questions": 30,
+            "hit_at_1": 0.4,
+            "hit_at_3": 0.467,
+            "median_tokens": 36182.5,
+            "median_ms": 396.4
+          },
+          "nexus": {
+            "questions": 30,
+            "hit_at_1": 0.667,
+            "hit_at_3": 0.833,
+            "median_tokens": 704.0,
+            "median_ms": 39.2
+          }
+        },
+        "by_kind": {
+          "concept": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.1,
+              "hit_at_3": 0.2,
+              "median_tokens": 47004.5,
+              "median_ms": 453.6
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.3,
+              "hit_at_3": 0.5,
+              "median_tokens": 1189.0,
+              "median_ms": 39.2
+            }
+          },
+          "described": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.2,
+              "hit_at_3": 0.2,
+              "median_tokens": 47150.5,
+              "median_ms": 534.5
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.7,
+              "hit_at_3": 1.0,
+              "median_tokens": 948.0,
+              "median_ms": 37.8
+            }
+          },
+          "lookup": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.9,
+              "hit_at_3": 1.0,
+              "median_tokens": 18210.5,
+              "median_ms": 255.8
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 1.0,
+              "hit_at_3": 1.0,
+              "median_tokens": 589.0,
+              "median_ms": 52.1
+            }
+          }
+        },
+        "verdict": {
+          "label": "Strong fit",
+          "token_saving": 0.981,
+          "hit3_gain": 0.366,
+          "reasons": [
+            "Tokens to reach the right file: Nexus-MCP 704, Grep and Read 36182 (98% fewer with Nexus-MCP).",
+            "Right file in the top 3: 83% against 47%."
+          ]
+        },
+        "results": [
+          {
+            "id": "concept-quicklistLZF",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 44166,
+              "ms": 498.1
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 7262,
+              "ms": 643.9
+            }
+          },
+          {
+            "id": "concept-rdbLoadSkipMetaIfAllowed",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 9650,
+              "ms": 404.5
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 594,
+              "ms": 101.3
+            }
+          },
+          {
+            "id": "concept-clusterSetNodeAsMaster",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 35947,
+              "ms": 295.5
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 740,
+              "ms": 37.3
+            }
+          },
+          {
+            "id": "concept-enterScriptTimedoutMode",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 51716,
+              "ms": 484.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1181,
+              "ms": 39.2
+            }
+          },
+          {
+            "id": "concept-lpFindCbInternal",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 64154,
+              "ms": 420.0
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26685,
+              "ms": 39.2
+            }
+          },
+          {
+            "id": "concept-addNodeToNodeReply",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 36418,
+              "ms": 709.8
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 1197,
+              "ms": 38.9
+            }
+          },
+          {
+            "id": "concept-RedisModuleDict",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 49843,
+              "ms": 377.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 544,
+              "ms": 38.9
+            }
+          },
+          {
+            "id": "concept-dictCheckRehashingCompleted",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 63747,
+              "ms": 435.1
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 59501,
+              "ms": 37.7
+            }
+          },
+          {
+            "id": "concept-parseExtendedStringArgumentsOrReply",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 65790,
+              "ms": 472.1
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 57190,
+              "ms": 40.3
+            }
+          },
+          {
+            "id": "concept-mstrhdr5",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 21396,
+              "ms": 864.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 860,
+              "ms": 39.2
+            }
+          },
+          {
+            "id": "described-geoArrayFree",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 36864,
+              "ms": 388.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 652,
+              "ms": 38.5
+            }
+          },
+          {
+            "id": "described-showLatencyDistLegend",
+            "kind": "described",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17798,
+              "ms": 752.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1334,
+              "ms": 36.8
+            }
+          },
+          {
+            "id": "described-connSocketSetWriteHandler",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 46445,
+              "ms": 611.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 980,
+              "ms": 38.1
+            }
+          },
+          {
+            "id": "described-asmIsAnyTrimJobOverlaps",
+            "kind": "described",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 19768,
+              "ms": 731.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1509,
+              "ms": 36.5
+            }
+          },
+          {
+            "id": "described-rdbLoadStreamIdmpEntries",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 62485,
+              "ms": 753.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 916,
+              "ms": 38.4
+            }
+          },
+          {
+            "id": "described-monotonicLogCallback",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 32905,
+              "ms": 422.9
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 668,
+              "ms": 36.8
+            }
+          },
+          {
+            "id": "described-quicklistLZF",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 47856,
+              "ms": 457.4
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 626,
+              "ms": 36.7
+            }
+          },
+          {
+            "id": "described-rdbLoadSkipMetaIfAllowed",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 62532,
+              "ms": 630.6
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 1871,
+              "ms": 38.0
+            }
+          },
+          {
+            "id": "described-createSortOperation",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 48976,
+              "ms": 339.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1524,
+              "ms": 38.1
+            }
+          },
+          {
+            "id": "described-RM_CallReplyLength",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 48676,
+              "ms": 279.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 641,
+              "ms": 37.5
+            }
+          },
+          {
+            "id": "lookup-geoArrayFree",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 9635,
+              "ms": 253.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 526,
+              "ms": 52.6
+            }
+          },
+          {
+            "id": "lookup-showLatencyDistLegend",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17612,
+              "ms": 257.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 556,
+              "ms": 52.8
+            }
+          },
+          {
+            "id": "lookup-connSocketSetWriteHandler",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 3869,
+              "ms": 257.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 916,
+              "ms": 51.8
+            }
+          },
+          {
+            "id": "lookup-asmIsAnyTrimJobOverlaps",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 19587,
+              "ms": 251.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 573,
+              "ms": 50.3
+            }
+          },
+          {
+            "id": "lookup-rdbLoadStreamIdmpEntries",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 18809,
+              "ms": 261.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 588,
+              "ms": 52.3
+            }
+          },
+          {
+            "id": "lookup-monotonicLogCallback",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 20161,
+              "ms": 258.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 541,
+              "ms": 50.9
+            }
+          },
+          {
+            "id": "lookup-quicklistLZF",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 40666,
+              "ms": 244.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 629,
+              "ms": 51.8
+            }
+          },
+          {
+            "id": "lookup-rdbLoadSkipMetaIfAllowed",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 9463,
+              "ms": 266.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 590,
+              "ms": 51.9
+            }
+          },
+          {
+            "id": "lookup-createSortOperation",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 6912,
+              "ms": 251.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 615,
+              "ms": 52.5
+            }
+          },
+          {
+            "id": "lookup-RM_CallReplyLength",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 22528,
+              "ms": 250.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 653,
+              "ms": 66.5
+            }
+          }
+        ]
+      },
+      "retrieval": {
+        "files": 229,
+        "chunks": 16967,
+        "index_seconds": 845.0,
+        "modes": {
+          "bm25": {
+            "hit@1": 0.2,
+            "hit@5": 0.7333333333333333,
+            "recall@5": 0.7,
+            "recall@10": 0.8333333333333334,
+            "mrr@10": 0.38222222222222224,
+            "queries": 15,
+            "median_query_ms": 5.3,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.21428571428571427,
+                "hit@5": 0.7142857142857143,
+                "recall@5": 0.6785714285714286,
+                "recall@10": 0.8214285714285714,
+                "mrr@10": 0.38571428571428573,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.3333333333333333,
+                "queries": 1
+              }
+            }
+          },
+          "vector": {
+            "hit@1": 0.4666666666666667,
+            "hit@5": 0.7333333333333333,
+            "recall@5": 0.7,
+            "recall@10": 0.9,
+            "mrr@10": 0.5823015873015873,
+            "queries": 15,
+            "median_query_ms": 30.9,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.5,
+                "hit@5": 0.7142857142857143,
+                "recall@5": 0.6785714285714286,
+                "recall@10": 0.8928571428571429,
+                "mrr@10": 0.5881802721088435,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.5,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-source-first": {
+            "hit@1": 0.4666666666666667,
+            "hit@5": 0.7333333333333333,
+            "recall@5": 0.7,
+            "recall@10": 0.9,
+            "mrr@10": 0.5838888888888889,
+            "queries": 15,
+            "median_query_ms": 26.1,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.42857142857142855,
+                "hit@5": 0.7142857142857143,
+                "recall@5": 0.6785714285714286,
+                "recall@10": 0.8928571428571429,
+                "mrr@10": 0.5541666666666666,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-exact": {
+            "hit@1": 0.4666666666666667,
+            "hit@5": 0.7333333333333333,
+            "recall@5": 0.7,
+            "recall@10": 0.9,
+            "mrr@10": 0.5838888888888889,
+            "queries": 15,
+            "median_query_ms": 25.9,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.42857142857142855,
+                "hit@5": 0.7142857142857143,
+                "recall@5": 0.6785714285714286,
+                "recall@10": 0.8928571428571429,
+                "mrr@10": 0.5541666666666666,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          }
+        }
+      },
+      "index_meta": {
+        "index_seconds": 2379.5,
+        "peak_rss_mb": 1039,
+        "embedding_model": "default",
+        "result": {
+          "total_files": 229,
+          "total_symbols": 16967,
+          "total_chunks": 16967,
+          "parse_errors": 1,
+          "graph_nodes": 228,
+          "graph_relationships": 0,
+          "time_seconds": 2376.0868151187897,
+          "files_added": 0,
+          "files_modified": 0,
+          "files_deleted": 0
+        }
+      },
+      "graph": {
+        "c": {
+          "files": 227,
+          "symbols": 16967,
+          "functions": 0,
+          "classes": 0,
+          "calls": 0,
+          "calls_per_fn": 0.0,
+          "fn_with_calls": 0.0
+        },
+        "ruby": {
+          "files": 1,
+          "symbols": 0,
+          "functions": 0,
+          "classes": 0,
+          "calls": 0,
+          "calls_per_fn": 0.0,
+          "fn_with_calls": 0.0
+        }
+      },
+      "live": {
+        "model": "sonnet",
+        "effort": "medium",
+        "reps": 3,
+        "isolation": [
+          "reduced"
+        ],
+        "errors": 0,
+        "conditions": {
+          "baseline": {
+            "n_tasks": 6,
+            "tasks_correct": 6,
+            "wasted_read_ratio": 0.0,
+            "wasted_read_ratio_iqr": 0.125,
+            "total_tokens": 41751.5,
+            "fresh_tokens": 4745.5,
+            "total_cost_usd": 0.031153200000000002,
+            "num_turns": 3.5,
+            "wall_seconds": 13.305
+          },
+          "nexus": {
+            "n_tasks": 6,
+            "tasks_correct": 6,
+            "wasted_read_ratio": 0.0,
+            "wasted_read_ratio_iqr": 0.55,
+            "total_tokens": 66515.5,
+            "fresh_tokens": 5422.0,
+            "total_cost_usd": 0.03978230000000001,
+            "num_turns": 4.0,
+            "wall_seconds": 21.134999999999998
+          }
+        }
+      }
+    },
+    "prometheus": {
+      "name": "prometheus",
+      "language": "Go",
+      "repo": "prometheus/prometheus",
+      "url": "https://github.com/prometheus/prometheus.git",
+      "pin": "4bfb6bb5b3dbecb86f81c687cae9885ecfefb3a2",
+      "label": "before",
+      "nexus_version": "2.2.2",
+      "nexus_ref": "0430f01d2f1196e51dd3f8a3602222a9f9c3f27f",
+      "index": "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/indexes/.venv-v2.2.2/prometheus",
+      "quick": {
+        "id": "20261105-174518-7ee7",
+        "created": "2026-11-05T17:45:18+00:00",
+        "source": {
+          "kind": "path",
+          "label": "prometheus",
+          "label_public": null,
+          "sha": null
+        },
+        "kept_index": false,
+        "env": {
+          "nexus_mcp_ci": "2.2.2",
+          "python": "3.12.13",
+          "os": "Darwin"
+        },
+        "tier": "quick",
+        "repo": {
+          "files": 201,
+          "chunks": 1818,
+          "size_band": "50-500 files",
+          "languages": [
+            "go"
+          ],
+          "index_seconds": 118.9
+        },
+        "questions": 30,
+        "seed": 7,
+        "summary": {
+          "grep": {
+            "questions": 30,
+            "hit_at_1": 0.4,
+            "hit_at_3": 0.633,
+            "median_tokens": 41033.5,
+            "median_ms": 603.1
+          },
+          "nexus": {
+            "questions": 30,
+            "hit_at_1": 0.833,
+            "hit_at_3": 0.967,
+            "median_tokens": 1231.0,
+            "median_ms": 24.8
+          }
+        },
+        "by_kind": {
+          "concept": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.4,
+              "hit_at_3": 0.9,
+              "median_tokens": 33706.0,
+              "median_ms": 1173.2
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.8,
+              "hit_at_3": 1.0,
+              "median_tokens": 1802.5,
+              "median_ms": 24.9
+            }
+          },
+          "described": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.0,
+              "hit_at_3": 0.2,
+              "median_tokens": 58908.5,
+              "median_ms": 603.1
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.8,
+              "hit_at_3": 0.9,
+              "median_tokens": 1169.5,
+              "median_ms": 23.4
+            }
+          },
+          "lookup": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.8,
+              "hit_at_3": 0.8,
+              "median_tokens": 8762.0,
+              "median_ms": 317.4
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.9,
+              "hit_at_3": 1.0,
+              "median_tokens": 1052.0,
+              "median_ms": 25.9
+            }
+          }
+        },
+        "verdict": {
+          "label": "Strong fit",
+          "token_saving": 0.97,
+          "hit3_gain": 0.334,
+          "reasons": [
+            "Tokens to reach the right file: Nexus-MCP 1231, Grep and Read 41034 (97% fewer with Nexus-MCP).",
+            "Right file in the top 3: 97% against 63%."
+          ]
+        },
+        "results": [
+          {
+            "id": "concept-EstimateCost",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 48347,
+              "ms": 1788.0
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 1893,
+              "ms": 617.4
+            }
+          },
+          {
+            "id": "concept-digitVal",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 8547,
+              "ms": 977.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 801,
+              "ms": 25.9
+            }
+          },
+          {
+            "id": "concept-quantile",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 73633,
+              "ms": 869.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2039,
+              "ms": 24.6
+            }
+          },
+          {
+            "id": "concept-repairLastChunkFile",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 9524,
+              "ms": 1411.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1600,
+              "ms": 24.9
+            }
+          },
+          {
+            "id": "concept-open",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 18529,
+              "ms": 1178.3
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1712,
+              "ms": 24.9
+            }
+          },
+          {
+            "id": "concept-inversePostingsForMatcher",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 24075,
+              "ms": 1168.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1032,
+              "ms": 29.1
+            }
+          },
+          {
+            "id": "concept-funcHistogramQuantile",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 60103,
+              "ms": 842.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2014,
+              "ms": 23.5
+            }
+          },
+          {
+            "id": "concept-xorWrite",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 45438,
+              "ms": 1983.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1170,
+              "ms": 24.4
+            }
+          },
+          {
+            "id": "concept-FindMinMaxTime",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17892,
+              "ms": 1774.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2131,
+              "ms": 30.3
+            }
+          },
+          {
+            "id": "concept-expandFloatSpansAndBuckets",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 43337,
+              "ms": 1069.5
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 2284,
+              "ms": 24.6
+            }
+          },
+          {
+            "id": "described-funcVector",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 45421,
+              "ms": 311.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 805,
+              "ms": 21.6
+            }
+          },
+          {
+            "id": "described-EstimateCost",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 38730,
+              "ms": 594.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1210,
+              "ms": 21.7
+            }
+          },
+          {
+            "id": "described-lexSpace",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 61303,
+              "ms": 204.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 970,
+              "ms": 22.2
+            }
+          },
+          {
+            "id": "described-readSTMarker",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 62680,
+              "ms": 550.1
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 790,
+              "ms": 23.7
+            }
+          },
+          {
+            "id": "described-digitVal",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 47397,
+              "ms": 328.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 941,
+              "ms": 23.6
+            }
+          },
+          {
+            "id": "described-allocateQueryLogFile",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 77626,
+              "ms": 642.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1252,
+              "ms": 22.7
+            }
+          },
+          {
+            "id": "described-repairLastChunkFile",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 68859,
+              "ms": 815.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1129,
+              "ms": 34.7
+            }
+          },
+          {
+            "id": "described-inversePostingsForMatcher",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 52345,
+              "ms": 897.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1564,
+              "ms": 23.5
+            }
+          },
+          {
+            "id": "described-labelNamesWithMatchers",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 73639,
+              "ms": 816.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1359,
+              "ms": 24.2
+            }
+          },
+          {
+            "id": "described-mmappedChunksDir",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 56514,
+              "ms": 611.8
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26106,
+              "ms": 23.2
+            }
+          },
+          {
+            "id": "lookup-funcVector",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 18399,
+              "ms": 313.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 839,
+              "ms": 26.2
+            }
+          },
+          {
+            "id": "lookup-EstimateCost",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 6684,
+              "ms": 321.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1862,
+              "ms": 25.5
+            }
+          },
+          {
+            "id": "lookup-lexSpace",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 8280,
+              "ms": 336.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 972,
+              "ms": 27.4
+            }
+          },
+          {
+            "id": "lookup-readSTMarker",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 10333,
+              "ms": 330.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 803,
+              "ms": 26.1
+            }
+          },
+          {
+            "id": "lookup-digitVal",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 8280,
+              "ms": 306.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1011,
+              "ms": 26.4
+            }
+          },
+          {
+            "id": "lookup-allocateQueryLogFile",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1663,
+              "ms": 300.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1093,
+              "ms": 25.7
+            }
+          },
+          {
+            "id": "lookup-quantile",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 64917,
+              "ms": 305.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1981,
+              "ms": 23.0
+            }
+          },
+          {
+            "id": "lookup-repairLastChunkFile",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 9244,
+              "ms": 332.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1601,
+              "ms": 26.0
+            }
+          },
+          {
+            "id": "lookup-open",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 2492,
+              "ms": 84.1
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 886,
+              "ms": 23.7
+            }
+          },
+          {
+            "id": "lookup-inversePostingsForMatcher",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 10652,
+              "ms": 335.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1504,
+              "ms": 25.1
+            }
+          }
+        ]
+      },
+      "retrieval": {
+        "files": 201,
+        "chunks": 1818,
+        "index_seconds": 115.1,
+        "modes": {
+          "bm25": {
+            "hit@1": 0.26666666666666666,
+            "hit@5": 0.6,
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr@10": 0.38555555555555554,
+            "queries": 15,
+            "median_query_ms": 4.7,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.21428571428571427,
+                "hit@5": 0.5714285714285714,
+                "recall@5": 0.4642857142857143,
+                "recall@10": 0.4642857142857143,
+                "mrr@10": 0.3416666666666667,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "vector": {
+            "hit@1": 0.4,
+            "hit@5": 0.6,
+            "recall@5": 0.5,
+            "recall@10": 0.5333333333333333,
+            "mrr@10": 0.5095238095238096,
+            "queries": 15,
+            "median_query_ms": 16.7,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.35714285714285715,
+                "hit@5": 0.5714285714285714,
+                "recall@5": 0.4642857142857143,
+                "recall@10": 0.5,
+                "mrr@10": 0.4744897959183674,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-source-first": {
+            "hit@1": 0.4,
+            "hit@5": 0.7333333333333333,
+            "recall@5": 0.6,
+            "recall@10": 0.7,
+            "mrr@10": 0.5505555555555556,
+            "queries": 15,
+            "median_query_ms": 11.5,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.35714285714285715,
+                "hit@5": 0.7142857142857143,
+                "recall@5": 0.5714285714285714,
+                "recall@10": 0.6785714285714286,
+                "mrr@10": 0.518452380952381,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-exact": {
+            "hit@1": 0.4,
+            "hit@5": 0.7333333333333333,
+            "recall@5": 0.6,
+            "recall@10": 0.7,
+            "mrr@10": 0.5505555555555556,
+            "queries": 15,
+            "median_query_ms": 11.4,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.35714285714285715,
+                "hit@5": 0.7142857142857143,
+                "recall@5": 0.5714285714285714,
+                "recall@10": 0.6785714285714286,
+                "mrr@10": 0.518452380952381,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          }
+        }
+      },
+      "index_meta": {
+        "index_seconds": 285.2,
+        "peak_rss_mb": 1026,
+        "embedding_model": "default",
+        "result": {
+          "total_files": 201,
+          "total_symbols": 1818,
+          "total_chunks": 1818,
+          "parse_errors": 0,
+          "graph_nodes": 3796,
+          "graph_relationships": 10182,
+          "time_seconds": 283.3134868144989,
+          "files_added": 0,
+          "files_modified": 0,
+          "files_deleted": 0
+        }
+      },
+      "graph": {
+        "go": {
+          "files": 201,
+          "symbols": 1818,
+          "functions": 3595,
+          "classes": 0,
+          "calls": 6587,
+          "calls_per_fn": 1.83,
+          "fn_with_calls": 0.606
+        }
+      },
+      "live": {
+        "model": "sonnet",
+        "effort": "medium",
+        "reps": 3,
+        "isolation": [
+          "reduced"
+        ],
+        "errors": 0,
+        "conditions": {
+          "baseline": {
+            "n_tasks": 6,
+            "tasks_correct": 5,
+            "wasted_read_ratio": 0.0,
+            "wasted_read_ratio_iqr": 0.0,
+            "total_tokens": 52014.5,
+            "fresh_tokens": 7227.0,
+            "total_cost_usd": 0.046853000000000006,
+            "num_turns": 4.5,
+            "wall_seconds": 18.465
+          },
+          "nexus": {
+            "n_tasks": 6,
+            "tasks_correct": 6,
+            "wasted_read_ratio": 0.6,
+            "wasted_read_ratio_iqr": 0.46666666666666673,
+            "total_tokens": 59481.5,
+            "fresh_tokens": 7197.0,
+            "total_cost_usd": 0.0430369,
+            "num_turns": 3.0,
+            "wall_seconds": 19.65
+          }
+        }
+      }
+    },
+    "tokio": {
+      "name": "tokio",
+      "language": "Rust",
+      "repo": "tokio-rs/tokio",
+      "url": "https://github.com/tokio-rs/tokio.git",
+      "pin": "695a07dd5e5baae82eb8b6931afa61029cd9b854",
+      "label": "before",
+      "nexus_version": "2.2.2",
+      "nexus_ref": "0430f01d2f1196e51dd3f8a3602222a9f9c3f27f",
+      "index": "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/indexes/.venv-v2.2.2/tokio",
+      "quick": {
+        "unsupported": true,
+        "reason": "No source code was indexed"
+      },
+      "retrieval": {
+        "files": 381,
+        "chunks": 0,
+        "index_seconds": 0.7,
+        "modes": {
+          "bm25": {
+            "hit@1": 0.0,
+            "hit@5": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "queries": 15,
+            "median_query_ms": 0.1,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 1
+              }
+            }
+          },
+          "vector": {
+            "hit@1": 0.0,
+            "hit@5": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "queries": 15,
+            "median_query_ms": 0.1,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-source-first": {
+            "hit@1": 0.0,
+            "hit@5": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "queries": 15,
+            "median_query_ms": 0.2,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-exact": {
+            "hit@1": 0.0,
+            "hit@5": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "queries": 15,
+            "median_query_ms": 0.2,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 0.0,
+                "mrr@10": 0.0,
+                "queries": 1
+              }
+            }
+          }
+        }
+      },
+      "index_meta": {
+        "index_seconds": 3.8,
+        "peak_rss_mb": 212,
+        "embedding_model": "default",
+        "result": {
+          "total_files": 381,
+          "total_symbols": 0,
+          "total_chunks": 0,
+          "parse_errors": 381,
+          "graph_nodes": 4746,
+          "graph_relationships": 7762,
+          "time_seconds": 1.564953088760376,
+          "files_added": 0,
+          "files_modified": 0,
+          "files_deleted": 0
+        }
+      },
+      "graph": {
+        "rust": {
+          "files": 381,
+          "symbols": 0,
+          "functions": 3865,
+          "classes": 500,
+          "calls": 3397,
+          "calls_per_fn": 0.88,
+          "fn_with_calls": 0.497
+        }
+      },
+      "live": {
+        "model": "sonnet",
+        "effort": "medium",
+        "reps": 3,
+        "isolation": [
+          "reduced"
+        ],
+        "errors": 0,
+        "conditions": {
+          "baseline": {
+            "n_tasks": 6,
+            "tasks_correct": 4,
+            "wasted_read_ratio": 0.0,
+            "wasted_read_ratio_iqr": 0.25,
+            "total_tokens": 41187.5,
+            "fresh_tokens": 4275.0,
+            "total_cost_usd": 0.028520500000000004,
+            "num_turns": 3.5,
+            "wall_seconds": 13.195
+          },
+          "nexus": {
+            "n_tasks": 6,
+            "tasks_correct": 5,
+            "wasted_read_ratio": 0.0,
+            "wasted_read_ratio_iqr": 0.0,
+            "total_tokens": 61816.0,
+            "fresh_tokens": 6072.0,
+            "total_cost_usd": 0.0406338,
+            "num_turns": 4.5,
+            "wall_seconds": 16.645
+          }
+        }
+      }
+    },
+    "newtonsoft-json": {
+      "name": "newtonsoft-json",
+      "language": "C#",
+      "repo": "JamesNK/Newtonsoft.Json",
+      "url": "https://github.com/JamesNK/Newtonsoft.Json.git",
+      "pin": "52fa3aef1f2cadcd3a3f874251eddc98d3efbbaa",
+      "label": "before",
+      "nexus_version": "2.2.2",
+      "nexus_ref": "0430f01d2f1196e51dd3f8a3602222a9f9c3f27f",
+      "quick": {
+        "error": "(str(filepath), universal_graph)\n  File \"/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-v2.2.2/lib/python3.12/site-packages/nexus_mcp/parsing/astgrep_parser.py\", line 214, in parse_file\n    root = SgRoot(content, ast_grep_id)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\npyo3_runtime.PanicException: called `Result::unwrap()` on an `Err` value: LanguageNotSupported(\"c_sharp\")\n"
+      },
+      "retrieval": {
+        "error": "    root = SgRoot(content, ast_grep_id) |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ | pyo3_runtime.PanicException: called `Result::unwrap()` on an `Err` value: LanguageNotSupported(\"c_sharp\")"
+      },
+      "index": {
+        "error": "Indexing /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/repos/newtonsoft-json with /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-v2.2.2 failed"
+      },
+      "index_meta": null
+    }
+  }
+}

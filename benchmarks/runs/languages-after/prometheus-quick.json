@@ -1,0 +1,585 @@
+{
+  "id": "20261106-060904-de5b",
+  "created": "2026-11-06T06:09:04+00:00",
+  "source": {
+    "kind": "path",
+    "label": "prometheus",
+    "label_public": null,
+    "sha": null
+  },
+  "kept_index": false,
+  "env": {
+    "nexus_mcp_ci": "2.2.2",
+    "python": "3.12.13",
+    "os": "Darwin"
+  },
+  "tier": "quick",
+  "repo": {
+    "files": 201,
+    "chunks": 1818,
+    "size_band": "50-500 files",
+    "languages": [
+      "go"
+    ],
+    "index_seconds": 117.5
+  },
+  "questions": 30,
+  "seed": 7,
+  "summary": {
+    "grep": {
+      "questions": 30,
+      "hit_at_1": 0.4,
+      "hit_at_3": 0.633,
+      "median_tokens": 41033.5,
+      "median_ms": 602.1
+    },
+    "nexus": {
+      "questions": 30,
+      "hit_at_1": 0.833,
+      "hit_at_3": 0.967,
+      "median_tokens": 1231.0,
+      "median_ms": 24.1
+    }
+  },
+  "by_kind": {
+    "concept": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.4,
+        "hit_at_3": 0.9,
+        "median_tokens": 33706.0,
+        "median_ms": 1168.9
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.8,
+        "hit_at_3": 1.0,
+        "median_tokens": 1802.5,
+        "median_ms": 24.8
+      }
+    },
+    "described": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.0,
+        "hit_at_3": 0.2,
+        "median_tokens": 58908.5,
+        "median_ms": 602.1
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.8,
+        "hit_at_3": 0.9,
+        "median_tokens": 1169.5,
+        "median_ms": 22.9
+      }
+    },
+    "lookup": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.8,
+        "hit_at_3": 0.8,
+        "median_tokens": 8762.0,
+        "median_ms": 315.0
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.9,
+        "hit_at_3": 1.0,
+        "median_tokens": 1052.0,
+        "median_ms": 25.5
+      }
+    }
+  },
+  "verdict": {
+    "label": "Strong fit",
+    "token_saving": 0.97,
+    "hit3_gain": 0.334,
+    "reasons": [
+      "Tokens to reach the right file: Nexus-MCP 1231, Grep and Read 41034 (97% fewer with Nexus-MCP).",
+      "Right file in the top 3: 97% against 63%."
+    ]
+  },
+  "results": [
+    {
+      "id": "concept-EstimateCost",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 48347,
+        "ms": 1773.6
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1893,
+        "ms": 589.4
+      }
+    },
+    {
+      "id": "concept-digitVal",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 8547,
+        "ms": 976.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 801,
+        "ms": 25.6
+      }
+    },
+    {
+      "id": "concept-quantile",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 73633,
+        "ms": 870.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2039,
+        "ms": 24.7
+      }
+    },
+    {
+      "id": "concept-repairLastChunkFile",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 9524,
+        "ms": 1399.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1600,
+        "ms": 23.8
+      }
+    },
+    {
+      "id": "concept-open",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 18529,
+        "ms": 1172.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1712,
+        "ms": 24.0
+      }
+    },
+    {
+      "id": "concept-inversePostingsForMatcher",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 24075,
+        "ms": 1165.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1032,
+        "ms": 28.1
+      }
+    },
+    {
+      "id": "concept-funcHistogramQuantile",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 60103,
+        "ms": 842.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2014,
+        "ms": 23.0
+      }
+    },
+    {
+      "id": "concept-xorWrite",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 45438,
+        "ms": 1979.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1170,
+        "ms": 24.1
+      }
+    },
+    {
+      "id": "concept-FindMinMaxTime",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 17892,
+        "ms": 1770.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2131,
+        "ms": 30.1
+      }
+    },
+    {
+      "id": "concept-expandFloatSpansAndBuckets",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 43337,
+        "ms": 1071.6
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 2284,
+        "ms": 24.9
+      }
+    },
+    {
+      "id": "described-funcVector",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 45421,
+        "ms": 310.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 805,
+        "ms": 21.2
+      }
+    },
+    {
+      "id": "described-EstimateCost",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 38730,
+        "ms": 593.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1210,
+        "ms": 21.2
+      }
+    },
+    {
+      "id": "described-lexSpace",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 61303,
+        "ms": 204.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 970,
+        "ms": 22.2
+      }
+    },
+    {
+      "id": "described-readSTMarker",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 62680,
+        "ms": 551.8
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 790,
+        "ms": 23.5
+      }
+    },
+    {
+      "id": "described-digitVal",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 47397,
+        "ms": 327.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 941,
+        "ms": 23.2
+      }
+    },
+    {
+      "id": "described-allocateQueryLogFile",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 77626,
+        "ms": 639.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1252,
+        "ms": 22.8
+      }
+    },
+    {
+      "id": "described-repairLastChunkFile",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 68859,
+        "ms": 817.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1129,
+        "ms": 34.5
+      }
+    },
+    {
+      "id": "described-inversePostingsForMatcher",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 52345,
+        "ms": 898.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1564,
+        "ms": 23.0
+      }
+    },
+    {
+      "id": "described-labelNamesWithMatchers",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 73639,
+        "ms": 817.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1359,
+        "ms": 24.0
+      }
+    },
+    {
+      "id": "described-mmappedChunksDir",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 56514,
+        "ms": 610.9
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 26106,
+        "ms": 22.8
+      }
+    },
+    {
+      "id": "lookup-funcVector",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 18399,
+        "ms": 311.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 839,
+        "ms": 26.0
+      }
+    },
+    {
+      "id": "lookup-EstimateCost",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 6684,
+        "ms": 318.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1862,
+        "ms": 24.0
+      }
+    },
+    {
+      "id": "lookup-lexSpace",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 8280,
+        "ms": 337.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 972,
+        "ms": 25.9
+      }
+    },
+    {
+      "id": "lookup-readSTMarker",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 10333,
+        "ms": 327.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 803,
+        "ms": 25.4
+      }
+    },
+    {
+      "id": "lookup-digitVal",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 8280,
+        "ms": 307.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1011,
+        "ms": 25.6
+      }
+    },
+    {
+      "id": "lookup-allocateQueryLogFile",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1663,
+        "ms": 299.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1093,
+        "ms": 26.2
+      }
+    },
+    {
+      "id": "lookup-quantile",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 64917,
+        "ms": 306.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1981,
+        "ms": 22.7
+      }
+    },
+    {
+      "id": "lookup-repairLastChunkFile",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 9244,
+        "ms": 332.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1601,
+        "ms": 26.0
+      }
+    },
+    {
+      "id": "lookup-open",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 2492,
+        "ms": 84.0
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 886,
+        "ms": 23.6
+      }
+    },
+    {
+      "id": "lookup-inversePostingsForMatcher",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 10652,
+        "ms": 334.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1504,
+        "ms": 25.1
+      }
+    }
+  ]
+}

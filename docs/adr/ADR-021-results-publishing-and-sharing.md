@@ -13,6 +13,9 @@ would help other people decide, but the project has no telemetry and must not ge
 
 - `benchmarks/published/results.json` (schema v1) is the only place a published number is
   written by hand.
+- Schema v2 (2026-11-05) adds an optional `languages` list: one entry for each language, with
+  a `before` run and an optional `after` run. A v1 file still works. `publish_results.py`
+  refuses an unknown `schema_version`.
 - `scripts/publish_results.py` generates the README glance table, the site results rows, the
   llms.txt section and `site/benchmarks.{html,json,csv}`. Generated blocks sit between
   `<!-- results:start -->` and `<!-- results:end -->`. CI runs it with `--check`.

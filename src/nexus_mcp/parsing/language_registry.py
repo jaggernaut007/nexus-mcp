@@ -46,30 +46,33 @@ EXTENSION_MAP: Dict[str, str] = {
     # Kotlin
     ".kt": "kotlin",
     ".kts": "kotlin",
-    # Rust (ast-grep only)
+    # Rust
     ".rs": "rust",
     # Ruby (ast-grep only)
     ".rb": "ruby",
     ".erb": "ruby",
-    # PHP (ast-grep only)
+    # PHP
     ".php": "php",
     # Swift (ast-grep only)
     ".swift": "swift",
-    # C# (ast-grep only)
+    # C#
     ".cs": "csharp",
     # Scala (ast-grep only)
     ".scala": "scala",
     # Lua (ast-grep only)
     ".lua": "lua",
-    # Dart (ast-grep only)
+    # Dart (no parser: ast-grep-py ships no Dart grammar)
     ".dart": "dart",
 }
 
 # Languages supported by tree-sitter parser (symbol extraction)
 TREESITTER_LANGUAGES = {
     "python", "javascript", "typescript", "c", "cpp",
-    "bash", "go", "java", "kotlin",
+    "bash", "go", "java", "kotlin", "rust", "php", "csharp",
 }
+
+# Grammar names in tree-sitter-languages that differ from the language name.
+TREESITTER_GRAMMARS: Dict[str, str] = {"csharp": "c_sharp"}
 
 # Languages supported by ast-grep parser (structural analysis)
 ASTGREP_LANGUAGES = {
@@ -184,6 +187,56 @@ LANGUAGE_CONFIGS: Dict[str, Dict[str, list]] = {
         "docstring_field": "comment",
         "identifier_field": "simple_identifier",
         "body_field": "class_body",
+    },
+    # Rust, PHP and C# put the doc comment before the item (`///`, `/** */`), so
+    # "doc_comment": "leading" reads it from there. "scope_types" are nodes that open a
+    # class scope but give no symbol: `impl Point { fn new() }` makes `new` a method of
+    # `Point`, and the scope name comes from the given field.
+    "rust": {
+        "function_types": ["function_item"],
+        "class_types": ["struct_item", "enum_item", "union_item", "trait_item"],
+        "method_types": ["function_item"],
+        "scope_types": {"impl_item": "type"},
+        "constant_types": ["const_item", "static_item"],
+        "import_types": ["use_declaration"],
+        "call_types": ["call_expression"],
+        "docstring_field": "comment",
+        "doc_comment": "leading",
+        "identifier_field": "name",
+        "body_field": "body",
+    },
+    "php": {
+        "function_types": ["function_definition"],
+        "class_types": [
+            "class_declaration", "interface_declaration", "trait_declaration",
+            "enum_declaration",
+        ],
+        "method_types": ["method_declaration"],
+        "constant_types": [],
+        "import_types": ["namespace_use_declaration"],
+        "call_types": [
+            "function_call_expression", "member_call_expression", "scoped_call_expression",
+            "object_creation_expression",
+        ],
+        "docstring_field": "comment",
+        "doc_comment": "leading",
+        "identifier_field": "name",
+        "body_field": "body",
+    },
+    "csharp": {
+        "function_types": ["local_function_statement"],
+        "class_types": [
+            "class_declaration", "interface_declaration", "struct_declaration",
+            "enum_declaration", "record_declaration",
+        ],
+        "method_types": ["method_declaration", "constructor_declaration"],
+        "constant_types": [],
+        "import_types": ["using_directive"],
+        "call_types": ["invocation_expression", "object_creation_expression"],
+        "docstring_field": "comment",
+        "doc_comment": "leading",
+        "identifier_field": "name",
+        "body_field": "body",
     },
 }
 

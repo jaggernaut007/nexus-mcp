@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nexus-mcp-ci"
-version = "2.2.2"
+version = "2.4.0"
 description = "Local code-intelligence MCP server for Claude Code, Codex and Cursor: hybrid code search, call graph and project memory in fewer tokens. Measure it on your repo with `nexus-mcp-ci eval`."
 readme = "README.md"
 license = "PolyForm-Noncommercial-1.0.0"

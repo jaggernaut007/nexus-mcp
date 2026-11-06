@@ -1,0 +1,585 @@
+{
+  "id": "20261106-105812-bfdf",
+  "created": "2026-11-06T10:58:12+00:00",
+  "source": {
+    "kind": "path",
+    "label": "tokio",
+    "label_public": null,
+    "sha": null
+  },
+  "kept_index": false,
+  "env": {
+    "nexus_mcp_ci": "2.2.2",
+    "python": "3.12.13",
+    "os": "Darwin"
+  },
+  "tier": "quick",
+  "repo": {
+    "files": 381,
+    "chunks": 4733,
+    "size_band": "50-500 files",
+    "languages": [
+      "rust"
+    ],
+    "index_seconds": 257.4
+  },
+  "questions": 30,
+  "seed": 7,
+  "summary": {
+    "grep": {
+      "questions": 30,
+      "hit_at_1": 0.333,
+      "hit_at_3": 0.7,
+      "median_tokens": 21138.0,
+      "median_ms": 214.7
+    },
+    "nexus": {
+      "questions": 30,
+      "hit_at_1": 0.933,
+      "hit_at_3": 1.0,
+      "median_tokens": 829.5,
+      "median_ms": 26.6
+    }
+  },
+  "by_kind": {
+    "concept": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.6,
+        "hit_at_3": 0.9,
+        "median_tokens": 11770.5,
+        "median_ms": 507.9
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.9,
+        "hit_at_3": 1.0,
+        "median_tokens": 810.0,
+        "median_ms": 26.6
+      }
+    },
+    "described": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.1,
+        "hit_at_3": 0.5,
+        "median_tokens": 30356.5,
+        "median_ms": 204.4
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.9,
+        "hit_at_3": 1.0,
+        "median_tokens": 794.0,
+        "median_ms": 26.1
+      }
+    },
+    "lookup": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.3,
+        "hit_at_3": 0.7,
+        "median_tokens": 23448.0,
+        "median_ms": 100.3
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "median_tokens": 878.5,
+        "median_ms": 40.0
+      }
+    }
+  },
+  "verdict": {
+    "label": "Strong fit",
+    "token_saving": 0.961,
+    "hit3_gain": 0.3,
+    "reasons": [
+      "Tokens to reach the right file: Nexus-MCP 830, Grep and Read 21138 (96% fewer with Nexus-MCP).",
+      "Right file in the top 3: 100% against 70%."
+    ]
+  },
+  "results": [
+    {
+      "id": "concept-ServerOptions.reject_remote_clients",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 18641,
+        "ms": 548.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 881,
+        "ms": 668.3
+      }
+    },
+    {
+      "id": "concept-Pack.then",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 807,
+        "ms": 485.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 643,
+        "ms": 27.8
+      }
+    },
+    {
+      "id": "concept-Child.start_kill",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 15479,
+        "ms": 587.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 888,
+        "ms": 26.6
+      }
+    },
+    {
+      "id": "concept-Handle.current",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 6982,
+        "ms": 455.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 670,
+        "ms": 25.4
+      }
+    },
+    {
+      "id": "concept-Sender.try_reserve_owned",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 52661,
+        "ms": 530.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 961,
+        "ms": 26.6
+      }
+    },
+    {
+      "id": "concept-Sender.blocking_send",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 42662,
+        "ms": 422.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 711,
+        "ms": 26.5
+      }
+    },
+    {
+      "id": "concept-Builder.max_io_events_per_busy_tick",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 38711,
+        "ms": 567.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 840,
+        "ms": 27.6
+      }
+    },
+    {
+      "id": "concept-TimerShared.extend_expiration",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 6194,
+        "ms": 441.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 780,
+        "ms": 24.8
+      }
+    },
+    {
+      "id": "concept-Wheel.take_expired",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 8062,
+        "ms": 446.0
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1112,
+        "ms": 26.2
+      }
+    },
+    {
+      "id": "concept-TimerHandle.set_expiration",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 6173,
+        "ms": 683.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 775,
+        "ms": 25.0
+      }
+    },
+    {
+      "id": "described-Snapshot.set_notified",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 19871,
+        "ms": 234.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1396,
+        "ms": 26.2
+      }
+    },
+    {
+      "id": "described-ServerOptions.reject_remote_clients",
+      "kind": "described",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 18702,
+        "ms": 453.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 914,
+        "ms": 26.3
+      }
+    },
+    {
+      "id": "described-Pack.then",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 21138,
+        "ms": 96.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 637,
+        "ms": 25.8
+      }
+    },
+    {
+      "id": "described-Child.start_kill",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 36132,
+        "ms": 253.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 732,
+        "ms": 24.0
+      }
+    },
+    {
+      "id": "described-try_join3",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1024,
+        "ms": 157.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1027,
+        "ms": 28.8
+      }
+    },
+    {
+      "id": "described-Handle.current",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 25758,
+        "ms": 93.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 671,
+        "ms": 25.6
+      }
+    },
+    {
+      "id": "described-collect_list",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 52058,
+        "ms": 157.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 769,
+        "ms": 26.6
+      }
+    },
+    {
+      "id": "described-get_peer_cred",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 34955,
+        "ms": 227.6
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 819,
+        "ms": 26.0
+      }
+    },
+    {
+      "id": "described-Sender.try_reserve_owned",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 37805,
+        "ms": 310.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 948,
+        "ms": 26.4
+      }
+    },
+    {
+      "id": "described-BudgetDecrement",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 38563,
+        "ms": 181.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 754,
+        "ms": 25.6
+      }
+    },
+    {
+      "id": "lookup-Snapshot.set_notified",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 5534,
+        "ms": 200.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1399,
+        "ms": 51.5
+      }
+    },
+    {
+      "id": "lookup-ServerOptions.reject_remote_clients",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 18307,
+        "ms": 201.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 921,
+        "ms": 43.2
+      }
+    },
+    {
+      "id": "lookup-Pack.then",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 21138,
+        "ms": 96.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 673,
+        "ms": 24.4
+      }
+    },
+    {
+      "id": "lookup-Child.start_kill",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 35875,
+        "ms": 189.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 667,
+        "ms": 48.5
+      }
+    },
+    {
+      "id": "lookup-try_join3",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 728,
+        "ms": 101.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1073,
+        "ms": 49.7
+      }
+    },
+    {
+      "id": "lookup-Handle.current",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 25758,
+        "ms": 93.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 651,
+        "ms": 26.6
+      }
+    },
+    {
+      "id": "lookup-Idle",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 37451,
+        "ms": 89.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 712,
+        "ms": 24.7
+      }
+    },
+    {
+      "id": "lookup-collect_list",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 6105,
+        "ms": 99.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 841,
+        "ms": 51.1
+      }
+    },
+    {
+      "id": "lookup-get_peer_cred",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 34655,
+        "ms": 98.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1377,
+        "ms": 35.8
+      }
+    },
+    {
+      "id": "lookup-Sender.try_reserve_owned",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 37741,
+        "ms": 185.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 916,
+        "ms": 36.7
+      }
+    }
+  ]
+}

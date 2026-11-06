@@ -37,8 +37,8 @@ Cline, Continue and Goose.
 
 ## Which languages are supported?
 
-25+ languages get symbols and search. Python, JavaScript, TypeScript, Go, Java and Rust also get
-graph nodes and static call edges.
+12 languages get symbols and search: Python, JavaScript, TypeScript, Go, Java, Rust, C, C++, C# and PHP, Bash and Kotlin.
+All but Bash and Kotlin also get graph nodes and static call edges.
 
 ## How does it compare with Serena and claude-context?
 

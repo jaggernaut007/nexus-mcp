@@ -1,0 +1,11 @@
+{
+  "rust": {
+    "files": 381,
+    "symbols": 0,
+    "functions": 3865,
+    "classes": 500,
+    "calls": 3397,
+    "calls_per_fn": 0.88,
+    "fn_with_calls": 0.497
+  }
+}

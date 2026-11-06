@@ -20,7 +20,8 @@ last file is parsed.
 - `parsing/astgrep_parser.py` stores on each function node `metadata["calls"]`
   (normalised dotted names) and `metadata["parent_class"]`. It stores on each module
   node `metadata["imports"]`. Call kinds exist for Python, JavaScript, TypeScript,
-  Go, Java and Rust.
+  Go, Java, Rust, C, C++, C# and PHP (C, C++, C# and PHP since 2026-11-05; see
+  "Amendment: C, C++, C# and PHP" below).
 - `indexing/call_resolver.py` runs after the last batch in all four index paths
   (`index`, `incremental_index`, `_incremental_multi_index`, `multi_index`). It
   removes every `CALLS` edge and rebuilds them from node metadata. A rebuild is
@@ -36,8 +37,8 @@ last file is parsed.
   - Relative imports resolve from the caller's directory, so `from .store import x`
     does not match a `store.py` in another package. A candidate in another
     language never matches.
-  - Java calls its own methods without a receiver, so a plain call also matches
-    methods of the caller's own class there.
+  - Java, C++ and C# call their own methods without a receiver, so a plain call
+    also matches methods of the caller's own class there.
   - Dunder calls (`__init__`, ...) never resolve.
   - A plain call in Python, JavaScript or TypeScript never resolves outside the
     same file and the imports. Otherwise a parameter named `callback` would link
@@ -84,4 +85,44 @@ last file is parsed.
   Python docstrings to graph nodes. Before it, `analyze` complexity was always zero.
   Only Python counts `and`/`or`.
 - `INHERITS` edges are still not extracted.
+
+## Amendment: C, C++, C# and PHP (2026-11-05)
+
+The parser had no function, class or call kinds for C, C++, C# and PHP, so these
+languages gave module nodes only. The same rules now apply to them, with these
+additions. Precision still comes first.
+
+- **Graph nodes.** C and C++ functions take their name and scope from the declarator,
+  with the same helper as the tree-sitter parser (`c_declarator_name`). An out-of-line
+  `void Widget::Paint()` is a method of `Widget`. A struct, union or class without a
+  body (`struct point p;`, `class Foo;`) is not a class node. A C++ class head is
+  masked for export macros first (`class BASE_EXPORT Foo`), and a `.h` file with C++
+  syntax is parsed as C++. A declarator named like a keyword (`namespace` after an
+  unknown macro) is a misparse and gives no node.
+- **Constructors.** A C++ or C# constructor has the name of its class. When the class
+  and its constructor are both candidates of a plain call (`new Order()`), the class is
+  the callee, as for a Python class.
+- **C has no methods.** `ops->read()` in C calls through a function pointer, so a call
+  on a receiver never resolves in C.
+- **C and C++ are one group.** A C++ caller can resolve to a C callee and the reverse,
+  because a `.h` file can be either.
+- **Includes are imports.** `#include "util.h"` imports the module path `util`, so the
+  imported tier holds `util.h` and `util.c` (or `util.cc`). `<...>` includes are not
+  imports.
+- **C++ `ns::f()`.** A call through `::` whose qualifier is not a class is a free
+  function in a namespace. It resolves like a plain call. A call through `std::` never
+  resolves. `obj.f()` and `ptr->f()` stay calls on a receiver of unknown type.
+- **PHP.** `$this->m()`, `self::m()` and `static::m()` are calls on the own class.
+  `parent::m()` is a `super` call. `Helper::m()` is a class call. A namespace prefix
+  (`\App\fmt()`) is dropped. `use App\Support\Helper;` imports the last two parts
+  (`Support/Helper`), because a PSR-4 root such as `App` is often not a folder name.
+- **C#.** `base.M()` is a `super` call. `using` names a namespace, not a file, so C#
+  has no imported tier. `new Order()` resolves to the class `Order`.
+- **Super calls by unique name.** In C# and PHP the base class is often in a file that
+  is not imported. There a `super` call that has no candidate in the same or an imported
+  file resolves when one method of another class has the name.
+- **Method names of library types.** C# and C++ call library methods with names that
+  the Python list does not have (`Add`, `ToString`, `push_back`, `size`). A call
+  through a receiver of unknown type with one of these names does not resolve. For C#
+  the check ignores case.
 - The routing eval and the benchmark can now test the graph tools on real data.

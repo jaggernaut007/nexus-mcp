@@ -1,0 +1,585 @@
+{
+  "id": "20261106-074054-1e0f",
+  "created": "2026-11-06T07:40:54+00:00",
+  "source": {
+    "kind": "path",
+    "label": "laravel",
+    "label_public": null,
+    "sha": null
+  },
+  "kept_index": false,
+  "env": {
+    "nexus_mcp_ci": "2.2.2",
+    "python": "3.12.13",
+    "os": "Darwin"
+  },
+  "tier": "quick",
+  "repo": {
+    "files": 1751,
+    "chunks": 16119,
+    "size_band": "500-5k files",
+    "languages": [
+      "php"
+    ],
+    "index_seconds": 880.4
+  },
+  "questions": 30,
+  "seed": 7,
+  "summary": {
+    "grep": {
+      "questions": 30,
+      "hit_at_1": 0.5,
+      "hit_at_3": 0.8,
+      "median_tokens": 13479.0,
+      "median_ms": 712.4
+    },
+    "nexus": {
+      "questions": 30,
+      "hit_at_1": 0.833,
+      "hit_at_3": 0.9,
+      "median_tokens": 1086.0,
+      "median_ms": 39.3
+    }
+  },
+  "by_kind": {
+    "concept": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.5,
+        "hit_at_3": 0.9,
+        "median_tokens": 17211.5,
+        "median_ms": 844.4
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.9,
+        "hit_at_3": 1.0,
+        "median_tokens": 969.0,
+        "median_ms": 39.2
+      }
+    },
+    "described": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.3,
+        "hit_at_3": 0.5,
+        "median_tokens": 65463.0,
+        "median_ms": 712.4
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.6,
+        "hit_at_3": 0.7,
+        "median_tokens": 1086.0,
+        "median_ms": 37.7
+      }
+    },
+    "lookup": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.7,
+        "hit_at_3": 1.0,
+        "median_tokens": 6219.0,
+        "median_ms": 451.8
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "median_tokens": 1147.0,
+        "median_ms": 53.4
+      }
+    }
+  },
+  "verdict": {
+    "label": "Likely fit",
+    "token_saving": 0.919,
+    "hit3_gain": 0.1,
+    "reasons": [
+      "Tokens to reach the right file: Nexus-MCP 1086, Grep and Read 13479 (92% fewer with Nexus-MCP).",
+      "Right file in the top 3: 90% against 80%."
+    ]
+  },
+  "results": [
+    {
+      "id": "concept-Handler.buildContextForException",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 9456,
+        "ms": 770.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 833,
+        "ms": 721.9
+      }
+    },
+    {
+      "id": "concept-MessageSelector.extractFromString",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 62508,
+        "ms": 851.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1413,
+        "ms": 39.4
+      }
+    },
+    {
+      "id": "concept-Repository.exceptHidden",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 4772,
+        "ms": 1289.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 754,
+        "ms": 38.1
+      }
+    },
+    {
+      "id": "concept-ManagesFrequencies.yearlyOn",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 4517,
+        "ms": 1517.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 847,
+        "ms": 36.6
+      }
+    },
+    {
+      "id": "concept-HasAttributes.fillJsonAttribute",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 74299,
+        "ms": 837.0
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1398,
+        "ms": 39.1
+      }
+    },
+    {
+      "id": "concept-Application.eventsAreCached",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 19563,
+        "ms": 764.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1139,
+        "ms": 37.6
+      }
+    },
+    {
+      "id": "concept-Blueprint.nullableNumericMorphs",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 14860,
+        "ms": 1670.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1012,
+        "ms": 39.3
+      }
+    },
+    {
+      "id": "concept-ComponentTagCompiler.parseComponentTagStyleStatements",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 7313,
+        "ms": 1719.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1147,
+        "ms": 39.7
+      }
+    },
+    {
+      "id": "concept-UrlGenerator.setSessionResolver",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 20373,
+        "ms": 789.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 785,
+        "ms": 39.6
+      }
+    },
+    {
+      "id": "concept-Blueprint.vectorIndex",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 89614,
+        "ms": 810.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 926,
+        "ms": 38.5
+      }
+    },
+    {
+      "id": "described-Handler.buildContextForException",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 79040,
+        "ms": 736.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 782,
+        "ms": 37.6
+      }
+    },
+    {
+      "id": "described-MessageSelector.extractFromString",
+      "kind": "described",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 3588,
+        "ms": 752.9
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 21977,
+        "ms": 39.1
+      }
+    },
+    {
+      "id": "described-CompilesTranslations",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 8299,
+        "ms": 456.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1082,
+        "ms": 37.7
+      }
+    },
+    {
+      "id": "described-Repository.exceptHidden",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 77141,
+        "ms": 575.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 736,
+        "ms": 36.5
+      }
+    },
+    {
+      "id": "described-ManagesFrequencies.yearlyOn",
+      "kind": "described",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 4106,
+        "ms": 688.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 792,
+        "ms": 36.8
+      }
+    },
+    {
+      "id": "described-MaxAttemptsExceededException",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 63787,
+        "ms": 785.5
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 3535,
+        "ms": 132.6
+      }
+    },
+    {
+      "id": "described-HasAttributes.fillJsonAttribute",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 75653,
+        "ms": 756.6
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1382,
+        "ms": 38.2
+      }
+    },
+    {
+      "id": "described-Application.eventsAreCached",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 71178,
+        "ms": 593.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1090,
+        "ms": 37.7
+      }
+    },
+    {
+      "id": "described-FileNotFoundException",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 67139,
+        "ms": 486.7
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 16439,
+        "ms": 39.2
+      }
+    },
+    {
+      "id": "described-Blueprint.nullableNumericMorphs",
+      "kind": "described",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 14822,
+        "ms": 903.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1009,
+        "ms": 37.5
+      }
+    },
+    {
+      "id": "lookup-Handler.buildContextForException",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 9751,
+        "ms": 443.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1198,
+        "ms": 61.2
+      }
+    },
+    {
+      "id": "lookup-MessageSelector.extractFromString",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 3034,
+        "ms": 504.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1462,
+        "ms": 70.7
+      }
+    },
+    {
+      "id": "lookup-CompilesTranslations",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 7648,
+        "ms": 237.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1096,
+        "ms": 51.8
+      }
+    },
+    {
+      "id": "lookup-Repository.exceptHidden",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 4790,
+        "ms": 459.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 781,
+        "ms": 53.1
+      }
+    },
+    {
+      "id": "lookup-ManagesFrequencies.yearlyOn",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 3975,
+        "ms": 466.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1278,
+        "ms": 67.8
+      }
+    },
+    {
+      "id": "lookup-MaxAttemptsExceededException",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 179,
+        "ms": 254.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 905,
+        "ms": 52.6
+      }
+    },
+    {
+      "id": "lookup-HasAttributes.fillJsonAttribute",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 14737,
+        "ms": 470.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1443,
+        "ms": 68.7
+      }
+    },
+    {
+      "id": "lookup-Application.eventsAreCached",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 12482,
+        "ms": 438.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 834,
+        "ms": 53.0
+      }
+    },
+    {
+      "id": "lookup-FileNotFoundException",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 3741,
+        "ms": 240.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 841,
+        "ms": 53.7
+      }
+    },
+    {
+      "id": "lookup-Blueprint.nullableNumericMorphs",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 14476,
+        "ms": 469.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1447,
+        "ms": 52.4
+      }
+    }
+  ]
+}

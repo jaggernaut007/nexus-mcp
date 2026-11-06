@@ -1,0 +1,11 @@
+{
+  "python": {
+    "files": 83,
+    "symbols": 1632,
+    "functions": 1462,
+    "classes": 160,
+    "calls": 765,
+    "calls_per_fn": 0.52,
+    "fn_with_calls": 0.35
+  }
+}

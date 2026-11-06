@@ -1,0 +1,470 @@
++ benchmarks/install_nexus.sh HEAD final
+Using CPython 3.12.13
+Creating virtual environment at: benchmarks/.venv-final
+Activate with: source benchmarks/.venv-final/bin/activate
+Using Python 3.12.13 environment at: benchmarks/.venv-final
+   Updating file:///Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench (11cfcccbc86bc0c6668eb927b5173e61378ae553)
+    Updated file:///Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench (11cfcccbc86bc0c6668eb927b5173e61378ae553)
+Resolved 110 packages in 1.25s
+   Building nexus-mcp-ci @ git+file:///Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench@11cfcccbc86bc0c6668eb927b5173e61378ae553
+      Built nexus-mcp-ci @ git+file:///Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench@11cfcccbc86bc0c6668eb927b5173e61378ae553
+Prepared 1 package in 359ms
+Installed 110 packages in 827ms
+ + aiofile==3.12.3
+ + annotated-doc==0.0.5
+ + annotated-types==0.8.0
+ + anyio==4.16.0
+ + ast-grep-py==0.51.1
+ + attrs==26.1.0
+ + authlib==1.9.5
+ + beartype==0.23.1
+ + cachetools==7.3.0
+ + caio==0.12.10
+ + certifi==2026.10.23
+ + cffi==2.1.1
+ + click==8.5.0
+ + cloudpickle==3.1.2
+ + coloredlogs==15.0.1
+ + cryptography==50.0.2
+ + cyclopts==5.3.3
+ + deprecation==2.1.0
+ + dnspython==2.9.2
+ + docstring-parser==0.18.0
+ + email-validator==2.3.0
+ + exceptiongroup==1.3.1
+ + fastmcp==4.1.6
+ + fastmcp-slim==4.1.6
+ + filelock==4.2.9
+ + flatbuffers==25.12.19
+ + fsspec==2026.9.0
+ + griffelib==2.4.1
+ + h11==0.16.0
+ + hf-xet==1.8.0
+ + httpcore2==2.16.0
+ + httpx2==2.16.0
+ + huggingface-hub==2.4.0
+ + humanfriendly==10.0
+ + idna==3.20
+ + jinja2==3.1.6
+ + joblib==1.6.0
+ + joserfc==1.8.0
+ + jsonref==1.1.0
+ + jsonschema==4.26.0
+ + jsonschema-path==0.5.0
+ + jsonschema-specifications==2025.9.1
+ + lance-namespace==0.13.0
+ + lance-namespace-urllib3-client==0.13.0
+ + lancedb==0.41.0
+ + markdown-it-py==4.2.0
+ + markupsafe==3.0.4
+ + mcp==2.3.0
+ + mcp-types==2.3.0
+ + mdurl==0.1.2
+ + mpmath==1.3.0
+ + narwhals==2.28.0
+ + networkx==3.7
+ + nexus-mcp-ci==2.2.2 (from git+file:///Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench@11cfcccbc86bc0c6668eb927b5173e61378ae553)
+ + numpy==2.5.4
+ + onnxruntime==1.23.2
+ + openapi-pydantic==0.6.0
+ + opentelemetry-api==1.45.2
+ + optimum==2.3.0
+ + packaging==26.3
+ + pathable==0.6.0
+ + pathspec==1.1.1
+ + platformdirs==4.14.5
+ + protobuf==7.36.2
+ + py-key-value-aio==0.4.6
+ + pyarrow==26.0.1
+ + pycparser==3.12
+ + pydantic==2.14.3
+ + pydantic-core==2.50.4
+ + pydantic-settings==2.16.2
+ + pygments==2.21.0
+ + pyjwt==2.15.1
+ + pyperclip==1.11.0
+ + python-dateutil==4.0.0
+ + python-dotenv==1.2.4
+ + python-multipart==0.0.33
+ + pyyaml==6.0.3
+ + referencing==0.37.0
+ + regex==2026.9.29
+ + rich==15.0.0
+ + rich-rst==2.2.0
+ + rpds-py==2026.9.1
+ + rustworkx==0.18.1
+ + safetensors==0.8.0
+ + scikit-learn==1.9.1
+ + scipy==1.18.1
+ + sentence-transformers==6.2.0
+ + setuptools==84.2.1
+ + shellingham==1.5.4
+ + sse-starlette==3.6.0
+ + starlette==1.10.0
+ + sympy==1.14.0
+ + threadpoolctl==3.8.0
+ + tokenizers==0.23.3
+ + torch==2.15.0
+ + tqdm==4.70.1
+ + transformers==5.22.1
+ + tree-sitter==0.21.3
+ + tree-sitter-languages==1.10.2
+ + truststore==0.10.5
+ + typer==0.27.3
+ + typing-extensions==4.16.0
+ + typing-inspection==0.4.5
+ + tzdata==2026.6
+ + uncalled-for==0.6.0
+ + urllib3==2.8.0
+ + uvicorn==0.54.0
+ + watchdog==7.1.0
+ + watchfiles==1.3.0
+ + websockets==17.4
+[install] nexus-mcp-ci 2.2.2 from 11cfcccbc86bc0c6668eb927b5173e61378ae553 in /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final
++ export PYTHONPATH=src
++ PYTHONPATH=src
++ PY=/Users/shreyas/dev/nexus-mcp/.venv/bin/python
++ /Users/shreyas/dev/nexus-mcp/.venv/bin/python -m benchmarks.run_languages --nexus-venv benchmarks/.venv-final --label final --tiers quick,retrieval,graph
+[corpora] flask already at d73fa1cdcb
+[index] flask with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 06:32:32.932000 51734 .venv-final/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] flask indexed in 92.3s
+[flask] done: quick, retrieval, graph
+[corpora] django already at 318a316a4c
+[django] done: 
+[corpora] vite already at 483512809b
+[index] vite with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 06:38:03.124000 51877 .venv-final/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] vite indexed in 112.8s
+[vite] done: quick, retrieval, graph
+[corpora] webpack already at f6366b0bc2
+[index] webpack with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 06:55:22.535000 52056 .venv-final/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] webpack indexed in 483.6s
+[webpack] done: quick, retrieval, graph
+[corpora] commons-lang already at e547d704b2
+[index] commons-lang with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 07:12:33.290000 52191 .venv-final/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] commons-lang indexed in 263.1s
+[commons-lang] done: quick, retrieval, graph
+[corpora] newtonsoft-json already at 52fa3aef1f
+[index] newtonsoft-json with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 07:23:00.237000 52334 .venv-final/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] newtonsoft-json indexed in 173.4s
+[newtonsoft-json] done: quick, retrieval, graph
+[corpora] laravel already at 7d6d8e8613
+[index] laravel with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 07:55:45.214000 52646 .venv-final/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] laravel indexed in 885.2s
+[laravel] done: quick, retrieval, graph
+[corpora] chromium-base already at d8ebdd2598
+[index] chromium-base with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 09:38:26.094000 53177 .venv-final/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] chromium-base indexed in 2614.7s
+[chromium-base] done: quick, retrieval, graph
+[corpora] redis already at a05f30c971
+[index] redis with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 10:39:12.480000 53495 .venv-final/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] redis indexed in 498.3s
+[redis] done: quick, retrieval, graph
+[corpora] prometheus already at 4bfb6bb5b3
+[index] prometheus with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 10:51:53.384000 53631 .venv-final/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] prometheus indexed in 116.8s
+[prometheus] done: quick, retrieval, graph
+[corpora] tokio already at 695a07dd5e
+[index] tokio with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 11:02:41.734000 53786 .venv-final/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] tokio indexed in 259.0s
+[tokio] done: quick, retrieval, graph
+Wrote /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-final.json
+++ security find-generic-password -s nexus-bench-oauth -w
++ CLAUDE_CODE_OAUTH_TOKEN=[REDACTED]
++ export CLAUDE_CODE_OAUTH_TOKEN
++ /Users/shreyas/dev/nexus-mcp/.venv/bin/python -m benchmarks.run_languages --nexus-venv benchmarks/.venv-final --label final --tiers live
+[corpora] flask already at d73fa1cdcb
+[flask] done: 
+[corpora] django already at 318a316a4c
+[index] django with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+W1106 11:07:04.199000 53805 .venv-final/lib/python3.12/site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-final/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+[setup] django indexed in 2549.0s
+[1/36] dj-concept-signal-dispatch / baseline / rep 1
+    warm-up call for baseline
+[2/36] dj-concept-signal-dispatch / nexus / rep 1
+    warm-up call for nexus
+[3/36] dj-concept-field-validation / nexus / rep 1
+[4/36] dj-concept-field-validation / baseline / rep 1
+[5/36] dj-impact-sqlcompiler-as-sql / baseline / rep 1
+[6/36] dj-impact-sqlcompiler-as-sql / nexus / rep 1
+[7/36] dj-impact-field-validate / nexus / rep 1
+[8/36] dj-impact-field-validate / baseline / rep 1
+[9/36] dj-arch-request-to-query / baseline / rep 1
+[10/36] dj-arch-request-to-query / nexus / rep 1
+[11/36] dj-needle-charfield-class / nexus / rep 1
+[12/36] dj-needle-charfield-class / baseline / rep 1
+[13/36] dj-concept-signal-dispatch / nexus / rep 2
+[14/36] dj-concept-signal-dispatch / baseline / rep 2
+[15/36] dj-concept-field-validation / baseline / rep 2
+[16/36] dj-concept-field-validation / nexus / rep 2
+[17/36] dj-impact-sqlcompiler-as-sql / nexus / rep 2
+[18/36] dj-impact-sqlcompiler-as-sql / baseline / rep 2
+[19/36] dj-impact-field-validate / baseline / rep 2
+[20/36] dj-impact-field-validate / nexus / rep 2
+[21/36] dj-arch-request-to-query / nexus / rep 2
+[22/36] dj-arch-request-to-query / baseline / rep 2
+[23/36] dj-needle-charfield-class / baseline / rep 2
+[24/36] dj-needle-charfield-class / nexus / rep 2
+[25/36] dj-concept-signal-dispatch / baseline / rep 3
+[26/36] dj-concept-signal-dispatch / nexus / rep 3
+[27/36] dj-concept-field-validation / nexus / rep 3
+[28/36] dj-concept-field-validation / baseline / rep 3
+[29/36] dj-impact-sqlcompiler-as-sql / baseline / rep 3
+[30/36] dj-impact-sqlcompiler-as-sql / nexus / rep 3
+[31/36] dj-impact-field-validate / nexus / rep 3
+[32/36] dj-impact-field-validate / baseline / rep 3
+[33/36] dj-arch-request-to-query / baseline / rep 3
+[34/36] dj-arch-request-to-query / nexus / rep 3
+[35/36] dj-needle-charfield-class / nexus / rep 3
+[36/36] dj-needle-charfield-class / baseline / rep 3
+Wrote 36 records to /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-final/django-live.jsonl
+[django] done: live
+[corpora] vite already at 483512809b
+[1/36] vt-concept-hmr / baseline / rep 1
+    warm-up call for baseline
+[2/36] vt-concept-hmr / nexus / rep 1
+    warm-up call for nexus
+[3/36] vt-concept-prebundle / nexus / rep 1
+[4/36] vt-concept-prebundle / baseline / rep 1
+[5/36] vt-impact-transform-request / baseline / rep 1
+[6/36] vt-impact-transform-request / nexus / rep 1
+[7/36] vt-impact-create-server / nexus / rep 1
+[8/36] vt-impact-create-server / baseline / rep 1
+[9/36] vt-arch-request-path / baseline / rep 1
+[10/36] vt-arch-request-path / nexus / rep 1
+[11/36] vt-needle-createserver-line / nexus / rep 1
+[12/36] vt-needle-createserver-line / baseline / rep 1
+[13/36] vt-concept-hmr / nexus / rep 2
+[14/36] vt-concept-hmr / baseline / rep 2
+[15/36] vt-concept-prebundle / baseline / rep 2
+[16/36] vt-concept-prebundle / nexus / rep 2
+[17/36] vt-impact-transform-request / nexus / rep 2
+[18/36] vt-impact-transform-request / baseline / rep 2
+[19/36] vt-impact-create-server / baseline / rep 2
+[20/36] vt-impact-create-server / nexus / rep 2
+[21/36] vt-arch-request-path / nexus / rep 2
+[22/36] vt-arch-request-path / baseline / rep 2
+[23/36] vt-needle-createserver-line / baseline / rep 2
+[24/36] vt-needle-createserver-line / nexus / rep 2
+[25/36] vt-concept-hmr / baseline / rep 3
+[26/36] vt-concept-hmr / nexus / rep 3
+[27/36] vt-concept-prebundle / nexus / rep 3
+[28/36] vt-concept-prebundle / baseline / rep 3
+[29/36] vt-impact-transform-request / baseline / rep 3
+[30/36] vt-impact-transform-request / nexus / rep 3
+[31/36] vt-impact-create-server / nexus / rep 3
+[32/36] vt-impact-create-server / baseline / rep 3
+[33/36] vt-arch-request-path / baseline / rep 3
+[34/36] vt-arch-request-path / nexus / rep 3
+[35/36] vt-needle-createserver-line / nexus / rep 3
+[36/36] vt-needle-createserver-line / baseline / rep 3
+Wrote 36 records to /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-final/vite-live.jsonl
+[vite] done: live
+[corpora] webpack already at f6366b0bc2
+[webpack] done: 
+[corpora] commons-lang already at e547d704b2
+[1/36] cl-concept-circuit-breaker / baseline / rep 1
+    warm-up call for baseline
+[2/36] cl-concept-circuit-breaker / nexus / rep 1
+    warm-up call for nexus
+[3/36] cl-concept-fastdateformat / nexus / rep 1
+[4/36] cl-concept-fastdateformat / baseline / rep 1
+[5/36] cl-impact-root-cause / baseline / rep 1
+[6/36] cl-impact-root-cause / nexus / rep 1
+[7/36] cl-impact-matching-method / nexus / rep 1
+[8/36] cl-impact-matching-method / baseline / rep 1
+[9/36] cl-arch-reflection-tostring / baseline / rep 1
+[10/36] cl-arch-reflection-tostring / nexus / rep 1
+[11/36] cl-needle-stopwatch-line / nexus / rep 1
+[12/36] cl-needle-stopwatch-line / baseline / rep 1
+[13/36] cl-concept-circuit-breaker / nexus / rep 2
+[14/36] cl-concept-circuit-breaker / baseline / rep 2
+[15/36] cl-concept-fastdateformat / baseline / rep 2
+[16/36] cl-concept-fastdateformat / nexus / rep 2
+[17/36] cl-impact-root-cause / nexus / rep 2
+[18/36] cl-impact-root-cause / baseline / rep 2
+[19/36] cl-impact-matching-method / baseline / rep 2
+[20/36] cl-impact-matching-method / nexus / rep 2
+[21/36] cl-arch-reflection-tostring / nexus / rep 2
+[22/36] cl-arch-reflection-tostring / baseline / rep 2
+[23/36] cl-needle-stopwatch-line / baseline / rep 2
+[24/36] cl-needle-stopwatch-line / nexus / rep 2
+[25/36] cl-concept-circuit-breaker / baseline / rep 3
+[26/36] cl-concept-circuit-breaker / nexus / rep 3
+[27/36] cl-concept-fastdateformat / nexus / rep 3
+[28/36] cl-concept-fastdateformat / baseline / rep 3
+[29/36] cl-impact-root-cause / baseline / rep 3
+[30/36] cl-impact-root-cause / nexus / rep 3
+[31/36] cl-impact-matching-method / nexus / rep 3
+[32/36] cl-impact-matching-method / baseline / rep 3
+[33/36] cl-arch-reflection-tostring / baseline / rep 3
+[34/36] cl-arch-reflection-tostring / nexus / rep 3
+[35/36] cl-needle-stopwatch-line / nexus / rep 3
+[36/36] cl-needle-stopwatch-line / baseline / rep 3
+Wrote 36 records to /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-final/commons-lang-live.jsonl
+[commons-lang] done: live
+[corpora] newtonsoft-json already at 52fa3aef1f
+[1/36] nj-concept-circular / baseline / rep 1
+    warm-up call for baseline
+[2/36] nj-concept-circular / nexus / rep 1
+    warm-up call for nexus
+[3/36] nj-concept-enum-converter / nexus / rep 1
+[4/36] nj-concept-enum-converter / baseline / rep 1
+[5/36] nj-impact-circular-check / baseline / rep 1
+[6/36] nj-impact-circular-check / nexus / rep 1
+[7/36] nj-impact-deep-equals / nexus / rep 1
+[8/36] nj-impact-deep-equals / baseline / rep 1
+[9/36] nj-arch-serialize / baseline / rep 1
+[10/36] nj-arch-serialize / nexus / rep 1
+[11/36] nj-needle-textreader-line / nexus / rep 1
+[12/36] nj-needle-textreader-line / baseline / rep 1
+[13/36] nj-concept-circular / nexus / rep 2
+[14/36] nj-concept-circular / baseline / rep 2
+[15/36] nj-concept-enum-converter / baseline / rep 2
+[16/36] nj-concept-enum-converter / nexus / rep 2
+[17/36] nj-impact-circular-check / nexus / rep 2
+[18/36] nj-impact-circular-check / baseline / rep 2
+[19/36] nj-impact-deep-equals / baseline / rep 2
+[20/36] nj-impact-deep-equals / nexus / rep 2
+[21/36] nj-arch-serialize / nexus / rep 2
+[22/36] nj-arch-serialize / baseline / rep 2
+[23/36] nj-needle-textreader-line / baseline / rep 2
+[24/36] nj-needle-textreader-line / nexus / rep 2
+[25/36] nj-concept-circular / baseline / rep 3
+[26/36] nj-concept-circular / nexus / rep 3
+[27/36] nj-concept-enum-converter / nexus / rep 3
+[28/36] nj-concept-enum-converter / baseline / rep 3
+[29/36] nj-impact-circular-check / baseline / rep 3
+[30/36] nj-impact-circular-check / nexus / rep 3
+[31/36] nj-impact-deep-equals / nexus / rep 3
+[32/36] nj-impact-deep-equals / baseline / rep 3
+[33/36] nj-arch-serialize / baseline / rep 3
+[34/36] nj-arch-serialize / nexus / rep 3
+[35/36] nj-needle-textreader-line / nexus / rep 3
+[36/36] nj-needle-textreader-line / baseline / rep 3
+Wrote 36 records to /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-final/newtonsoft-json-live.jsonl
+[newtonsoft-json] done: live
+[corpora] laravel already at 7d6d8e8613
+[1/36] lv-concept-queue-worker / baseline / rep 1
+    warm-up call for baseline
+[2/36] lv-concept-queue-worker / nexus / rep 1
+    warm-up call for nexus
+[3/36] lv-concept-soft-deletes / nexus / rep 1
+[4/36] lv-concept-soft-deletes / baseline / rep 1
+[5/36] lv-impact-too-many-attempts / baseline / rep 1
+[6/36] lv-impact-too-many-attempts / nexus / rep 1
+[7/36] lv-impact-rule-compile / nexus / rep 1
+[8/36] lv-impact-rule-compile / baseline / rep 1
+[9/36] lv-arch-dispatch / baseline / rep 1
+[10/36] lv-arch-dispatch / nexus / rep 1
+[11/36] lv-needle-pipeline-line / nexus / rep 1
+[12/36] lv-needle-pipeline-line / baseline / rep 1
+[13/36] lv-concept-queue-worker / nexus / rep 2
+[14/36] lv-concept-queue-worker / baseline / rep 2
+[15/36] lv-concept-soft-deletes / baseline / rep 2
+[16/36] lv-concept-soft-deletes / nexus / rep 2
+[17/36] lv-impact-too-many-attempts / nexus / rep 2
+[18/36] lv-impact-too-many-attempts / baseline / rep 2
+[19/36] lv-impact-rule-compile / baseline / rep 2
+[20/36] lv-impact-rule-compile / nexus / rep 2
+[21/36] lv-arch-dispatch / nexus / rep 2
+[22/36] lv-arch-dispatch / baseline / rep 2
+[23/36] lv-needle-pipeline-line / baseline / rep 2
+[24/36] lv-needle-pipeline-line / nexus / rep 2
+[25/36] lv-concept-queue-worker / baseline / rep 3
+[26/36] lv-concept-queue-worker / nexus / rep 3
+[27/36] lv-concept-soft-deletes / nexus / rep 3
+[28/36] lv-concept-soft-deletes / baseline / rep 3
+[29/36] lv-impact-too-many-attempts / baseline / rep 3
+[30/36] lv-impact-too-many-attempts / nexus / rep 3
+[31/36] lv-impact-rule-compile / nexus / rep 3
+[32/36] lv-impact-rule-compile / baseline / rep 3
+[33/36] lv-arch-dispatch / baseline / rep 3
+[34/36] lv-arch-dispatch / nexus / rep 3
+[35/36] lv-needle-pipeline-line / nexus / rep 3
+[36/36] lv-needle-pipeline-line / baseline / rep 3
+Wrote 36 records to /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-final/laravel-live.jsonl
+[laravel] done: live
+[corpora] chromium-base already at d8ebdd2598
+[1/36] cr-concept-weakptr-invalidate / baseline / rep 1
+    warm-up call for baseline
+[2/36] cr-concept-weakptr-invalidate / nexus / rep 1
+    warm-up call for nexus
+[3/36] cr-impact-atexit-registercallback / nexus / rep 1
+[4/36] cr-impact-atexit-registercallback / baseline / rep 1
+[5/36] cr-impact-histogram-bucket-ranges / baseline / rep 1
+[6/36] cr-impact-histogram-bucket-ranges / nexus / rep 1
+[7/36] cr-concept-json-reader-backend / nexus / rep 1
+[8/36] cr-concept-json-reader-backend / baseline / rep 1
+[9/36] cr-needle-json-max-depth / baseline / rep 1
+[10/36] cr-needle-json-max-depth / nexus / rep 1
+[11/36] cr-arch-task-scheduling / nexus / rep 1
+[12/36] cr-arch-task-scheduling / baseline / rep 1
+[13/36] cr-concept-weakptr-invalidate / nexus / rep 2
+[14/36] cr-concept-weakptr-invalidate / baseline / rep 2
+[15/36] cr-impact-atexit-registercallback / baseline / rep 2
+[16/36] cr-impact-atexit-registercallback / nexus / rep 2
+[17/36] cr-impact-histogram-bucket-ranges / nexus / rep 2

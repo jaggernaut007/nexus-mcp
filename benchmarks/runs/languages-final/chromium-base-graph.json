@@ -1,0 +1,56 @@
+{
+  "c": {
+    "files": 77,
+    "symbols": 101,
+    "functions": 18,
+    "classes": 13,
+    "calls": 12,
+    "calls_per_fn": 0.67,
+    "fn_with_calls": 0.667
+  },
+  "cpp": {
+    "files": 3013,
+    "symbols": 39163,
+    "functions": 34820,
+    "classes": 4176,
+    "calls": 46091,
+    "calls_per_fn": 1.32,
+    "fn_with_calls": 0.538
+  },
+  "java": {
+    "files": 482,
+    "symbols": 5798,
+    "functions": 4659,
+    "classes": 678,
+    "calls": 5741,
+    "calls_per_fn": 1.23,
+    "fn_with_calls": 0.568
+  },
+  "javascript": {
+    "files": 1,
+    "symbols": 4,
+    "functions": 3,
+    "classes": 0,
+    "calls": 2,
+    "calls_per_fn": 0.67,
+    "fn_with_calls": 0.667
+  },
+  "python": {
+    "files": 38,
+    "symbols": 1211,
+    "functions": 921,
+    "classes": 135,
+    "calls": 2078,
+    "calls_per_fn": 2.26,
+    "fn_with_calls": 0.732
+  },
+  "rust": {
+    "files": 30,
+    "symbols": 209,
+    "functions": 162,
+    "classes": 19,
+    "calls": 119,
+    "calls_per_fn": 0.73,
+    "fn_with_calls": 0.401
+  }
+}

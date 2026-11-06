@@ -5,6 +5,7 @@ structural analysis across 25+ languages.
 """
 
 import logging
+import posixpath
 import re
 import uuid
 from dataclasses import dataclass
@@ -28,11 +29,22 @@ from nexus_mcp.parsing.language_registry import (
     ASTGREP_LANGUAGES,
     get_language_for_file,
 )
+from nexus_mcp.parsing.treesitter_parser import (
+    c_declarator_name,
+    is_cpp_header,
+    mask_cpp_class_macros,
+    split_cpp_scope,
+)
 
 logger = logging.getLogger(__name__)
 
-# Call expressions per language: (node kind, field that holds the callee).
-# A field of None means "use the whole node" (handled for Java below).
+# A callee field that is not one field: the first named child holds the callee
+# (`new User()` in PHP has no field for `User`).
+FIRST_NAMED_CHILD = "*"
+
+# Call expressions per language: (node kind, field that holds the callee). A pair of
+# fields is (receiver, name), joined with a dot: Java `obj.m()`, PHP `$obj->m()`.
+# None is ("object", "name").
 CALL_KINDS: Dict[str, tuple] = {
     "python": (("call", "function"),),
     "javascript": (("call_expression", "function"), ("new_expression", "constructor")),
@@ -40,7 +52,56 @@ CALL_KINDS: Dict[str, tuple] = {
     "go": (("call_expression", "function"),),
     "java": (("method_invocation", None), ("object_creation_expression", "type")),
     "rust": (("call_expression", "function"),),
+    "c": (("call_expression", "function"),),
+    "cpp": (("call_expression", "function"), ("new_expression", "type")),
+    "csharp": (
+        ("invocation_expression", "function"), ("object_creation_expression", "type"),
+    ),
+    "php": (
+        ("function_call_expression", "function"),
+        ("member_call_expression", ("object", "name")),
+        ("nullsafe_member_call_expression", ("object", "name")),
+        ("scoped_call_expression", ("scope", "name")),
+        ("object_creation_expression", FIRST_NAMED_CHILD),
+    ),
 }
+# Receivers that mean the own class or its base class, per language.
+RECEIVER_ALIASES: Dict[str, Dict[str, str]] = {
+    "php": {"static": "self", "parent": "super"},
+    "csharp": {"base": "super"},
+}
+
+# Function and class definitions per language, by node kind.
+FUNCTION_KINDS: Dict[str, tuple] = {
+    "python": ("function_definition",),
+    "javascript": ("function_declaration", "method_definition"),
+    "typescript": ("function_declaration", "method_definition"),
+    "go": ("function_declaration", "method_declaration"),
+    "java": ("method_declaration",),
+    "rust": ("function_item",),
+    "c": ("function_definition",),
+    "cpp": ("function_definition",),
+    "csharp": ("method_declaration", "constructor_declaration", "local_function_statement"),
+    "php": ("function_definition", "method_declaration"),
+}
+CLASS_KINDS: Dict[str, tuple] = {
+    "python": ("class_definition",),
+    "javascript": ("class_declaration",),
+    "typescript": ("class_declaration",),
+    "java": ("class_declaration",),
+    "rust": ("struct_item",),
+    "c": ("struct_specifier", "union_specifier"),
+    "cpp": ("class_specifier", "struct_specifier", "union_specifier"),
+    "csharp": (
+        "class_declaration", "struct_declaration", "interface_declaration",
+        "record_declaration",
+    ),
+    "php": (
+        "class_declaration", "interface_declaration", "trait_declaration",
+        "enum_declaration",
+    ),
+}
+_C_FAMILY = ("c", "cpp")
 
 # Enclosing type kinds per language: (node kind, field that holds the name).
 CLASS_ANCESTOR_KINDS: Dict[str, tuple] = {
@@ -53,6 +114,23 @@ CLASS_ANCESTOR_KINDS: Dict[str, tuple] = {
         ("enum_declaration", "name"),
     ),
     "rust": (("impl_item", "type"),),
+    "cpp": (
+        ("class_specifier", "name"),
+        ("struct_specifier", "name"),
+        ("union_specifier", "name"),
+    ),
+    "csharp": (
+        ("class_declaration", "name"),
+        ("struct_declaration", "name"),
+        ("interface_declaration", "name"),
+        ("record_declaration", "name"),
+    ),
+    "php": (
+        ("class_declaration", "name"),
+        ("interface_declaration", "name"),
+        ("trait_declaration", "name"),
+        ("enum_declaration", "name"),
+    ),
 }
 
 # Branch points that add one to cyclomatic complexity, per language. `&&`/`||` are
@@ -84,6 +162,23 @@ COMPLEXITY_KINDS: Dict[str, tuple] = {
         "if_expression", "for_expression", "while_expression", "loop_expression",
         "match_arm",
     ),
+    "c": (
+        "if_statement", "for_statement", "while_statement", "do_statement",
+        "case_statement", "conditional_expression",
+    ),
+    "cpp": (
+        "if_statement", "for_statement", "for_range_loop", "while_statement",
+        "do_statement", "case_statement", "catch_clause", "conditional_expression",
+    ),
+    "csharp": (
+        "if_statement", "for_statement", "foreach_statement", "while_statement",
+        "do_statement", "switch_section", "catch_clause", "conditional_expression",
+    ),
+    "php": (
+        "if_statement", "else_if_clause", "for_statement", "foreach_statement",
+        "while_statement", "do_statement", "case_statement", "catch_clause",
+        "conditional_expression",
+    ),
 }
 
 MAX_DOCSTRING_CHARS = 500
@@ -114,6 +209,51 @@ def normalize_call_text(text: str) -> str:
     return text
 
 
+class _SgView:
+    """The tree-sitter node API over an ast-grep node, for `c_declarator_name`."""
+
+    __slots__ = ("node",)
+
+    def __init__(self, node):
+        self.node = node
+
+    @property
+    def type(self) -> str:
+        return self.node.kind()
+
+    def child_by_field_name(self, name: str) -> Optional["_SgView"]:
+        child = self.node.field(name)
+        return _SgView(child) if child else None
+
+    @property
+    def named_children(self) -> List["_SgView"]:
+        return [_SgView(c) for c in self.node.children() if c.is_named()]
+
+
+def _sg_text(view: "_SgView") -> str:
+    return view.node.text()
+
+
+def _language_callee(text: str, language: str) -> str:
+    """Callee text in the common form before normalize_call_text().
+
+    PHP: `$this->m` is `this.m`, `\\App\\fmt` is `fmt`, `static::m` is `self.m`,
+    `parent::m` is `super.m`. C#: `base.M` is `super.M`. C++: `::g` is `g`.
+    """
+    if language == "php":
+        text = text.replace("$", "")
+        if "(" not in text:  # a namespace prefix, not a backslash in an argument
+            text = text.rsplit("\\", 1)[-1]
+    elif language == "cpp":
+        text = text.lstrip(":").strip()
+    aliases = RECEIVER_ALIASES.get(language)
+    if aliases:
+        head, sep, rest = text.partition(".")
+        if sep and head in aliases:
+            text = f"{aliases[head]}.{rest}"
+    return text
+
+
 @dataclass(frozen=True)
 class AstGrepLanguageConfig:
     """Configuration for ast-grep language parsing."""
@@ -141,10 +281,11 @@ ASTGREP_LANG_IDS: Dict[str, str] = {
     "ruby": "ruby",
     "php": "php",
     "swift": "swift",
-    "csharp": "c_sharp",
+    "csharp": "csharp",  # ast-grep has no "c_sharp"; that id panics past `except Exception`
     "scala": "scala",
     "lua": "lua",
-    "dart": "dart",
+    # No "dart": ast-grep-py ships no Dart grammar, and an unknown id panics past
+    # `except Exception`. parse_file() returns 0 for a language with no id.
 }
 
 
@@ -190,6 +331,14 @@ class AstGrepParser:
         except (UnicodeDecodeError, OSError) as e:
             logger.warning("Cannot read %s: %s", filepath, e)
             return 0
+
+        if language in _C_FAMILY:
+            raw = content.encode("utf-8")
+            if language == "c" and is_cpp_header(filepath, raw):
+                language = ast_grep_id = "cpp"
+            if language == "cpp":
+                # Same mask as the tree-sitter parser: `class BASE_EXPORT Foo {` is a class.
+                content = mask_cpp_class_macros(raw).decode("utf-8", errors="replace")
 
         # Create module node
         module_id = self._make_id("module")
@@ -273,16 +422,7 @@ class AstGrepParser:
         is most of a typed codebase. Kind matching is annotation-agnostic.
         """
         count = 0
-        kinds = {
-            "python": ("function_definition",),
-            "javascript": ("function_declaration", "method_definition"),
-            "typescript": ("function_declaration", "method_definition"),
-            "go": ("function_declaration", "method_declaration"),
-            "java": ("method_declaration",),
-            "rust": ("function_item",),
-        }
-
-        lang_kinds = kinds.get(language)
+        lang_kinds = FUNCTION_KINDS.get(language)
         if not lang_kinds:
             return 0
 
@@ -296,8 +436,17 @@ class AstGrepParser:
         for match in matches:
             try:
                 rng = match.range()
-                name_text = match.field("name")
-                func_name = name_text.text() if name_text else f"anonymous_{self._node_counter}"
+                scope: List[str] = []
+                if language in _C_FAMILY:
+                    resolved = c_declarator_name(_SgView(match), _sg_text)
+                    if resolved is None:
+                        continue  # a name from the return type is worse than none
+                    scope, func_name = resolved
+                else:
+                    name_text = match.field("name")
+                    func_name = (
+                        name_text.text() if name_text else f"anonymous_{self._node_counter}"
+                    )
 
                 func_id = self._make_id("func")
                 func_node = UniversalNode(
@@ -316,7 +465,7 @@ class AstGrepParser:
                     line_count=rng.end.line - rng.start.line + 1,
                     complexity=self._complexity(match, language),
                     docstring=self._docstring(match, language),
-                    metadata=self._function_metadata(match, language),
+                    metadata=self._function_metadata(match, language, scope),
                 )
                 graph.add_node(func_node)
 
@@ -376,7 +525,9 @@ class AstGrepParser:
         text = "\n".join(line.strip() for line in text.strip().splitlines())
         return text[:MAX_DOCSTRING_CHARS] or None
 
-    def _function_metadata(self, match, language: str) -> Dict[str, Any]:
+    def _function_metadata(
+        self, match, language: str, scope: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         """Raw call names and enclosing class for one function node.
 
         The call resolver (indexing/call_resolver.py) turns these into CALLS
@@ -387,9 +538,17 @@ class AstGrepParser:
         calls = self._extract_calls(match, language)
         if calls:
             meta["calls"] = calls
+            if language == "cpp":
+                scoped = self._scoped_calls(match)
+                if scoped:
+                    meta["scoped_calls"] = scoped
         parent = self._enclosing_class(match, language)
         if language == "go" and match.kind() == "method_declaration":
             parent = self._go_receiver_type(match)
+        if scope and not parent:
+            # `void Widget::Paint() {` out of line: a method of `Widget`. The parser
+            # cannot tell a class scope from a namespace scope.
+            parent = _GENERIC_GROUP.sub("", scope[-1]).strip() or None
         if parent:
             meta["parent_class"] = parent
         return meta
@@ -409,7 +568,7 @@ class AstGrepParser:
                 except Exception as e:
                     logger.debug("Failed to read callee: %s", e)
                     continue
-                name = normalize_call_text(text)
+                name = normalize_call_text(_language_callee(text, language))
                 if name:
                     seen.setdefault(name, None)
                 if len(seen) >= MAX_CALLS_PER_FUNCTION:
@@ -417,8 +576,33 @@ class AstGrepParser:
         return list(seen)
 
     @staticmethod
-    def _callee_text(call, field_name: Optional[str]) -> str:
-        if field_name is not None:
+    def _scoped_calls(match) -> List[str]:
+        """C++ calls through `::` (`base::Bind()`, `Widget::Create()`), normalised.
+
+        normalize_call_text() turns `::`, `.` and `->` into dots. The resolver needs to
+        know which calls were `ns::f()`: such a call names a free function or a static
+        method, never a method on an object of unknown type.
+        """
+        seen: Dict[str, None] = {}
+        try:
+            for call in match.find_all(kind="call_expression"):
+                callee = call.field("function")
+                if callee and callee.kind() == "qualified_identifier":
+                    name = normalize_call_text(_language_callee(callee.text(), "cpp"))
+                    if name:
+                        seen.setdefault(name, None)
+                if len(seen) >= MAX_CALLS_PER_FUNCTION:
+                    break
+        except Exception as e:
+            logger.debug("Scoped call search failed: %s", e)
+        return list(seen)
+
+    @staticmethod
+    def _callee_text(call, field_name) -> str:
+        if field_name == FIRST_NAMED_CHILD:
+            named = [c for c in call.children() if c.is_named()]
+            return named[0].text() if named else ""
+        if isinstance(field_name, str):
             callee = call.field(field_name)
             if not callee:
                 return ""
@@ -428,11 +612,12 @@ class AstGrepParser:
             if span.end.index - span.start.index > 4 * MAX_CALL_TEXT:
                 return ""
             return callee.text()
-        # Java method_invocation: object (optional) + name
-        name = call.field("name")
+        # Java method_invocation, PHP member and scoped calls: receiver (optional) + name
+        receiver_field, name_field = field_name or ("object", "name")
+        name = call.field(name_field)
         if not name:
             return ""
-        obj = call.field("object")
+        obj = call.field(receiver_field)
         return f"{obj.text()}.{name.text()}" if obj else name.text()
 
     @staticmethod
@@ -457,7 +642,10 @@ class AstGrepParser:
                 if field_name:
                     name = ancestor.field(field_name)
                     if name:
-                        return _GENERIC_GROUP.sub("", " ".join(name.text().split()))[:80]
+                        text = _GENERIC_GROUP.sub("", " ".join(name.text().split()))
+                        if language == "cpp":  # `class Outer::Inner {` is `Inner`
+                            text = split_cpp_scope(text)[-1].strip()
+                        return text[:80]
         except Exception as e:
             logger.debug("Failed to read enclosing class: %s", e)
         return None
@@ -473,15 +661,7 @@ class AstGrepParser:
         every `class Foo(Base):` was missing from the graph.
         """
         count = 0
-        kinds = {
-            "python": ("class_definition",),
-            "javascript": ("class_declaration",),
-            "typescript": ("class_declaration",),
-            "java": ("class_declaration",),
-            "rust": ("struct_item",),
-        }
-
-        lang_kinds = kinds.get(language)
+        lang_kinds = CLASS_KINDS.get(language)
         if not lang_kinds:
             return 0
 
@@ -495,8 +675,15 @@ class AstGrepParser:
         for match in matches:
             try:
                 rng = match.range()
-                name_text = match.field("name")
-                class_name = name_text.text() if name_text else f"class_{self._node_counter}"
+                if language in _C_FAMILY:
+                    class_name = self._c_class_name(match)
+                    if not class_name:
+                        continue
+                else:
+                    name_text = match.field("name")
+                    class_name = (
+                        name_text.text() if name_text else f"class_{self._node_counter}"
+                    )
 
                 class_id = self._make_id("class")
                 class_node = UniversalNode(
@@ -526,6 +713,27 @@ class AstGrepParser:
                 continue
 
         return count
+
+    @staticmethod
+    def _c_class_name(match) -> Optional[str]:
+        """The name of a C or C++ struct, union or class definition, or None.
+
+        `struct point p;` and `class Foo;` name a type but do not define it: no body, no
+        node. `typedef struct { ... } anon_t;` takes the typedef name. `class Outer::Inner`
+        is `Inner`, and template arguments are dropped, as for the parent of a method.
+        """
+        if not match.field("body"):
+            return None
+        name = match.field("name")
+        if name:
+            text = split_cpp_scope(" ".join(name.text().split()))[-1]
+            return _GENERIC_GROUP.sub("", text).strip() or None
+        parent = match.parent()
+        if parent is not None and parent.kind() == "type_definition":
+            declarator = parent.field("declarator")
+            if declarator and declarator.kind() == "type_identifier":
+                return declarator.text()
+        return None
 
     def _extract_imports(
         self, sg_node, filepath: str, language: str, module_id: str,
@@ -589,6 +797,25 @@ class AstGrepParser:
                     source = node.field("source")
                     if source:
                         names.setdefault(source.text().strip("'\"`"), None)
+            elif language in _C_FAMILY:
+                # `#include "base/util.h"` imports the module path `base/util`: the
+                # header and its `.c` or `.cc` file. `<stdio.h>` is a system header.
+                for node in sg_node.find_all(kind="preproc_include"):
+                    path = node.field("path")
+                    if path and path.kind() == "string_literal":
+                        target = posixpath.splitext(path.text().strip('"'))[0]
+                        if target:
+                            names.setdefault(target, None)
+            elif language == "php":
+                # `use App\Support\Helper;` -> `Support/Helper`: the PSR-4 root (`App`) is
+                # often not a folder name, so only the last two parts must match the path.
+                for clause in sg_node.find_all(kind="namespace_use_clause"):
+                    named = [c for c in clause.children() if c.is_named()]
+                    if not named:
+                        continue
+                    parts = [p for p in named[0].text().split("\\") if p]
+                    if parts:
+                        names.setdefault("/".join(parts[-2:]), None)
         except Exception as e:
             logger.debug("Import name collection failed: %s", e)
         return names

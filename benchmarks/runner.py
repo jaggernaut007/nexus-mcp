@@ -22,8 +22,9 @@ import signal
 import subprocess
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
@@ -35,6 +36,8 @@ from benchmarks.preindex_models import storage_dir_for
 BENCH_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = BENCH_DIR / "results"
 REPOS_DIR = BENCH_DIR / "repos"
+# Indexes of a pinned Nexus-MCP install live here, outside the corpus, one folder per venv.
+INDEXES_DIR = BENCH_DIR / "indexes"
 DEFAULT_MODEL = "sonnet"
 DEFAULT_CONDITIONS = ["baseline", "nexus"]
 DEFAULT_REPS = 3
@@ -74,6 +77,109 @@ def require_login(config_dir: Path, base_env: Optional[Dict[str, str]] = None) -
         raise SystemExit(LOGIN_HELP)
 
 
+@dataclass(frozen=True)
+class PinnedNexus:
+    """One Nexus-MCP install made by `benchmarks/install_nexus.sh`, measured as installed."""
+
+    venv: Path
+    version: str
+    ref: str
+
+    @property
+    def bin(self) -> Path:
+        return self.venv / "bin" / "nexus-mcp-ci"
+
+    @property
+    def python(self) -> Path:
+        return self.venv / "bin" / "python"
+
+
+def load_pinned(venv: Path) -> PinnedNexus:
+    """Read the version and the git ref of the install in `venv`. Exit if it is not usable."""
+    venv = venv.resolve()
+    python = venv / "bin" / "python"
+    if not (venv / "bin" / "nexus-mcp-ci").exists() or not python.exists():
+        raise SystemExit(f"No nexus-mcp-ci in {venv}. Run benchmarks/install_nexus.sh first.")
+    out = subprocess.run(
+        [str(python), "-c",
+         "import importlib.metadata as m; print(m.version('nexus-mcp-ci'))"],
+        capture_output=True, text=True, timeout=60, env={"PATH": os.environ.get("PATH", "")},
+    )
+    if out.returncode != 0:
+        raise SystemExit(f"Cannot read the nexus-mcp-ci version in {venv}: {out.stderr}")
+    ref_file = venv / "NEXUS_REF"
+    ref = ref_file.read_text().strip() if ref_file.exists() else "unknown"
+    return PinnedNexus(venv=venv, version=out.stdout.strip(), ref=ref)
+
+
+def pinned_index_dir(pinned: PinnedNexus, repo_dir: Path) -> Path:
+    """Index folder of one corpus for one pinned install (never inside the corpus)."""
+    return INDEXES_DIR / pinned.venv.name / repo_dir.name
+
+
+def ensure_pinned_index(pinned: PinnedNexus, repo_dir: Path) -> Path:
+    """Build the index of `repo_dir` with the pinned install, once. Returns its folder.
+
+    The index is built before any timed run, so its cost is never inside a measured run.
+    The build time goes to results/setup_meta-<venv>.json. PYTHONPATH is cleared so the
+    pinned package, not this checkout's `src/`, does the work.
+    """
+    storage = pinned_index_dir(pinned, repo_dir)
+    if (storage / "index_metadata.json").exists():
+        return storage
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+    env["NEXUS_STORAGE_DIR"] = str(storage)
+    env["NEXUS_EMBEDDING_DEVICE"] = cond.BENCH_EMBEDDING_DEVICE
+    env["NEXUS_AUTO_WATCH"] = "false"
+    meta = RESULTS_DIR / f"setup_meta-{pinned.venv.name}.json"
+    print(f"[index] {repo_dir.name} with nexus-mcp-ci {pinned.version}", file=sys.stderr)
+    proc = subprocess.run(
+        [str(pinned.python), str(BENCH_DIR / "_preindex_one.py"), str(repo_dir),
+         repo_dir.name, str(meta)],
+        cwd=str(repo_dir), env=env,
+    )
+    if proc.returncode != 0:
+        raise SystemExit(f"Indexing {repo_dir} with {pinned.venv} failed")
+    return storage
+
+
+def mcp_config_for(
+    condition: str, repo_dir: Path, pinned: Optional[PinnedNexus] = None
+) -> Path:
+    """The --mcp-config file of one condition on one corpus."""
+    _, embedding_model = cond.split_condition(condition)
+    if pinned is not None:
+        return cond.write_pinned_mcp_config(
+            RESULTS_DIR / "mcp-configs" / f"{repo_dir.name}-{pinned.venv.name}.json",
+            pinned.bin,
+            pinned_index_dir(pinned, repo_dir),
+        )
+    if embedding_model:
+        return cond.write_model_mcp_config(
+            RESULTS_DIR / "mcp-configs" / f"{repo_dir.name}-{embedding_model}.json",
+            embedding_model,
+            storage_dir_for(repo_dir, embedding_model),
+        )
+    return cond.NEXUS_MCP_CONFIG
+
+
+def run_order(
+    tasks: List[Dict[str, Any]], condition_names: List[str], reps: int
+) -> List[Tuple[Dict[str, Any], str, int]]:
+    """The (task, condition, rep) runs in an interleaved order.
+
+    Rep is the outer loop, so the reps of one task are spread over the batch. The order of
+    the conditions turns round for each task and rep (A B, then B A), so drift in time and
+    prompt-cache warmth fall on both sides in the same way.
+    """
+    order = []
+    for rep in range(reps):
+        for i, task in enumerate(tasks):
+            names = condition_names if (rep + i) % 2 == 0 else list(reversed(condition_names))
+            order += [(task, name, rep) for name in names]
+    return order
+
+
 def claude_version() -> str:
     """Output of `claude --version`, or 'unknown'. Stamped on every record."""
     try:
@@ -83,8 +189,11 @@ def claude_version() -> str:
         return "unknown"
 
 
-def done_keys(out_path: Path, model: str) -> set:
-    """(task_id, condition, rep) of runs of `model` that already finished without an error."""
+def done_keys(out_path: Path, model: str, effort: Optional[str] = None) -> set:
+    """(task_id, condition, rep) of runs of `model` that already finished without an error.
+
+    With `effort`, a run at another effort level does not count as done.
+    """
     keys = set()
     if not out_path.exists():
         return keys
@@ -95,6 +204,8 @@ def done_keys(out_path: Path, model: str) -> set:
             except json.JSONDecodeError:
                 continue
             if rec.get("run_error") or rec.get("is_error") or rec.get("model") != model:
+                continue
+            if effort is not None and rec.get("effort") != effort:
                 continue
             keys.add((rec.get("task_id"), rec.get("condition"), rec.get("rep")))
     return keys
@@ -172,7 +283,12 @@ WARM_UP_TIMEOUT_S = 120
 
 
 def warm_up(
-    condition: str, repo_dir: Path, model: str, config_dir: Path
+    condition: str,
+    repo_dir: Path,
+    model: str,
+    config_dir: Path,
+    effort: Optional[str] = None,
+    pinned: Optional[PinnedNexus] = None,
 ) -> None:
     """Send one small call for a condition, so that its prompt is in the cache.
 
@@ -182,17 +298,9 @@ def warm_up(
     not, so the cost of a task depended on its place in the batch. The call is not
     recorded. A failure here is not an error: the run that follows shows the fault.
     """
-    base, embedding_model = cond.split_condition(condition)
-    mcp_config = cond.NEXUS_MCP_CONFIG
-    if embedding_model:
-        mcp_config = cond.write_model_mcp_config(
-            RESULTS_DIR / "mcp-configs" / f"{repo_dir.name}-{embedding_model}.json",
-            embedding_model,
-            storage_dir_for(repo_dir, embedding_model),
-        )
     built = cond.build_run(
         condition, WARM_UP_PROMPT, model, WARM_UP_BUDGET_USD, config_dir,
-        mcp_config_path=mcp_config,
+        mcp_config_path=mcp_config_for(condition, repo_dir, pinned), effort=effort,
     )
     proc = subprocess.Popen(
         built["argv"], cwd=str(repo_dir), env=built["env"], stdout=subprocess.DEVNULL,
@@ -218,6 +326,8 @@ def run_once(
     version: str = "unknown",
     raw_dir: Optional[Path] = None,
     rep: int = 0,
+    effort: Optional[str] = None,
+    pinned: Optional[PinnedNexus] = None,
 ) -> Dict[str, Any]:
     """Execute one (task, condition) run and return its scored record.
 
@@ -229,16 +339,9 @@ def run_once(
     prompt = task["prompt"].strip() + PROMPT_SUFFIX
 
     base, embedding_model = cond.split_condition(condition)
-    mcp_config = cond.NEXUS_MCP_CONFIG
-    if embedding_model:
-        mcp_config = cond.write_model_mcp_config(
-            RESULTS_DIR / "mcp-configs" / f"{repo_dir.name}-{embedding_model}.json",
-            embedding_model,
-            storage_dir_for(repo_dir, embedding_model),
-        )
-
     built = cond.build_run(
-        condition, prompt, model, max_budget, config_dir, mcp_config_path=mcp_config
+        condition, prompt, model, max_budget, config_dir,
+        mcp_config_path=mcp_config_for(condition, repo_dir, pinned), effort=effort,
     )
     argv, env, isolation_mode = built["argv"], built["env"], built["isolation_mode"]
 
@@ -295,6 +398,9 @@ def run_once(
         "repo": repo["name"],
         "repo_sha": repo["pin"],
         "model": model,
+        "effort": effort,
+        "nexus_version": pinned.version if pinned else None,
+        "nexus_ref": pinned.ref if pinned else None,
         "claude_version": version,
         "isolation_mode": isolation_mode,
         "timed_out": timed_out,
@@ -306,6 +412,7 @@ def run_once(
         "total_tokens": trace.total_tokens,
         "fresh_tokens": trace.fresh_tokens,
         "retrieval_tokens_est": trace.retrieval_tokens_est,
+        "result_tokens_by_tool": trace.result_tokens_by_tool,
         "total_cost_usd": trace.total_cost_usd,
         "num_turns": trace.num_turns,
         "duration_ms": trace.duration_ms,
@@ -327,6 +434,8 @@ def run_suite(
     task_ids: Optional[List[str]] = None,
     raw_dir: Optional[Path] = None,
     warm: bool = False,
+    effort: Optional[str] = None,
+    pinned: Optional[PinnedNexus] = None,
 ) -> List[Dict[str, Any]]:
     """Run the suite, writing each record to `out_path` as it completes.
 
@@ -348,6 +457,11 @@ def run_suite(
             f"Repo not found at {repo_dir}. Run benchmarks/setup_repos.sh first."
         )
 
+    if pinned is not None and any(cond.split_condition(n)[1] for n in condition_names):
+        raise SystemExit("--nexus-venv measures one install; do not combine it with "
+                         "--embedding-models")
+    if pinned is not None and any(n != "baseline" for n in condition_names):
+        ensure_pinned_index(pinned, repo_dir)
     for name in condition_names:
         embedding_model = cond.split_condition(name)[1]
         if embedding_model and not storage_dir_for(repo_dir, embedding_model).exists():
@@ -365,54 +479,53 @@ def run_suite(
     records = []
     total = len(tasks) * len(condition_names) * reps
     done = 0
-    finished = done_keys(out_path, model)
+    finished = done_keys(out_path, model, effort)
     version = claude_version()
     last_call: Dict[str, float] = {}
-    for task in tasks:
+    for task, condition, rep in run_order(tasks, condition_names, reps):
         merged_task = {**defaults, **task}
-        for condition in condition_names:
-            for rep in range(reps):
-                done += 1
-                if (merged_task["id"], condition, rep) in finished:
-                    continue
-                print(
-                    f"[{done}/{total}] {merged_task['id']} / {condition} / rep {rep + 1}",
-                    file=sys.stderr,
-                )
-                if warm and time.time() - last_call.get(condition, 0.0) > WARM_UP_TTL_S:
-                    print(f"    warm-up call for {condition}", file=sys.stderr)
-                    warm_up(condition, repo_dir, model, config_dir)
-                try:
-                    record = run_once(
-                        merged_task, condition, repo, repo_dir, model, config_dir,
-                        version=version, raw_dir=raw_dir, rep=rep,
-                    )
-                except UsageLimitReached as exc:
-                    print(
-                        f"    usage limit reached ({exc}); run the same command later to resume",
-                        file=sys.stderr,
-                    )
-                    raise
-                except Exception as exc:  # noqa: BLE001 — one bad run must not kill the batch
-                    print(
-                        f"    run failed ({type(exc).__name__}: {exc}); recording and continuing",
-                        file=sys.stderr,
-                    )
-                    record = {
-                        "task_id": merged_task["id"],
-                        "category": merged_task.get("category"),
-                        "condition": condition,
-                        "repo": repo["name"],
-                        "repo_sha": repo["pin"],
-                        "model": model,
-                        "run_error": f"{type(exc).__name__}: {exc}",
-                        "is_error": True,
-                    }
-                last_call[condition] = time.time()
-                record["rep"] = rep
-                record["warm_cache"] = warm
-                records.append(record)
-                write_record(record, out_path)
+        done += 1
+        if (merged_task["id"], condition, rep) in finished:
+            continue
+        print(
+            f"[{done}/{total}] {merged_task['id']} / {condition} / rep {rep + 1}",
+            file=sys.stderr,
+        )
+        if warm and time.time() - last_call.get(condition, 0.0) > WARM_UP_TTL_S:
+            print(f"    warm-up call for {condition}", file=sys.stderr)
+            warm_up(condition, repo_dir, model, config_dir, effort, pinned)
+        try:
+            record = run_once(
+                merged_task, condition, repo, repo_dir, model, config_dir,
+                version=version, raw_dir=raw_dir, rep=rep, effort=effort,
+                pinned=pinned,
+            )
+        except UsageLimitReached as exc:
+            print(
+                f"    usage limit reached ({exc}); run the same command later to resume",
+                file=sys.stderr,
+            )
+            raise
+        except Exception as exc:  # noqa: BLE001 — one bad run must not kill the batch
+            print(
+                f"    run failed ({type(exc).__name__}: {exc}); recording and continuing",
+                file=sys.stderr,
+            )
+            record = {
+                "task_id": merged_task["id"],
+                "category": merged_task.get("category"),
+                "condition": condition,
+                "repo": repo["name"],
+                "repo_sha": repo["pin"],
+                "model": model,
+                "run_error": f"{type(exc).__name__}: {exc}",
+                "is_error": True,
+            }
+        last_call[condition] = time.time()
+        record["rep"] = rep
+        record["warm_cache"] = warm
+        records.append(record)
+        write_record(record, out_path)
     return records
 
 
@@ -454,7 +567,21 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--reps", type=int, default=DEFAULT_REPS)
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument(
+        "--effort", default=cond.DEFAULT_EFFORT,
+        help="Effort level of every condition (low, medium, high, xhigh, max). One level "
+        "for both sides; empty string: the CLI default",
+    )
+    parser.add_argument(
+        "--nexus-venv", type=Path, default=None,
+        help="Measure the Nexus-MCP install in this venv (benchmarks/install_nexus.sh), "
+        "with its own index outside the corpus. Default: nexus-mcp-ci on PATH",
+    )
+    parser.add_argument(
         "--smoke", action="store_true", help="Run 2 tasks x 1 rep for a cheap sanity check"
+    )
+    parser.add_argument(
+        "--task-ids", default="",
+        help="Comma-separated task ids: run only these tasks of the suite",
     )
     parser.add_argument(
         "--out", default=None,
@@ -491,12 +618,19 @@ def main(argv: Optional[List[str]] = None) -> int:
         [m.strip() for m in args.embedding_models.split(",") if m.strip()],
     )
 
-    task_ids = None
+    task_ids = [t.strip() for t in args.task_ids.split(",") if t.strip()] or None
+    if task_ids:
+        missing = set(task_ids) - {t["id"] for t in suite["tasks"]}
+        if missing:
+            parser.error(f"--task-ids not in the suite: {', '.join(sorted(missing))}")
+        suite["tasks"] = [t for t in suite["tasks"] if t["id"] in task_ids]
     reps = args.reps
     if args.smoke:
         task_ids = [t["id"] for t in suite["tasks"][:2]]
         reps = 1
 
+    pinned = load_pinned(args.nexus_venv) if args.nexus_venv else None
+    effort = args.effort or None
     config_dir = BENCH_DIR / ".claude-bench"
     require_login(config_dir)
     default_out = RESULTS_DIR / f"runs-{suite['repo']['name']}.jsonl"
@@ -505,7 +639,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     try:
         records = run_suite(
             suite, condition_names, reps, args.model, config_dir, out_path, task_ids,
-            raw_dir=raw_dir, warm=args.warm_up,
+            raw_dir=raw_dir, warm=args.warm_up, effort=effort, pinned=pinned,
         )
     except UsageLimitReached:
         return 3

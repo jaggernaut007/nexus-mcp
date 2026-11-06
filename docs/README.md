@@ -23,6 +23,7 @@ Start with the group that matches what you want to do.
 - [ARCHITECTURE.md](ARCHITECTURE.md): data flow and component design
 - [MEMORY.md](MEMORY.md): measured memory use
 - [EVALS.md](EVALS.md): the benchmark method and the run history
+- [BENCHMARKING.md](BENCHMARKING.md): rerun the per-language benchmark for a release
 - [RESEARCH.md](RESEARCH.md): library evaluations
 - [adr/](adr/): architecture decision records (ADR-001 to ADR-021)
 

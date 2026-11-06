@@ -1,0 +1,108 @@
+repo:
+  name: newtonsoft-json
+  url: https://github.com/JamesNK/Newtonsoft.Json.git
+  pin: 52fa3aef1f2cadcd3a3f874251eddc98d3efbbaa
+  pinned_date: "2026-11-05"
+  sparse: ["Src/Newtonsoft.Json"]
+  why: >-
+    Newtonsoft.Json library source (259 C# files). C# has no tree-sitter symbols, no
+    graph nodes and no call edges in 2.2.2.
+
+defaults:
+  max_budget_usd: 1.00
+  timeout_s: 600
+
+tasks:
+  - id: nj-concept-circular
+    category: conceptual
+    prompt: >
+      How does the serializer detect and handle an object that refers back to an object
+      that is already being written? Name the file, the key method and the setting that
+      chooses the behaviour.
+    ground_truth:
+      relevant_files: [Src/Newtonsoft.Json/Serialization/JsonSerializerInternalWriter.cs]
+      acceptable_extra_files:
+        - Src/Newtonsoft.Json/ReferenceLoopHandling.cs
+        - Src/Newtonsoft.Json/JsonSerializerSettings.cs
+      facts:
+        - any_of: ["CheckForCircularReference"]
+        - any_of: ["ReferenceLoopHandling"]
+      must_mention_files: [Src/Newtonsoft.Json/Serialization/JsonSerializerInternalWriter.cs]
+
+  - id: nj-concept-enum-converter
+    category: conceptual
+    prompt: >
+      How does StringEnumConverter write an enum value as its name and read the name
+      back? Name the file and the key methods.
+    ground_truth:
+      relevant_files: [Src/Newtonsoft.Json/Converters/StringEnumConverter.cs]
+      acceptable_extra_files: [Src/Newtonsoft.Json/Utilities/EnumUtils.cs]
+      facts:
+        - any_of: ["WriteJson"]
+        - any_of: ["ReadJson"]
+        - any_of: ["EnumUtils"]
+      must_mention_files: [Src/Newtonsoft.Json/Converters/StringEnumConverter.cs]
+
+  - id: nj-impact-circular-check
+    category: impact
+    prompt: >
+      I want to change the signature of CheckForCircularReference in the serializer's
+      internal writer. Which methods call it? List each caller with its file path.
+    ground_truth:
+      relevant_files: [Src/Newtonsoft.Json/Serialization/JsonSerializerInternalWriter.cs]
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["SerializeObject"]
+        - any_of: ["SerializeList"]
+        - any_of: ["SerializeDictionary"]
+      must_mention_files: [Src/Newtonsoft.Json/Serialization/JsonSerializerInternalWriter.cs]
+
+  - id: nj-impact-deep-equals
+    category: impact
+    prompt: >
+      I want to change the signature of JToken.DeepEquals. Outside of tests, which
+      methods call it? List each caller with its file path.
+    ground_truth:
+      relevant_files:
+        - Src/Newtonsoft.Json/Linq/JContainer.cs
+        - Src/Newtonsoft.Json/Linq/JToken.cs
+        - Src/Newtonsoft.Json/Linq/JTokenEqualityComparer.cs
+      acceptable_extra_files: [Src/Newtonsoft.Json/Linq/JPropertyKeyedCollection.cs]
+      facts:
+        - any_of: ["ContentsEqual"]
+        - any_of: ["JTokenEqualityComparer", "Equals"]
+      must_mention_files:
+        - Src/Newtonsoft.Json/Linq/JContainer.cs
+        - Src/Newtonsoft.Json/Linq/JTokenEqualityComparer.cs
+
+  - id: nj-arch-serialize
+    category: architecture
+    prompt: >
+      Trace JsonConvert.SerializeObject from the public call to the code that writes the
+      members of an object. List the files and methods in call order.
+    ground_truth:
+      relevant_files:
+        - Src/Newtonsoft.Json/JsonConvert.cs
+        - Src/Newtonsoft.Json/JsonSerializer.cs
+        - Src/Newtonsoft.Json/Serialization/JsonSerializerInternalWriter.cs
+      acceptable_extra_files: [Src/Newtonsoft.Json/Serialization/JsonSerializerInternalBase.cs]
+      facts:
+        - any_of: ["SerializeObject"]
+        - any_of: ["SerializeInternal"]
+        - any_of: ["JsonSerializerInternalWriter"]
+      must_mention_files:
+        - Src/Newtonsoft.Json/JsonConvert.cs
+        - Src/Newtonsoft.Json/JsonSerializer.cs
+        - Src/Newtonsoft.Json/Serialization/JsonSerializerInternalWriter.cs
+
+  - id: nj-needle-textreader-line
+    category: needle
+    prompt: >
+      What file and line number define the class JsonTextReader?
+    ground_truth:
+      relevant_files: [Src/Newtonsoft.Json/JsonTextReader.cs]
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["57"]
+        - any_of: ["class JsonTextReader"]
+      must_mention_files: [Src/Newtonsoft.Json/JsonTextReader.cs]

@@ -1,0 +1,590 @@
+{
+  "id": "20261106-035714-2bd8",
+  "created": "2026-11-06T03:57:14+00:00",
+  "source": {
+    "kind": "path",
+    "label": "chromium-base",
+    "label_public": null,
+    "sha": null
+  },
+  "kept_index": false,
+  "env": {
+    "nexus_mcp_ci": "2.2.2",
+    "python": "3.12.13",
+    "os": "Darwin"
+  },
+  "tier": "quick",
+  "repo": {
+    "files": 3641,
+    "chunks": 46504,
+    "size_band": "500-5k files",
+    "languages": [
+      "c",
+      "cpp",
+      "java",
+      "javascript",
+      "python",
+      "rust"
+    ],
+    "index_seconds": 2618.9
+  },
+  "questions": 30,
+  "seed": 7,
+  "summary": {
+    "grep": {
+      "questions": 30,
+      "hit_at_1": 0.433,
+      "hit_at_3": 0.7,
+      "median_tokens": 19950.5,
+      "median_ms": 1926.3
+    },
+    "nexus": {
+      "questions": 30,
+      "hit_at_1": 0.867,
+      "hit_at_3": 1.0,
+      "median_tokens": 1186.0,
+      "median_ms": 68.8
+    }
+  },
+  "by_kind": {
+    "concept": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.5,
+        "hit_at_3": 0.6,
+        "median_tokens": 20116.0,
+        "median_ms": 4032.2
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "median_tokens": 1208.0,
+        "median_ms": 67.9
+      }
+    },
+    "described": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.2,
+        "hit_at_3": 0.5,
+        "median_tokens": 27844.0,
+        "median_ms": 1926.3
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.7,
+        "hit_at_3": 1.0,
+        "median_tokens": 1180.0,
+        "median_ms": 66.7
+      }
+    },
+    "lookup": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.6,
+        "hit_at_3": 1.0,
+        "median_tokens": 7086.5,
+        "median_ms": 768.0
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.9,
+        "hit_at_3": 1.0,
+        "median_tokens": 1186.0,
+        "median_ms": 106.5
+      }
+    }
+  },
+  "verdict": {
+    "label": "Strong fit",
+    "token_saving": 0.941,
+    "hit3_gain": 0.3,
+    "reasons": [
+      "Tokens to reach the right file: Nexus-MCP 1186, Grep and Read 19950 (94% fewer with Nexus-MCP).",
+      "Right file in the top 3: 100% against 70%."
+    ]
+  },
+  "results": [
+    {
+      "id": "concept-TagRegionRandomlyForMTE",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 57632,
+        "ms": 5094.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1134,
+        "ms": 1059.5
+      }
+    },
+    {
+      "id": "concept-VerifyPathControlledByAdmin",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 26014,
+        "ms": 2199.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 902,
+        "ms": 69.5
+      }
+    },
+    {
+      "id": "concept-CheckSecurityOwners",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 19948,
+        "ms": 5495.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2137,
+        "ms": 66.4
+      }
+    },
+    {
+      "id": "concept-_GetFilesUsingSecurityCriticalFunctions",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 19953,
+        "ms": 4609.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1258,
+        "ms": 67.0
+      }
+    },
+    {
+      "id": "concept-DigitGenCounted",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 28559,
+        "ms": 2498.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1158,
+        "ms": 428.1
+      }
+    },
+    {
+      "id": "concept-GetBatteryBatteryDischargeGranularity",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 3750,
+        "ms": 3408.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1864,
+        "ms": 65.0
+      }
+    },
+    {
+      "id": "concept-DoubleToStringConverter.ToExponential",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 30437,
+        "ms": 3782.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1981,
+        "ms": 67.7
+      }
+    },
+    {
+      "id": "concept-ProcessMetrics.GetOpenFdSoftLimit",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 20279,
+        "ms": 3483.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1471,
+        "ms": 68.1
+      }
+    },
+    {
+      "id": "concept-ModuleCache.GetModuleForAddress",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2531,
+        "ms": 4517.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 902,
+        "ms": 419.6
+      }
+    },
+    {
+      "id": "concept-StreamingUtf8ValidatorDoubleSequenceTest",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 3798,
+        "ms": 4281.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 867,
+        "ms": 67.2
+      }
+    },
+    {
+      "id": "described-FeatureParamTraits",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 58378,
+        "ms": 1808.8
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 2006,
+        "ms": 68.9
+      }
+    },
+    {
+      "id": "described-EscapeForHTML",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 31239,
+        "ms": 1479.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 914,
+        "ms": 65.0
+      }
+    },
+    {
+      "id": "described-PthreadEvent.~PthreadEvent",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 24449,
+        "ms": 1255.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 906,
+        "ms": 67.5
+      }
+    },
+    {
+      "id": "described-RuntimeFieldTrialOverrides.IsRuntimeOverrideActive",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 40304,
+        "ms": 3961.7
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1732,
+        "ms": 65.8
+      }
+    },
+    {
+      "id": "described-TagRegionRandomlyForMTE",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 57573,
+        "ms": 2757.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1086,
+        "ms": 417.7
+      }
+    },
+    {
+      "id": "described-VerifyPathControlledByAdmin",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 45727,
+        "ms": 2630.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1753,
+        "ms": 66.8
+      }
+    },
+    {
+      "id": "described-StreamBacktraceOutputHandler.StreamBacktraceOutputHandler",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 15751,
+        "ms": 2716.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1274,
+        "ms": 67.3
+      }
+    },
+    {
+      "id": "described-UmaHistogramCounts1000",
+      "kind": "described",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 4517,
+        "ms": 2043.8
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 918,
+        "ms": 64.4
+      }
+    },
+    {
+      "id": "described-CheckSecurityOwners",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 23707,
+        "ms": 1785.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1799,
+        "ms": 65.6
+      }
+    },
+    {
+      "id": "described-Pickle.Attachment.~Attachment",
+      "kind": "described",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 4860,
+        "ms": 1476.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 591,
+        "ms": 66.6
+      }
+    },
+    {
+      "id": "lookup-FeatureParamTraits",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 7208,
+        "ms": 777.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1209,
+        "ms": 137.5
+      }
+    },
+    {
+      "id": "lookup-EscapeForHTML",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 6965,
+        "ms": 799.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 715,
+        "ms": 104.7
+      }
+    },
+    {
+      "id": "lookup-PthreadEvent.~PthreadEvent",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 4176,
+        "ms": 758.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1000,
+        "ms": 107.1
+      }
+    },
+    {
+      "id": "lookup-RuntimeFieldTrialOverrides.IsRuntimeOverrideActive",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1630,
+        "ms": 1616.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1309,
+        "ms": 501.8
+      }
+    },
+    {
+      "id": "lookup-_imports",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 22691,
+        "ms": 501.2
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1326,
+        "ms": 68.7
+      }
+    },
+    {
+      "id": "lookup-TagRegionRandomlyForMTE",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2996,
+        "ms": 791.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1163,
+        "ms": 105.3
+      }
+    },
+    {
+      "id": "lookup-VerifyPathControlledByAdmin",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 25606,
+        "ms": 747.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1526,
+        "ms": 106.0
+      }
+    },
+    {
+      "id": "lookup-StreamBacktraceOutputHandler.StreamBacktraceOutputHandler",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 10676,
+        "ms": 810.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 796,
+        "ms": 113.4
+      }
+    },
+    {
+      "id": "lookup-UmaHistogramCounts1000",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 3963,
+        "ms": 747.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 718,
+        "ms": 103.4
+      }
+    },
+    {
+      "id": "lookup-CheckSecurityOwners",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 19512,
+        "ms": 758.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1293,
+        "ms": 108.5
+      }
+    }
+  ]
+}

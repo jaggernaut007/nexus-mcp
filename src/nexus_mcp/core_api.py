@@ -743,6 +743,20 @@ def _compact_search_result(r: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _drop_declarations_of_defined_names(results: list[dict]) -> list[dict]:
+    """Drop a one-line declaration whose name has a body elsewhere in the results.
+
+    A C or C++ prototype (`removeExpire(redisDb *db, robj *key)` in `server.h`) is a chunk of
+    its own. Next to the definition it repeats the signature and takes a result slot.
+    """
+
+    def one_line(r: dict) -> bool:
+        return r.get("line_start") is not None and r.get("line_start") == r.get("line_end")
+
+    defined = {r.get("symbol_name") for r in results if r.get("symbol_name") and not one_line(r)}
+    return [r for r in results if not (one_line(r) and r.get("symbol_name") in defined)]
+
+
 def search(
     query: str,
     limit: int = 10,
@@ -859,7 +873,7 @@ def search(
                 engines_used.append("exact_name")
         except Exception as e:  # noqa: BLE001 - an addition, never a failure
             logger.debug("Exact name lookup failed: %s", e)
-    results = results[:limit]
+    results = _drop_declarations_of_defined_names(results)[:limit]
 
     roots = _index_roots(state)
     if not symbol_type and (live_grep or (mode == "hybrid" and len(results) < limit)):
@@ -965,11 +979,8 @@ def search(
             response["warning"] = search_warning
         if len(results) > COMPACT_TOP_RESULTS:
             response["hint"] = (
-                f"The first {COMPACT_TOP_RESULTS} results hold the whole symbol unless "
-                "marked (truncated); answer from them without a file read. The others "
-                "show the signature only. For the whole code of other symbols call "
-                "find_symbol with their names (several names in one call), not a "
-                "file read or a grep."
+                f"The first {COMPACT_TOP_RESULTS} hold the whole code; the others the "
+                "signature only. Get more code with one find_symbol call, not a read or grep."
             )
         return response
 
@@ -1223,14 +1234,20 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
     stale_code = 0
     outlined = False
     budget = SYMBOL_CODE_BUDGET
+    seen_places: set[tuple] = set()  # (file, start, end) of each symbol already in the result
     roots = _index_roots(state)
     for name in _split_symbol_names(symbol_name) or [symbol_name]:
         nodes = _resolve_symbol(state.graph_engine, name, exact=exact)
         # Functions and classes first, then tests, then the node of a whole file (the graph
-        # has one for each file, named like it: `main` is also `main.py`).
+        # has one for each file, named like it: `main` is also `main.py`). A C++ or C#
+        # constructor has the name of its class, so it comes after the class.
         nodes = sorted(
             nodes,
-            key=lambda n: (n.node_type == NodeType.MODULE, is_test_path(n.location.file_path)),
+            key=lambda n: (
+                n.node_type == NodeType.MODULE,
+                is_test_path(n.location.file_path),
+                n.node_type == NodeType.FUNCTION and n.metadata.get("parent_class") == n.name,
+            ),
         )
         if len(nodes) > MAX_MATCHES_PER_NAME:
             more_matches[name] = len(nodes) - MAX_MATCHES_PER_NAME
@@ -1256,6 +1273,10 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
         if not found:
             not_found.append(name)
             continue
+        # Names of one call can match the same symbol (`Exec, exec` with exact=False): send
+        # each symbol once. A repeat cost tokens on every later turn and told the agent nothing.
+        found = [(e, p) for e, p in found if p not in seen_places]
+        seen_places.update(p for _, p in found)
         for i, (entry, place) in enumerate(found):
             wants_code = (
                 i < MAX_SYMBOL_MATCHES_WITH_CODE

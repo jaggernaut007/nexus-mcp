@@ -1,7 +1,7 @@
 """Tree-sitter based multi-language code parser.
 
 Ported from CodeGrok MCP. Extracts symbols, imports, and calls from source files.
-Supports 9 languages via tree-sitter grammars.
+Supports 12 languages via tree-sitter grammars.
 """
 
 import logging
@@ -9,13 +9,14 @@ import re
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from tree_sitter_languages import get_parser
 
 from nexus_mcp.core.interfaces import IParser
 from nexus_mcp.core.models import ParsedFile, Symbol, SymbolType
 from nexus_mcp.parsing.language_registry import (
+    TREESITTER_GRAMMARS,
     get_config_for_language,
     get_language_for_file,
     get_treesitter_extensions,
@@ -65,6 +66,122 @@ _DECLARATOR_NAMES = (
 _C_FAMILY = ("c", "cpp")
 
 
+def _inside_function_definition(node) -> bool:
+    """True when a C declarator is part of a function definition, not a prototype."""
+    parent = node.parent
+    while parent is not None:
+        if parent.type == "function_definition":
+            return True
+        if parent.type in ("declaration", "translation_unit", "field_declaration"):
+            return False
+        parent = parent.parent
+    return False
+# A declarator with one of these names is a misparse, not a function: with
+# `FMT_BEGIN_NAMESPACE namespace detail {` the macro looks like a return type and
+# `namespace` like the name of a function.
+_CPP_KEYWORD_NAMES = frozenset({
+    "namespace", "if", "for", "while", "switch", "return", "sizeof", "do", "else", "case",
+    "decltype", "alignof", "static_assert", "template", "typedef", "using", "class",
+    "struct", "union", "enum", "noexcept", "throw", "catch", "try", "new", "delete",
+})
+
+
+def is_cpp_header(filepath: str, content: bytes) -> bool:
+    """True for a `.h` file with C++ syntax (`namespace`, `class X`, `template <`, `::`)."""
+    return Path(filepath).suffix.lower() == ".h" and bool(_CPP_HEADER_MARKERS.search(content))
+
+
+def mask_cpp_class_macros(content: bytes) -> bytes:
+    """The source with the macros of C++ class heads and function tails replaced by spaces.
+
+    `class BASE_EXPORT Foo {` is parsed as `class             Foo {`, and the macro
+    of `void Acquire() EXCLUSIVE_LOCK_FUNCTION() {` becomes spaces in the same way.
+    The length and the line breaks do not change, so node offsets and line numbers stay
+    valid and the names and code of the symbols are still read from the original source.
+    """
+    def blank(match: "re.Match[bytes]") -> bytes:
+        start, end = match.span(1)
+        head = match.group(0)
+        macros = re.sub(rb"[^\n]", b" ", match.group(1))
+        offset = start - match.start()
+        return head[:offset] + macros + head[offset + (end - start):]
+
+    masked = _CPP_CLASS_HEAD_MACROS.sub(blank, content)
+    return _CPP_FUNCTION_TAIL_MACROS.sub(blank, masked)
+
+
+def split_cpp_scope(name: str) -> List[str]:
+    """Split a C++ name on each `::` that is outside template arguments."""
+    parts, depth, start, i = [], 0, 0, 0
+    while i < len(name):
+        ch = name[i]
+        if ch == "<":
+            depth += 1
+        elif ch == ">" and depth:
+            depth -= 1
+        elif depth == 0 and name.startswith("::", i):
+            parts.append(name[start:i])
+            i += 2
+            start = i
+            continue
+        i += 1
+    parts.append(name[start:])
+    return parts
+
+
+def c_declarator_name(
+    node: Any, text: Callable[[Any], str]
+) -> Optional[Tuple[List[str], str]]:
+    """The scope and the name of a C or C++ function definition, from its declarator.
+
+    `WeakReference WeakReferenceOwner::GetRef() const` gives
+    (["WeakReferenceOwner"], "GetRef"), not the return type. Template arguments
+    leave the scope (`Holder<T>::Reset` gives ["Holder"]). Constructors, destructors
+    (`~Foo`), operators (`operator==`, `operator bool`) and pointer or reference
+    returns (`char* f()`, `A& f()`) keep their own name. None when no name is found.
+
+    ``node`` has the tree-sitter node API (`type`, `child_by_field_name`,
+    `named_children`), and ``text`` gives the source text of a node. The ast-grep
+    parser passes a view of its own nodes, so both parsers name a function the same way.
+    """
+    scope: List[str] = []
+    decl = node.child_by_field_name("declarator")
+    while decl is not None:
+        kind = decl.type
+        if kind in _DECLARATOR_WRAPPERS:
+            inner = decl.child_by_field_name("declarator")
+            if inner is None:  # `&f()` has no field name for its inner declarator
+                named = [c for c in decl.named_children if "declarator" in c.type]
+                inner = named[-1] if named else None
+            decl = inner
+        elif kind == "qualified_identifier":
+            outer = decl.child_by_field_name("scope")
+            if outer is not None:
+                if outer.type == "template_type":
+                    outer = outer.child_by_field_name("name") or outer
+                scope.append(text(outer).strip())
+            decl = decl.child_by_field_name("name")
+        elif kind == "template_function":
+            decl = decl.child_by_field_name("name")
+        elif kind == "operator_cast":
+            target = decl.child_by_field_name("type")
+            target_text = text(target).strip() if target else ""
+            return scope, f"operator {target_text}".strip()
+        elif kind in _DECLARATOR_NAMES:
+            name = " ".join(text(decl).split())
+            if name in _CPP_KEYWORD_NAMES:
+                return None
+            return scope, re.sub(r"^operator\s+(?=\W)", "operator", name)
+        else:
+            return None
+    return None
+# Nodes between a doc comment and its item: `#[derive(Debug)]` in Rust, `[Fact]` in C#.
+_ATTRIBUTE_KINDS = ("attribute_item", "attribute_list", "attribute")
+# A doc comment: `/// text` or `/** text */`. `//!` and `/*!` describe the enclosing module.
+_DOC_COMMENT = re.compile(r"^(?:///(?!/)|/\*\*(?!/))")
+_XML_TAG = re.compile(r"</?[A-Za-z][^>]*>")
+
+
 class TreeSitterParser(IParser):
     """Production tree-sitter parser. NOT thread-safe per instance."""
 
@@ -77,6 +194,9 @@ class TreeSitterParser(IParser):
     LICENCE_WORDS = ("copyright", "license", "licence", "spdx")
     # File names that say nothing: the folder name is the module name.
     PACKAGE_FILE_STEMS = ("__init__", "index", "mod", "main")
+    # Nodes before the top comment that say nothing about the file: `<?php`,
+    # `declare(strict_types=1);`.
+    FILE_PREAMBLE_KINDS = ("php_tag", "declare_statement")
     # Comments that talk to a tool, not to a reader: they are not a module description.
     PRAGMA_PREFIXES = (
         "pylint:", "type:", "noqa", "mypy:", "pyright:", "flake8:", "isort:", "fmt:", "ruff:",
@@ -128,9 +248,7 @@ class TreeSitterParser(IParser):
                 parse_time=time.time() - start_time,
             )
 
-        if language == "c" and file_path.suffix.lower() == ".h" and (
-            _CPP_HEADER_MARKERS.search(content)
-        ):
+        if language == "c" and is_cpp_header(filepath, content):
             language = "cpp"
 
         try:
@@ -145,7 +263,7 @@ class TreeSitterParser(IParser):
             )
 
         try:
-            source = self._mask_cpp_class_macros(content) if language == "cpp" else content
+            source = mask_cpp_class_macros(content) if language == "cpp" else content
             tree = parser.parse(source)
             symbols = self._extract_symbols(
                 tree.root_node, content, filepath, language, config
@@ -192,7 +310,7 @@ class TreeSitterParser(IParser):
 
     def _get_parser(self, language: str):
         if language not in self._parsers:
-            self._parsers[language] = get_parser(language)
+            self._parsers[language] = get_parser(TREESITTER_GRAMMARS.get(language, language))
         return self._parsers[language]
 
     def _extract_symbols(
@@ -206,13 +324,21 @@ class TreeSitterParser(IParser):
         class_types = config.get("class_types", [])
         method_types = config.get("method_types", [])
         constant_types = config.get("constant_types", [])
+        scope_types = config.get("scope_types", {})
 
         def traverse(node, depth: int = 0):
             nonlocal current_class
             node_type = node.type
             opened_class = False  # only a class that gave a symbol closes a scope
 
-            if node_type in class_types:
+            if node_type in scope_types:
+                scope = self._scope_name(node, content, scope_types[node_type])
+                if scope:
+                    class_stack.append(scope)
+                    current_class = scope
+                    opened_class = True
+
+            elif node_type in class_types:
                 # A C++ class nested in another has the outer class as parent, so it is
                 # found as `Outer::Inner` (`Outer.Inner` in the index).
                 outer = class_stack[-1] if (language == "cpp" and class_stack) else None
@@ -227,9 +353,14 @@ class TreeSitterParser(IParser):
                     opened_class = True
 
             elif node_type in function_types and not current_class:
-                sym = self._extract_function_symbol(
-                    node, content, filepath, language, config, parent=None
-                )
+                # C lists `function_declarator` to keep header prototypes. The declarator
+                # inside a definition is the same function again, as a one-line chunk.
+                if node_type == "function_declarator" and _inside_function_definition(node):
+                    sym = None
+                else:
+                    sym = self._extract_function_symbol(
+                        node, content, filepath, language, config, parent=None
+                    )
                 if sym:
                     symbols.append(sym)
 
@@ -317,6 +448,8 @@ class TreeSitterParser(IParser):
         prev_end: Optional[int] = None
         docstring: Optional[Tuple[str, int]] = None
         for child in root_node.children:
+            if child.type in self.FILE_PREAMBLE_KINDS:
+                continue
             if "comment" in child.type:
                 text = self._comment_text(self._get_node_text(child, content))
                 first_line, last_line = child.start_point[0], child.end_point[0]
@@ -369,7 +502,7 @@ class TreeSitterParser(IParser):
             # in the body of `Outer`. Only a `::` outside template arguments splits the
             # name (`struct std::hash<a::B> {` is `hash<a::B>` in `std`). Template
             # arguments in the scope are dropped.
-            parts = [p.strip() for p in self._split_cpp_scope(name)]
+            parts = [p.strip() for p in split_cpp_scope(name)]
             scope = [re.sub(r"<.*>", "", p, flags=re.DOTALL).strip() for p in parts[:-1]]
             if not parts[-1]:
                 return None
@@ -390,31 +523,12 @@ class TreeSitterParser(IParser):
             calls=tuple(self._extract_calls_from_node(node, content, config)),
         )
 
-    @staticmethod
-    def _split_cpp_scope(name: str) -> List[str]:
-        """Split a C++ name on each `::` that is outside template arguments."""
-        parts, depth, start, i = [], 0, 0, 0
-        while i < len(name):
-            ch = name[i]
-            if ch == "<":
-                depth += 1
-            elif ch == ">" and depth:
-                depth -= 1
-            elif depth == 0 and name.startswith("::", i):
-                parts.append(name[start:i])
-                i += 2
-                start = i
-                continue
-            i += 1
-        parts.append(name[start:])
-        return parts
-
     def _extract_function_symbol(
         self, node, content: bytes, filepath: str, language: str, config: Dict,
         parent: Optional[str] = None, is_method: bool = False,
     ) -> Optional[Symbol]:
         if language in _C_FAMILY and node.type == "function_definition":
-            resolved = self._c_declarator_name(node, content)
+            resolved = c_declarator_name(node, lambda n: self._get_node_text(n, content))
             if resolved is None:
                 return None  # a name from elsewhere (the return type) is worse than none
             scope, name = resolved
@@ -472,6 +586,11 @@ class TreeSitterParser(IParser):
                                     name = pn
                                 break
                         break
+
+        elif language == "rust":
+            name_node = node.child_by_field_name("name")
+            if name_node is not None:
+                name = self._get_node_text(name_node, content).strip()
 
         if not name:
             return None
@@ -553,6 +672,8 @@ class TreeSitterParser(IParser):
         return None
 
     def _extract_docstring(self, node, content: bytes, config: Dict) -> str:
+        if config.get("doc_comment") == "leading":
+            return self._leading_doc_comment(node, content)
         body = self._get_body_node(node, config)
         if not body:
             return ""
@@ -564,6 +685,48 @@ class TreeSitterParser(IParser):
             elif child.type in ("string", "string_literal", "comment"):
                 return self._clean_docstring(self._get_node_text(child, content))
         return ""
+
+    def _leading_doc_comment(self, node, content: bytes) -> str:
+        """The first line of the doc comment just above a node (`///` or `/** */`).
+
+        Attributes between the comment and the node are skipped. A blank line ends the
+        comment. C# XML tags (`<summary>`) and PHPDoc tags (`@param`) are not text.
+        """
+        parts: List[str] = []
+        row = node.start_point[0]
+        prev = node.prev_named_sibling
+        while prev is not None and prev.end_point[0] >= row - 1:
+            if prev.type in _ATTRIBUTE_KINDS:
+                pass
+            elif "comment" in prev.type:
+                text = self._get_node_text(prev, content).strip()
+                if not _DOC_COMMENT.match(text):
+                    break
+                parts.insert(0, text)
+            else:
+                break
+            row = prev.start_point[0]
+            prev = prev.prev_named_sibling
+        for raw in "\n".join(parts).split("\n"):
+            line = raw.strip().lstrip("/*!").rstrip("*/").strip()
+            line = _XML_TAG.sub("", line).strip()
+            if line and not line.startswith("@"):
+                return line
+        return ""
+
+    def _scope_name(self, node, content: bytes, field: str) -> Optional[str]:
+        """The type that a scope node such as Rust `impl<T> Box<T>` belongs to: `Box`."""
+        target = node.child_by_field_name(field)
+        while target is not None:
+            if target.type == "type_identifier":
+                return self._get_node_text(target, content).strip()
+            if target.type == "scoped_type_identifier":
+                target = target.child_by_field_name("name")
+            elif target.type in ("generic_type", "reference_type", "pointer_type"):
+                target = target.child_by_field_name("type")
+            else:
+                break
+        return None
 
     def _get_body_node(self, node, config: Dict):
         for child in node.children:
@@ -589,64 +752,6 @@ class TreeSitterParser(IParser):
         for child in node.children:
             if child.type in ("declarator", "function_declarator"):
                 return self._get_node_name(child, content, config)
-        return None
-
-    @staticmethod
-    def _mask_cpp_class_macros(content: bytes) -> bytes:
-        """The source with the macros of C++ class heads and function tails replaced by spaces.
-
-        `class BASE_EXPORT Foo {` is parsed as `class             Foo {`, and the macro
-        of `void Acquire() EXCLUSIVE_LOCK_FUNCTION() {` becomes spaces in the same way.
-        The length and the line breaks do not change, so node offsets and line numbers stay
-        valid and the names and code of the symbols are still read from the original source.
-        """
-        def blank(match: "re.Match[bytes]") -> bytes:
-            start, end = match.span(1)
-            head = match.group(0)
-            macros = re.sub(rb"[^\n]", b" ", match.group(1))
-            offset = start - match.start()
-            return head[:offset] + macros + head[offset + (end - start):]
-
-        masked = _CPP_CLASS_HEAD_MACROS.sub(blank, content)
-        return _CPP_FUNCTION_TAIL_MACROS.sub(blank, masked)
-
-    def _c_declarator_name(self, node, content: bytes) -> Optional[Tuple[List[str], str]]:
-        """The scope and the name of a C or C++ function definition, from its declarator.
-
-        `WeakReference WeakReferenceOwner::GetRef() const` gives
-        (["WeakReferenceOwner"], "GetRef"), not the return type. Template arguments
-        leave the scope (`Holder<T>::Reset` gives ["Holder"]). Constructors, destructors
-        (`~Foo`), operators (`operator==`, `operator bool`) and pointer or reference
-        returns (`char* f()`, `A& f()`) keep their own name. None when no name is found.
-        """
-        scope: List[str] = []
-        decl = node.child_by_field_name("declarator")
-        while decl is not None:
-            kind = decl.type
-            if kind in _DECLARATOR_WRAPPERS:
-                inner = decl.child_by_field_name("declarator")
-                if inner is None:  # `&f()` has no field name for its inner declarator
-                    named = [c for c in decl.named_children if "declarator" in c.type]
-                    inner = named[-1] if named else None
-                decl = inner
-            elif kind == "qualified_identifier":
-                outer = decl.child_by_field_name("scope")
-                if outer is not None:
-                    if outer.type == "template_type":
-                        outer = outer.child_by_field_name("name") or outer
-                    scope.append(self._get_node_text(outer, content).strip())
-                decl = decl.child_by_field_name("name")
-            elif kind == "template_function":
-                decl = decl.child_by_field_name("name")
-            elif kind == "operator_cast":
-                target = decl.child_by_field_name("type")
-                text = self._get_node_text(target, content).strip() if target else ""
-                return scope, f"operator {text}".strip()
-            elif kind in _DECLARATOR_NAMES:
-                text = " ".join(self._get_node_text(decl, content).split())
-                return scope, re.sub(r"^operator\s+(?=\W)", "operator", text)
-            else:
-                return None
         return None
 
     def _get_node_text(self, node, content: bytes) -> str:

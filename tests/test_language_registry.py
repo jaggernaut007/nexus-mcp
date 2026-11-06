@@ -50,15 +50,16 @@ def test_get_supported_extensions():
     exts = get_supported_extensions()
     assert ".py" in exts
     assert ".js" in exts
-    assert ".rs" in exts  # ast-grep only
+    assert ".rs" in exts
 
 
 def test_get_treesitter_extensions():
     exts = get_treesitter_extensions()
     assert ".py" in exts
     assert ".go" in exts
-    # Rust is ast-grep only, not tree-sitter
-    assert ".rs" not in exts
+    assert {".rs", ".php", ".cs"} <= exts
+    # Ruby is ast-grep only, not tree-sitter
+    assert ".rb" not in exts
 
 
 def test_get_astgrep_extensions():

@@ -1,0 +1,585 @@
+{
+  "id": "20261106-103040-eb93",
+  "created": "2026-11-06T10:30:40+00:00",
+  "source": {
+    "kind": "path",
+    "label": "redis",
+    "label_public": null,
+    "sha": null
+  },
+  "kept_index": false,
+  "env": {
+    "nexus_mcp_ci": "2.2.2",
+    "python": "3.12.13",
+    "os": "Darwin"
+  },
+  "tier": "quick",
+  "repo": {
+    "files": 229,
+    "chunks": 10502,
+    "size_band": "50-500 files",
+    "languages": [
+      "c"
+    ],
+    "index_seconds": 507.8
+  },
+  "questions": 30,
+  "seed": 7,
+  "summary": {
+    "grep": {
+      "questions": 30,
+      "hit_at_1": 0.4,
+      "hit_at_3": 0.633,
+      "median_tokens": 37139.0,
+      "median_ms": 330.9
+    },
+    "nexus": {
+      "questions": 30,
+      "hit_at_1": 0.867,
+      "hit_at_3": 0.933,
+      "median_tokens": 988.0,
+      "median_ms": 33.5
+    }
+  },
+  "by_kind": {
+    "concept": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.2,
+        "hit_at_3": 0.6,
+        "median_tokens": 51872.5,
+        "median_ms": 782.6
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.8,
+        "hit_at_3": 0.9,
+        "median_tokens": 1095.0,
+        "median_ms": 33.5
+      }
+    },
+    "described": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.1,
+        "hit_at_3": 0.3,
+        "median_tokens": 51181.0,
+        "median_ms": 342.5
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.8,
+        "hit_at_3": 0.9,
+        "median_tokens": 1037.5,
+        "median_ms": 31.9
+      }
+    },
+    "lookup": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.9,
+        "hit_at_3": 1.0,
+        "median_tokens": 19542.0,
+        "median_ms": 252.1
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "median_tokens": 895.0,
+        "median_ms": 40.5
+      }
+    }
+  },
+  "verdict": {
+    "label": "Strong fit",
+    "token_saving": 0.973,
+    "hit3_gain": 0.3,
+    "reasons": [
+      "Tokens to reach the right file: Nexus-MCP 988, Grep and Read 37139 (97% fewer with Nexus-MCP).",
+      "Right file in the top 3: 93% against 63%."
+    ]
+  },
+  "results": [
+    {
+      "id": "concept-isPubsubPush",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 57813,
+        "ms": 897.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 780,
+        "ms": 659.8
+      }
+    },
+    {
+      "id": "concept-writePingExt",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 38540,
+        "ms": 539.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2098,
+        "ms": 35.6
+      }
+    },
+    {
+      "id": "concept-initServer",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 62451,
+        "ms": 912.4
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1008,
+        "ms": 31.9
+      }
+    },
+    {
+      "id": "concept-lpFindCbInternal",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 64154,
+        "ms": 416.0
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 22657,
+        "ms": 33.0
+      }
+    },
+    {
+      "id": "concept-geoGetPointsInRange",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 9814,
+        "ms": 965.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1608,
+        "ms": 34.2
+      }
+    },
+    {
+      "id": "concept-_addBulkStrRefToBuffer",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 60496,
+        "ms": 911.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1112,
+        "ms": 33.6
+      }
+    },
+    {
+      "id": "concept-luaScript",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 46025,
+        "ms": 446.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 808,
+        "ms": 66.2
+      }
+    },
+    {
+      "id": "concept-zbtIndexShrinkIfNeeded",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 57720,
+        "ms": 981.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1078,
+        "ms": 33.5
+      }
+    },
+    {
+      "id": "concept-zipStoreEntryEncoding",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 35966,
+        "ms": 180.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1344,
+        "ms": 31.5
+      }
+    },
+    {
+      "id": "concept-luaDeleteFunction",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 16523,
+        "ms": 667.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1038,
+        "ms": 30.2
+      }
+    },
+    {
+      "id": "described-isPubsubPush",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 60698,
+        "ms": 334.2
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 851,
+        "ms": 32.0
+      }
+    },
+    {
+      "id": "described-clusterCloseAllSlots",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 52439,
+        "ms": 408.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1317,
+        "ms": 31.7
+      }
+    },
+    {
+      "id": "described-redisSupervisedUpstart",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 63410,
+        "ms": 498.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 968,
+        "ms": 32.3
+      }
+    },
+    {
+      "id": "described-backupClearArtifactFilenames",
+      "kind": "described",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 19053,
+        "ms": 809.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 921,
+        "ms": 30.6
+      }
+    },
+    {
+      "id": "described-zsetKeyReset",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 52383,
+        "ms": 350.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1107,
+        "ms": 32.2
+      }
+    },
+    {
+      "id": "described-writePingExt",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 33984,
+        "ms": 266.2
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1683,
+        "ms": 34.2
+      }
+    },
+    {
+      "id": "described-arDefragDecodeSuperdirCursor",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 38312,
+        "ms": 786.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1196,
+        "ms": 31.7
+      }
+    },
+    {
+      "id": "described-RM_SetLRU",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 63425,
+        "ms": 231.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 724,
+        "ms": 31.8
+      }
+    },
+    {
+      "id": "described-initServer",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 49979,
+        "ms": 145.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1541,
+        "ms": 32.6
+      }
+    },
+    {
+      "id": "described-update_zmalloc_stat_free",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 30044,
+        "ms": 327.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 757,
+        "ms": 31.1
+      }
+    },
+    {
+      "id": "lookup-isPubsubPush",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 17612,
+        "ms": 253.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 757,
+        "ms": 41.4
+      }
+    },
+    {
+      "id": "lookup-clusterCloseAllSlots",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 19542,
+        "ms": 244.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 603,
+        "ms": 40.4
+      }
+    },
+    {
+      "id": "lookup-_iterset",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 18550,
+        "ms": 158.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 898,
+        "ms": 29.5
+      }
+    },
+    {
+      "id": "lookup-redisSupervisedUpstart",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 20161,
+        "ms": 264.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 940,
+        "ms": 40.4
+      }
+    },
+    {
+      "id": "lookup-backupClearArtifactFilenames",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 18827,
+        "ms": 251.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 911,
+        "ms": 40.6
+      }
+    },
+    {
+      "id": "lookup-zsetKeyReset",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 22528,
+        "ms": 219.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 725,
+        "ms": 40.4
+      }
+    },
+    {
+      "id": "lookup-writePingExt",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 19542,
+        "ms": 230.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1730,
+        "ms": 40.6
+      }
+    },
+    {
+      "id": "lookup-arDefragDecodeSuperdirCursor",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 19291,
+        "ms": 256.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 892,
+        "ms": 40.1
+      }
+    },
+    {
+      "id": "lookup-RM_SetLRU",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 22528,
+        "ms": 252.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 678,
+        "ms": 79.6
+      }
+    },
+    {
+      "id": "lookup-initServer",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 39358,
+        "ms": 253.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1561,
+        "ms": 40.6
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "c": {
+    "files": 227,
+    "symbols": 16967,
+    "functions": 0,
+    "classes": 0,
+    "calls": 0,
+    "calls_per_fn": 0.0,
+    "fn_with_calls": 0.0
+  },
+  "ruby": {
+    "files": 1,
+    "symbols": 0,
+    "functions": 0,
+    "classes": 0,
+    "calls": 0,
+    "calls_per_fn": 0.0,
+    "fn_with_calls": 0.0
+  }
+}

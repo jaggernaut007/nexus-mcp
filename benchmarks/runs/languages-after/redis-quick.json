@@ -1,0 +1,585 @@
+{
+  "id": "20261106-053822-4349",
+  "created": "2026-11-06T05:38:22+00:00",
+  "source": {
+    "kind": "path",
+    "label": "redis",
+    "label_public": null,
+    "sha": null
+  },
+  "kept_index": false,
+  "env": {
+    "nexus_mcp_ci": "2.2.2",
+    "python": "3.12.13",
+    "os": "Darwin"
+  },
+  "tier": "quick",
+  "repo": {
+    "files": 229,
+    "chunks": 16960,
+    "size_band": "50-500 files",
+    "languages": [
+      "c"
+    ],
+    "index_seconds": 849.5
+  },
+  "questions": 30,
+  "seed": 7,
+  "summary": {
+    "grep": {
+      "questions": 30,
+      "hit_at_1": 0.4,
+      "hit_at_3": 0.467,
+      "median_tokens": 36182.5,
+      "median_ms": 389.0
+    },
+    "nexus": {
+      "questions": 30,
+      "hit_at_1": 0.667,
+      "hit_at_3": 0.833,
+      "median_tokens": 704.5,
+      "median_ms": 38.8
+    }
+  },
+  "by_kind": {
+    "concept": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.1,
+        "hit_at_3": 0.2,
+        "median_tokens": 47004.5,
+        "median_ms": 448.6
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.3,
+        "hit_at_3": 0.5,
+        "median_tokens": 1189.0,
+        "median_ms": 38.8
+      }
+    },
+    "described": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.2,
+        "hit_at_3": 0.2,
+        "median_tokens": 47150.5,
+        "median_ms": 526.8
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.7,
+        "hit_at_3": 1.0,
+        "median_tokens": 948.0,
+        "median_ms": 37.1
+      }
+    },
+    "lookup": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.9,
+        "hit_at_3": 1.0,
+        "median_tokens": 18210.5,
+        "median_ms": 252.4
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "median_tokens": 589.0,
+        "median_ms": 51.8
+      }
+    }
+  },
+  "verdict": {
+    "label": "Strong fit",
+    "token_saving": 0.981,
+    "hit3_gain": 0.366,
+    "reasons": [
+      "Tokens to reach the right file: Nexus-MCP 704, Grep and Read 36182 (98% fewer with Nexus-MCP).",
+      "Right file in the top 3: 83% against 47%."
+    ]
+  },
+  "results": [
+    {
+      "id": "concept-quicklistLZF",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 44166,
+        "ms": 495.3
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 7262,
+        "ms": 713.4
+      }
+    },
+    {
+      "id": "concept-rdbLoadSkipMetaIfAllowed",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 9650,
+        "ms": 396.3
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 594,
+        "ms": 107.4
+      }
+    },
+    {
+      "id": "concept-clusterSetNodeAsMaster",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 35947,
+        "ms": 292.0
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 741,
+        "ms": 37.0
+      }
+    },
+    {
+      "id": "concept-enterScriptTimedoutMode",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 51716,
+        "ms": 481.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1181,
+        "ms": 38.8
+      }
+    },
+    {
+      "id": "concept-lpFindCbInternal",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 64154,
+        "ms": 415.6
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 26685,
+        "ms": 38.6
+      }
+    },
+    {
+      "id": "concept-addNodeToNodeReply",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 36418,
+        "ms": 699.1
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1197,
+        "ms": 39.0
+      }
+    },
+    {
+      "id": "concept-RedisModuleDict",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 49843,
+        "ms": 374.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 544,
+        "ms": 38.7
+      }
+    },
+    {
+      "id": "concept-dictCheckRehashingCompleted",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 63747,
+        "ms": 428.9
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 59501,
+        "ms": 37.7
+      }
+    },
+    {
+      "id": "concept-parseExtendedStringArgumentsOrReply",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 65790,
+        "ms": 468.3
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 57190,
+        "ms": 39.2
+      }
+    },
+    {
+      "id": "concept-mstrhdr5",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 21396,
+        "ms": 852.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 860,
+        "ms": 38.7
+      }
+    },
+    {
+      "id": "described-geoArrayFree",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 36864,
+        "ms": 381.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 652,
+        "ms": 38.4
+      }
+    },
+    {
+      "id": "described-showLatencyDistLegend",
+      "kind": "described",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 17798,
+        "ms": 747.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1334,
+        "ms": 36.4
+      }
+    },
+    {
+      "id": "described-connSocketSetWriteHandler",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 46445,
+        "ms": 600.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 980,
+        "ms": 37.6
+      }
+    },
+    {
+      "id": "described-asmIsAnyTrimJobOverlaps",
+      "kind": "described",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 19768,
+        "ms": 724.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1509,
+        "ms": 36.1
+      }
+    },
+    {
+      "id": "described-rdbLoadStreamIdmpEntries",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 62485,
+        "ms": 744.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 916,
+        "ms": 38.3
+      }
+    },
+    {
+      "id": "described-monotonicLogCallback",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 32905,
+        "ms": 417.1
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 668,
+        "ms": 37.1
+      }
+    },
+    {
+      "id": "described-quicklistLZF",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 47856,
+        "ms": 452.7
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 626,
+        "ms": 36.2
+      }
+    },
+    {
+      "id": "described-rdbLoadSkipMetaIfAllowed",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 62532,
+        "ms": 623.3
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1871,
+        "ms": 37.1
+      }
+    },
+    {
+      "id": "described-createSortOperation",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 48976,
+        "ms": 334.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1524,
+        "ms": 38.2
+      }
+    },
+    {
+      "id": "described-RM_CallReplyLength",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 48676,
+        "ms": 274.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 641,
+        "ms": 36.1
+      }
+    },
+    {
+      "id": "lookup-geoArrayFree",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 9635,
+        "ms": 250.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 526,
+        "ms": 52.6
+      }
+    },
+    {
+      "id": "lookup-showLatencyDistLegend",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 17612,
+        "ms": 255.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 556,
+        "ms": 51.5
+      }
+    },
+    {
+      "id": "lookup-connSocketSetWriteHandler",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 3869,
+        "ms": 254.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 916,
+        "ms": 51.8
+      }
+    },
+    {
+      "id": "lookup-asmIsAnyTrimJobOverlaps",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 19587,
+        "ms": 247.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 573,
+        "ms": 51.1
+      }
+    },
+    {
+      "id": "lookup-rdbLoadStreamIdmpEntries",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 18809,
+        "ms": 259.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 588,
+        "ms": 51.9
+      }
+    },
+    {
+      "id": "lookup-monotonicLogCallback",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 20161,
+        "ms": 255.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 541,
+        "ms": 50.8
+      }
+    },
+    {
+      "id": "lookup-quicklistLZF",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 40666,
+        "ms": 240.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 629,
+        "ms": 51.2
+      }
+    },
+    {
+      "id": "lookup-rdbLoadSkipMetaIfAllowed",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 9463,
+        "ms": 263.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 590,
+        "ms": 52.3
+      }
+    },
+    {
+      "id": "lookup-createSortOperation",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 6912,
+        "ms": 250.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 615,
+        "ms": 51.7
+      }
+    },
+    {
+      "id": "lookup-RM_CallReplyLength",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 22528,
+        "ms": 247.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 653,
+        "ms": 66.0
+      }
+    }
+  ]
+}

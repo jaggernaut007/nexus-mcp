@@ -34,6 +34,8 @@ class RunTrace:
     nexus_result_files: List[str] = field(default_factory=list)
     search_call_count: int = 0
     retrieval_tokens_est: int = 0
+    # Estimated tokens of tool results, per tool name: which output costs the most.
+    result_tokens_by_tool: Dict[str, int] = field(default_factory=dict)
     usage: Dict[str, int] = field(default_factory=dict)
     total_cost_usd: Optional[float] = None
     num_turns: Optional[int] = None
@@ -134,7 +136,10 @@ def _tool_result_text(content: Any) -> str:
 
 
 def _handle_tool_result(text: str, tool_name: Optional[str], trace: RunTrace) -> None:
-    trace.retrieval_tokens_est += len(text) // CHARS_PER_TOKEN
+    tokens = len(text) // CHARS_PER_TOKEN
+    trace.retrieval_tokens_est += tokens
+    key = tool_name or "unknown"
+    trace.result_tokens_by_tool[key] = trace.result_tokens_by_tool.get(key, 0) + tokens
     if not tool_name or not tool_name.startswith(MCP_TOOL_PREFIX):
         return
     try:

@@ -15,11 +15,12 @@ body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 system-ui,
 main { max-width:960px; margin:0 auto; padding:32px 16px 64px; }
 h1 { font-size:2rem; margin:0 0 8px; } h2 { margin-top:40px; }
 p, li { color:var(--muted); } a { color:var(--accent); }
-.scroll { overflow-x:auto; }
+.scroll { overflow-x:auto; max-width:100%; }
 table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
 th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
 th { font-size:.85rem; color:var(--muted); font-weight:600; }
 code { font-size:.9em; }
+.lang tr > :first-child { position:sticky; left:0; background:var(--bg); color:var(--fg); }
 </style>
 </head>
 <body>

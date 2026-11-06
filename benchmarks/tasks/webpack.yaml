@@ -1,0 +1,115 @@
+repo:
+  name: webpack
+  url: https://github.com/webpack/webpack.git
+  pin: f6366b0bc2afbf1f5494f33e81f2bd0588b802cc
+  pinned_date: "2026-11-06"
+  sparse: ["lib"]
+  why: >-
+    Webpack's own source (lib, 814 files, plain JavaScript with JSDoc types). It is the
+    JavaScript corpus of the live benchmark. The ground truth was checked by hand with
+    grep on the pinned commit.
+
+defaults:
+  max_budget_usd: 1.00
+  timeout_s: 600
+
+tasks:
+  - id: wp-concept-split-chunks
+    category: conceptual
+    prompt: >
+      How does webpack decide which modules to move into shared split-out chunks, and
+      where does it check the size limits? Name the file and the key functions.
+    ground_truth:
+      relevant_files: [lib/optimize/SplitChunksPlugin.js]
+      acceptable_extra_files: [lib/optimize/MinMaxSizeWarning.js]
+      facts:
+        - any_of: ["optimizeChunks"]
+        - any_of: ["chunksInfoMap"]
+        - any_of: ["checkMinSize", "minSize"]
+      must_mention_files: [lib/optimize/SplitChunksPlugin.js]
+
+  - id: wp-concept-pack-cache
+    category: conceptual
+    prompt: >
+      How does the persistent filesystem cache store build results and restore them on
+      the next run? Name the files and the key classes and methods.
+    ground_truth:
+      relevant_files: [lib/cache/PackFileCacheStrategy.js]
+      acceptable_extra_files:
+        - lib/cache/IdleFileCachePlugin.js
+        - lib/cache/MemoryCachePlugin.js
+        - lib/Cache.js
+      facts:
+        - any_of: ["PackFileCacheStrategy"]
+        - any_of: ["Pack"]
+        - any_of: ["restore"]
+        - any_of: ["store", "afterAllStored"]
+      must_mention_files: [lib/cache/PackFileCacheStrategy.js]
+
+  - id: wp-impact-add-entry
+    category: impact
+    prompt: >
+      I want to change the signature of the addEntry method of Compilation in
+      lib/Compilation.js. Which plugins outside Compilation.js call it? List each caller
+      with its file path.
+    ground_truth:
+      relevant_files:
+        - lib/entry/EntryPlugin.js
+        - lib/entry/DynamicEntryPlugin.js
+        - lib/container/ContainerPlugin.js
+        - lib/dll/DllEntryPlugin.js
+        - lib/html/HtmlModulesPlugin.js
+      acceptable_extra_files: [lib/Compilation.js]
+      facts:
+        - any_of: ["EntryPlugin"]
+        - any_of: ["DynamicEntryPlugin"]
+        - any_of: ["ContainerPlugin"]
+        - any_of: ["DllEntryPlugin"]
+        - any_of: ["HtmlModulesPlugin"]
+      must_mention_files: [lib/entry/EntryPlugin.js]
+
+  - id: wp-impact-handle-module-creation
+    category: impact
+    prompt: >
+      I want to change the signature of handleModuleCreation in lib/Compilation.js. Which
+      functions or methods call it? List each caller with its file path.
+    ground_truth:
+      relevant_files:
+        - lib/Compilation.js
+        - lib/loaders/LoaderPlugin.js
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["addModuleTree"]
+        - any_of: ["_processModuleDependencies", "processModuleDependencies"]
+        - any_of: ["LoaderPlugin"]
+        - any_of: ["loadModule", "importModule"]
+      must_mention_files: [lib/loaders/LoaderPlugin.js]
+
+  - id: wp-arch-build
+    category: architecture
+    prompt: >
+      Trace a build from compiler.run() to the output files written to disk. List the
+      files and the methods in call order.
+    ground_truth:
+      relevant_files:
+        - lib/Compiler.js
+        - lib/Compilation.js
+      acceptable_extra_files: [lib/entry/EntryPlugin.js, lib/graph/buildChunkGraph.js]
+      facts:
+        - any_of: ["compile"]
+        - any_of: ["newCompilation"]
+        - any_of: ["seal"]
+        - any_of: ["emitAssets"]
+      must_mention_files: [lib/Compiler.js, lib/Compilation.js]
+
+  - id: wp-needle-modulegraph-line
+    category: needle
+    prompt: >
+      What file and line number define the class ModuleGraph?
+    ground_truth:
+      relevant_files: [lib/graph/ModuleGraph.js]
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["182"]
+        - any_of: ["class ModuleGraph"]
+      must_mention_files: [lib/graph/ModuleGraph.js]

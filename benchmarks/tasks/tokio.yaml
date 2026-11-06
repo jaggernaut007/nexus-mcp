@@ -1,0 +1,115 @@
+repo:
+  name: tokio
+  url: https://github.com/tokio-rs/tokio.git
+  pin: 695a07dd5e5baae82eb8b6931afa61029cd9b854
+  pinned_date: "2026-11-05"
+  sparse: ["tokio/src"]
+  why: >-
+    Rust async runtime (tokio/src only, 397 files). Rust has symbols, graph nodes and call
+    edges in 2.2.2 but no tree-sitter symbols. Clone with `python -m benchmarks.corpora setup`.
+
+defaults:
+  max_budget_usd: 1.00
+  timeout_s: 600
+
+# Ground truth was checked with grep against the pinned commit
+# (benchmarks/validate_tasks.py checks that every file and fact exists).
+tasks:
+  - id: tk-concept-oneshot
+    category: conceptual
+    prompt: >
+      How does a oneshot channel hand a value from the Sender to the Receiver, and how
+      does the Receiver learn that the Sender was dropped? Name the file, the key
+      structs and the key methods.
+    ground_truth:
+      relevant_files: [tokio/src/sync/oneshot.rs]
+      acceptable_extra_files: [tokio/src/loom/std/mod.rs]
+      facts:
+        - any_of: ["Inner"]
+        - any_of: ["VALUE_SENT", "CLOSED", "complete"]
+      must_mention_files: [tokio/src/sync/oneshot.rs]
+
+  - id: tk-concept-timeout
+    category: conceptual
+    prompt: >
+      How does tokio::time::timeout cancel a future that does not finish in time? Name
+      the file, the future type and how its poll decides between the inner future and
+      the deadline.
+    ground_truth:
+      relevant_files: [tokio/src/time/timeout.rs]
+      acceptable_extra_files: [tokio/src/time/sleep.rs]
+      facts:
+        - any_of: ["Timeout"]
+        - any_of: ["Sleep", "delay"]
+        - any_of: ["poll_delay"]
+      must_mention_files: [tokio/src/time/timeout.rs]
+
+  - id: tk-impact-coop-stop
+    category: impact
+    prompt: >
+      I want to change the signature of coop::stop in the task budget module. Outside of
+      tests, which functions call it directly? List each caller with its file path.
+    ground_truth:
+      relevant_files:
+        - tokio/src/runtime/scheduler/multi_thread/worker.rs
+        - tokio/src/runtime/blocking/task.rs
+        - tokio/src/task/coop/mod.rs
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["block_in_place"]
+        - any_of: ["BlockingTask", "poll"]
+      must_mention_files:
+        - tokio/src/runtime/scheduler/multi_thread/worker.rs
+        - tokio/src/runtime/blocking/task.rs
+
+  - id: tk-impact-has-budget
+    category: impact
+    prompt: >
+      I want to change coop::has_budget_remaining. Outside of tests, which functions
+      call it? List each caller with its file path.
+    ground_truth:
+      relevant_files:
+        - tokio/src/runtime/scheduler/multi_thread/worker.rs
+        - tokio/src/time/timeout.rs
+        - tokio/src/task/coop/mod.rs
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["run_task"]
+        - any_of: ["poll_delay"]
+      must_mention_files:
+        - tokio/src/runtime/scheduler/multi_thread/worker.rs
+        - tokio/src/time/timeout.rs
+
+  - id: tk-arch-spawn
+    category: architecture
+    prompt: >
+      Trace tokio::spawn from the public function to the point where the new task is
+      bound to a scheduler and queued. List the files and functions in call order.
+    ground_truth:
+      relevant_files:
+        - tokio/src/task/spawn.rs
+        - tokio/src/runtime/scheduler/mod.rs
+        - tokio/src/runtime/scheduler/multi_thread/handle.rs
+      acceptable_extra_files:
+        - tokio/src/runtime/handle.rs
+        - tokio/src/runtime/context.rs
+        - tokio/src/runtime/scheduler/current_thread/mod.rs
+        - tokio/src/runtime/task/list.rs
+      facts:
+        - any_of: ["spawn_inner", "spawn"]
+        - any_of: ["bind_new_task"]
+      must_mention_files:
+        - tokio/src/task/spawn.rs
+        - tokio/src/runtime/scheduler/multi_thread/handle.rs
+
+  - id: tk-needle-semaphore-line
+    category: needle
+    prompt: >
+      What file and line number define the public Semaphore struct in tokio::sync?
+    ground_truth:
+      relevant_files: [tokio/src/sync/semaphore.rs]
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["427"]
+        - any_of: ["pub struct Semaphore"]
+      must_mention_files: [tokio/src/sync/semaphore.rs]

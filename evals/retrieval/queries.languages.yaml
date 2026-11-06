@@ -1,0 +1,180 @@
+# Retrieval suites, one per language corpus of benchmarks/corpora.yaml.
+# Clone the corpora first: python -m benchmarks.corpora setup
+# Paths are relative to the suite root. Python uses the `flask` suite in queries.yaml.
+#
+# Each query describes what the code does in plain words and avoids the exact identifier
+# names, except the queries with `kind: identifier`, which name a symbol on purpose.
+# Each relevant file was checked by hand against the pinned commit on 2026-11-05.
+# A query passes at rank k if any of its relevant files is in the top k.
+
+suites:
+  tokio:  # Rust, tokio-rs/tokio @ 695a07dd
+    root: benchmarks/repos/tokio/tokio/src
+    queries:
+      - {id: oneshot, query: "send one value from one task to another exactly once", relevant: [sync/oneshot.rs]}
+      - {id: fan-out, query: "many receivers each get a copy of every message that is sent", relevant: [sync/broadcast.rs]}
+      - {id: latest-value, query: "follow the newest value of shared state and wake up when it changes", relevant: [sync/watch.rs]}
+      - {id: permits, query: "limit how many tasks can hold a permit at the same time", relevant: [sync/semaphore.rs, sync/batch_semaphore.rs]}
+      - {id: deadline, query: "cancel a future if it does not finish within a given duration", relevant: [time/timeout.rs]}
+      - {id: ticker, query: "fire repeatedly at a fixed period, with a policy for ticks that were missed", relevant: [time/interval.rs]}
+      - {id: blocking-pool, query: "run work that can stall a thread on its own set of extra threads so the async workers stay free", relevant: [runtime/blocking/pool.rs, task/blocking.rs]}
+      - {id: first-done, query: "wait on several futures at once and continue with the first one that completes", relevant: [macros/select.rs]}
+      - {id: runtime-config, query: "set the number of worker threads and turn on io and timers before the runtime starts", relevant: [runtime/builder.rs]}
+      - {id: budget, query: "make a task give up its turn after a fixed amount of work so other tasks can run", relevant: [task/coop/mod.rs]}
+      - {id: two-way-copy, query: "copy bytes in both directions between two streams until both sides close", relevant: [io/util/copy_bidirectional.rs]}
+      - {id: interrupt, query: "react when the user presses control and c in the terminal", relevant: [signal/ctrl_c.rs]}
+      - {id: task-flags, query: "bit flags that record if a task is running, complete, notified or cancelled", relevant: [runtime/task/state.rs]}
+      - {id: listen, query: "accept incoming tcp connections on an address that was bound", relevant: [net/tcp/listener.rs]}
+      - {id: joinset-id, kind: identifier, query: "JoinSet spawn join_next", relevant: [task/join_set.rs]}
+
+  newtonsoft_json:  # C#, JamesNK/Newtonsoft.Json @ 52fa3aef
+    root: benchmarks/repos/newtonsoft-json/Src/Newtonsoft.Json
+    queries:
+      - {id: enum-names, query: "write enum values as their names instead of numbers", relevant: [Converters/StringEnumConverter.cs]}
+      - {id: camel, query: "change property names to lower camel case when writing", relevant: [Serialization/CamelCaseNamingStrategy.cs]}
+      - {id: contracts, query: "decide for each type which members are written and how they are read back", relevant: [Serialization/DefaultContractResolver.cs]}
+      - {id: cycles, query: "detect when an object refers back to an object that is already being written", relevant: [Serialization/JsonSerializerInternalWriter.cs]}
+      - {id: path-query, query: "select tokens with a path expression such as the first book in the store", relevant: [Linq/JsonPath/JPath.cs]}
+      - {id: tokenizer, query: "read json text character by character and produce tokens", relevant: [JsonTextReader.cs]}
+      - {id: xml, query: "convert between xml documents and json", relevant: [Converters/XmlNodeConverter.cs]}
+      - {id: epoch, query: "read and write dates as seconds since 1970", relevant: [Converters/UnixDateTimeConverter.cs]}
+      - {id: merge, query: "combine two json objects with options for arrays and null values", relevant: [Linq/JContainer.cs, Linq/JsonMergeSettings.cs]}
+      - {id: indent, query: "write the output with indentation and line breaks", relevant: [JsonTextWriter.cs, JsonWriter.cs]}
+      - {id: extra-props, query: "keep unknown json properties in a dictionary on the object", relevant: [JsonExtensionDataAttribute.cs, Serialization/DefaultContractResolver.cs, Serialization/JsonSerializerInternalReader.cs]}
+      - {id: deep-equal, query: "compare two json trees for deep equality", relevant: [Linq/JToken.cs, Linq/JTokenEqualityComparer.cs]}
+      - {id: bson, query: "read the binary bson format", relevant: [Bson/BsonReader.cs]}
+      - {id: schema-gen, query: "build a schema that describes a dotnet type", relevant: [Schema/JsonSchemaGenerator.cs]}
+      - {id: convert-id, kind: identifier, query: "JsonConvert SerializeObject DeserializeObject", relevant: [JsonConvert.cs]}
+
+  laravel:  # PHP, laravel/framework @ 7d6d8e86
+    root: benchmarks/repos/laravel/src/Illuminate
+    queries:
+      - {id: soft-delete, query: "hide rows that were marked as removed instead of deleting them", relevant: [Database/Eloquent/SoftDeletes.php, Database/Eloquent/SoftDeletingScope.php]}
+      - {id: layers, query: "pass an object through a stack of layers, each of which may stop it or change it", relevant: [Pipeline/Pipeline.php, Routing/Pipeline.php]}
+      - {id: worker, query: "a long-running process that takes jobs off the queue, runs them and retries failures", relevant: [Queue/Worker.php]}
+      - {id: throttle, query: "limit how many times a key may hit an endpoint per minute", relevant: [Cache/RateLimiter.php]}
+      - {id: login, query: "log a user in with the session and a remember-me cookie", relevant: [Auth/SessionGuard.php]}
+      - {id: autowire, query: "build a class and its constructor dependencies automatically", relevant: [Container/Container.php]}
+      - {id: route-match, query: "match the incoming url and http verb against the registered routes", relevant: [Routing/RouteCollection.php, Routing/Router.php, Routing/AbstractRouteCollection.php]}
+      - {id: rule-parse, query: "parse rule strings like required and max 255 into rule names and parameters", relevant: [Validation/ValidationRuleParser.php]}
+      - {id: redis-lock, query: "take an atomic lock in redis so only one process does the work", relevant: [Cache/RedisLock.php]}
+      - {id: url-binding, query: "turn a model id inside the url into the loaded model", relevant: [Routing/ImplicitRouteBinding.php]}
+      - {id: pages, query: "split a long list of database rows into pages with a total count and links", relevant: [Pagination/LengthAwarePaginator.php]}
+      - {id: casts, query: "convert model attribute values to and from arrays, dates and encrypted strings", relevant: [Database/Eloquent/Concerns/HasAttributes.php]}
+      - {id: crypt, query: "encrypt and decrypt values with the app key and a message authentication code", relevant: [Encryption/Encrypter.php]}
+      - {id: failed-jobs, query: "store jobs that failed in a database table", relevant: [Queue/Failed/DatabaseFailedJobProvider.php, Queue/Failed/DatabaseUuidFailedJobProvider.php]}
+      - {id: groupby-id, kind: identifier, query: "Collection groupBy", relevant: [Collections/Collection.php, Collections/LazyCollection.php, Collections/Enumerable.php]}
+
+  chromium_base:  # C++, chromium base/ @ d8ebdd25
+    root: benchmarks/repos/chromium-base/base
+    queries:
+      - {id: weak, query: "a pointer that becomes null when the object it points to is destroyed", relevant: [memory/weak_ptr.h, memory/weak_ptr.cc]}
+      - {id: delay, query: "run a callback once after a delay on the current sequence", relevant: [timer/timer.h, timer/timer.cc]}
+      - {id: refcount, query: "count references to an object that is shared across threads", relevant: [memory/ref_counted.h]}
+      - {id: json, query: "parse json text into a tree of values", relevant: [json/json_reader.h, json/json_reader.cc]}
+      - {id: utf, query: "convert utf-8 text to utf-16", relevant: [strings/utf_string_conversions.cc]}
+      - {id: histogram, query: "record a measured value into a distribution with exponentially growing buckets", relevant: [metrics/histogram.cc]}
+      - {id: pool, query: "post tasks to a pool of worker threads with priorities", relevant: [task/thread_pool/thread_pool_impl.cc]}
+      - {id: at-exit, query: "run registered callbacks when the process exits", relevant: [at_exit.h, at_exit.cc]}
+      - {id: bind, query: "fix some arguments of a function ahead of time to make a callback that runs later", relevant: [functional/bind.h, functional/bind_internal.h]}
+      - {id: crash-check, query: "verify a condition and crash with a message when it is false", relevant: [check.h, check.cc]}
+      - {id: file-io, query: "read and write whole files by path", relevant: [files/file_util.h, files/file_util.cc]}
+      - {id: split, query: "split a string on delimiters", relevant: [strings/string_split.cc]}
+      - {id: signal, query: "let one thread wait until another thread signals it", relevant: [synchronization/waitable_event.h]}
+      - {id: observers, query: "a list of observers that is safe to change while it is iterated", relevant: [observer_list.h]}
+      - {id: ticks-id, kind: identifier, query: "TimeTicks Now", relevant: [time/time.h]}
+
+  redis:  # C, redis/redis @ a05f30c9
+    root: benchmarks/repos/redis/src
+    queries:
+      - {id: evict, query: "choose which keys to throw away when memory is full with an approximate least recently used policy", relevant: [evict.c]}
+      - {id: log-rewrite, query: "rewrite the append-only log in the background so it does not grow forever", relevant: [aof.c]}
+      - {id: snapshot, query: "save a point-in-time snapshot of the whole dataset to disk", relevant: [rdb.c]}
+      - {id: expire, query: "remove keys whose time to live has passed by sampling in a periodic cycle", relevant: [expire.c]}
+      - {id: loop, query: "event loop that waits on sockets and timers", relevant: [ae.c]}
+      - {id: cardinality, query: "estimate the number of distinct elements in a few kilobytes", relevant: [hyperloglog.c]}
+      - {id: strings, query: "string type that keeps its length and spare capacity in a header", relevant: [sds.c]}
+      - {id: rehash, query: "hash table that grows by moving entries to a new table a few at a time", relevant: [dict.c]}
+      - {id: skiplist, query: "sorted set that uses a skip list for range queries by score", relevant: [t_zset.c]}
+      - {id: replicas, query: "copy data from a primary to replicas and resume after a short disconnect", relevant: [replication.c]}
+      - {id: acl, query: "check which commands and keys a user is allowed to access", relevant: [acl.c]}
+      - {id: transaction, query: "run a group of queued commands atomically", relevant: [multi.c]}
+      - {id: lazy-free, query: "free large values in a background thread so the main thread does not block", relevant: [lazyfree.c, bio.c]}
+      - {id: protocol, query: "parse requests from client sockets and build the replies", relevant: [networking.c]}
+      - {id: zmalloc-id, kind: identifier, query: "zmalloc_used_memory", relevant: [zmalloc.c]}
+
+  prometheus:  # Go, prometheus/prometheus @ 4bfb6bb5
+    root: benchmarks/repos/prometheus
+    queries:
+      - {id: xor, query: "compress float samples by storing only the bits that differ from the previous value", relevant: [tsdb/chunkenc/xor.go, tsdb/chunkenc/xor2.go]}
+      - {id: compact, query: "merge several on-disk blocks into a larger one and drop deleted data", relevant: [tsdb/compact.go]}
+      - {id: wal, query: "write-ahead log segments so data in memory survives a crash", relevant: [tsdb/wlog/wlog.go, tsdb/head_wal.go]}
+      - {id: eval, query: "evaluate a query expression over a time range step by step", relevant: [promql/engine.go]}
+      - {id: lexer, query: "turn query text into tokens", relevant: [promql/parser/lex.go]}
+      - {id: rate, query: "per-second rate that handles counter resets and extrapolates to the window edges", relevant: [promql/functions.go]}
+      - {id: postings, query: "find series that match a label matcher by intersecting sorted lists of ids", relevant: [tsdb/index/postings.go, tsdb/querier.go]}
+      - {id: head, query: "keep the newest samples in memory before they are cut into a block", relevant: [tsdb/head.go, tsdb/head_append.go]}
+      - {id: tombstones, query: "record which series and time ranges were deleted without rewriting the chunks", relevant: [tsdb/tombstones/tombstones.go]}
+      - {id: late-samples, query: "accept samples that arrive late, older than the newest sample of a series", relevant: [tsdb/ooo_head.go, tsdb/head_append.go]}
+      - {id: quantile, query: "compute quantiles from histogram buckets", relevant: [promql/quantile.go]}
+      - {id: retention, query: "remove old blocks once they pass the retention time or size", relevant: [tsdb/db.go]}
+      - {id: pretty, query: "format a parsed query back into readable text with line breaks", relevant: [promql/parser/prettier.go]}
+      - {id: dir-lock, query: "lock the data directory so two processes do not open it", relevant: [tsdb/fileutil/flock.go, tsdb/tsdbutil/dir_locker.go]}
+      - {id: bucket-id, kind: identifier, query: "BucketQuantile", relevant: [promql/quantile.go]}
+
+  commons_lang:  # Java, apache/commons-lang @ e547d704
+    root: benchmarks/repos/commons-lang/src/main/java/org/apache/commons/lang3
+    queries:
+      - {id: breaker, query: "stop calling a failing service after too many errors in a time window, then let calls through again", relevant: [concurrent/EventCountCircuitBreaker.java, concurrent/ThresholdCircuitBreaker.java, concurrent/AbstractCircuitBreaker.java]}
+      - {id: permits-per-period, query: "limit the number of permits handed out per time period", relevant: [concurrent/TimedSemaphore.java]}
+      - {id: memo, query: "cache the result of an expensive function so each input is computed once, even with many threads", relevant: [concurrent/Memoizer.java]}
+      - {id: lazy, query: "create an object only the first time it is needed, safely across threads", relevant: [concurrent/LazyInitializer.java]}
+      - {id: reflect-tostring, query: "build a string form of an object from its fields with reflection", relevant: [builder/ReflectionToStringBuilder.java]}
+      - {id: diff, query: "compare two objects field by field and list the differences", relevant: [builder/DiffBuilder.java, builder/ReflectionDiffBuilder.java]}
+      - {id: fraction, query: "reduce a ratio of two integers to its lowest terms", relevant: [math/Fraction.java]}
+      - {id: parse-number, query: "parse a string into a number, with hex and scientific notation", relevant: [math/NumberUtils.java]}
+      - {id: edit-distance, query: "count the single-character edits that turn one string into another", relevant: [StringUtils.java]}
+      - {id: escape, query: "escape text so it is safe inside html or xml", relevant: [StringEscapeUtils.java, text/translate/EntityArrays.java]}
+      - {id: root-cause, query: "find the root cause of a chain of exceptions", relevant: [exception/ExceptionUtils.java]}
+      - {id: java-version, query: "check if the running java version is at least a given version", relevant: [SystemUtils.java, JavaVersion.java]}
+      - {id: method-match, query: "find a method that accepts the given argument types, with widening and boxing", relevant: [reflect/MethodUtils.java, reflect/MemberUtils.java]}
+      - {id: date-format, query: "format dates with a pattern using a cached, thread-safe formatter", relevant: [time/FastDateFormat.java, time/FastDatePrinter.java]}
+      - {id: abbreviate-id, kind: identifier, query: "StringUtils abbreviate", relevant: [StringUtils.java]}
+
+  vite:  # TypeScript, vitejs/vite packages/vite/src @ 48351280
+    root: benchmarks/repos/vite/packages/vite/src
+    queries:
+      - {id: prebundle, query: "bundle third-party dependencies ahead of time before the dev server serves them", relevant: [node/optimizer/index.ts, node/optimizer/optimizer.ts]}
+      - {id: scan, query: "find the bare imports in the source to know which dependencies to bundle ahead of time", relevant: [node/optimizer/scan.ts]}
+      - {id: hot-update, query: "decide which modules to reload in the browser when a file changes", relevant: [node/server/hmr.ts]}
+      - {id: graph, query: "track the import graph between modules so changes invalidate the right ones", relevant: [node/server/moduleGraph.ts, node/server/mixedModuleGraph.ts]}
+      - {id: rewrite-imports, query: "rewrite import paths in served modules so the browser can load them", relevant: [node/plugins/importAnalysis.ts]}
+      - {id: glob, query: "turn a glob pattern on import meta into a list of imports", relevant: [node/plugins/importMetaGlob.ts]}
+      - {id: define, query: "replace global constants in the code at build time", relevant: [node/plugins/define.ts]}
+      - {id: resolve, query: "turn a bare package name into a file path using the package exports and browser fields", relevant: [node/plugins/resolve.ts]}
+      - {id: proxy, query: "forward some request paths to another server during development", relevant: [node/server/middlewares/proxy.ts]}
+      - {id: overlay, query: "show compile errors in a full-screen panel on top of the page in the browser", relevant: [client/overlay.ts]}
+      - {id: config, query: "load the user settings file and merge it with the defaults", relevant: [node/config.ts]}
+      - {id: ssr, query: "rewrite import and export statements so a module can run on the server", relevant: [node/ssr/ssrTransform.ts]}
+      - {id: host, query: "reject requests whose host header is not allowed", relevant: [node/server/middlewares/hostCheck.ts]}
+      - {id: socket, query: "web socket channel between the dev server and the page", relevant: [node/server/ws.ts]}
+      - {id: server-id, kind: identifier, query: "createServer", relevant: [node/server/index.ts]}
+
+  webpack:  # JavaScript, webpack/webpack lib/ @ f6366b0b
+    root: benchmarks/repos/webpack/lib
+    queries:
+      - {id: split, query: "move shared modules into separate chunks by size and reuse rules", relevant: [optimize/SplitChunksPlugin.js]}
+      - {id: hoist, query: "join modules into one scope so the output has fewer function wrappers", relevant: [optimize/ModuleConcatenationPlugin.js, optimize/ConcatenatedModule.js]}
+      - {id: used-exports, query: "mark which exports are used so the unused ones can be dropped", relevant: [optimize/FlagDependencyUsagePlugin.js]}
+      - {id: side-effects, query: "skip modules without side effects when none of their exports are used", relevant: [optimize/SideEffectsFlagPlugin.js]}
+      - {id: disk-cache, query: "store build results on disk between runs", relevant: [cache/PackFileCacheStrategy.js]}
+      - {id: mangle, query: "rename exports to short names to make the bundle smaller", relevant: [optimize/MangleExportsPlugin.js]}
+      - {id: content-hash, query: "compute content hashes again after the final assets are written", relevant: [optimize/RealContentHashPlugin.js]}
+      - {id: progress, query: "report build progress as a percentage", relevant: [logging/ProgressPlugin.js]}
+      - {id: compiler, query: "the main object that runs the build, emits the assets and holds the hooks", relevant: [Compiler.js]}
+      - {id: module-factory, query: "create modules from requests with the loaders and rules that apply", relevant: [module/NormalModuleFactory.js]}
+      - {id: chunk-graph, query: "track which modules belong to which chunks", relevant: [graph/ChunkGraph.js]}
+      - {id: federation, query: "expose modules to another build at runtime", relevant: [container/ContainerPlugin.js, container/ModuleFederationPlugin.js]}
+      - {id: define, query: "put values such as environment variables into the code at compile time", relevant: [define/DefinePlugin.js, define/EnvironmentPlugin.js]}
+      - {id: stable-ids, query: "give modules stable numeric ids made from their names", relevant: [ids/DeterministicModuleIdsPlugin.js]}
+      - {id: seal-id, kind: identifier, query: "Compilation seal", relevant: [Compilation.js]}

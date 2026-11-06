@@ -1,0 +1,189 @@
+{
+  "flask": {
+    "index_seconds": 92.3,
+    "peak_rss_mb": 1268,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 83,
+      "total_symbols": 1632,
+      "total_chunks": 1632,
+      "parse_errors": 0,
+      "graph_nodes": 1705,
+      "graph_relationships": 2387,
+      "time_seconds": 91.34724593162537,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "vite": {
+    "index_seconds": 112.8,
+    "peak_rss_mb": 1322,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 429,
+      "total_symbols": 1868,
+      "total_chunks": 1868,
+      "parse_errors": 0,
+      "graph_nodes": 2199,
+      "graph_relationships": 4139,
+      "time_seconds": 111.85745286941528,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "webpack": {
+    "index_seconds": 483.6,
+    "peak_rss_mb": 1383,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 822,
+      "total_symbols": 8687,
+      "total_chunks": 8687,
+      "parse_errors": 0,
+      "graph_nodes": 6813,
+      "graph_relationships": 12938,
+      "time_seconds": 482.62834215164185,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "commons-lang": {
+    "index_seconds": 263.1,
+    "peak_rss_mb": 1503,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 264,
+      "total_symbols": 4973,
+      "total_chunks": 4973,
+      "parse_errors": 0,
+      "graph_nodes": 4725,
+      "graph_relationships": 7594,
+      "time_seconds": 262.2129521369934,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "newtonsoft-json": {
+    "index_seconds": 173.4,
+    "peak_rss_mb": 1319,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 242,
+      "total_symbols": 3029,
+      "total_chunks": 3029,
+      "parse_errors": 0,
+      "graph_nodes": 3307,
+      "graph_relationships": 6261,
+      "time_seconds": 172.4320900440216,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "laravel": {
+    "index_seconds": 885.2,
+    "peak_rss_mb": 1356,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 1751,
+      "total_symbols": 16119,
+      "total_chunks": 16119,
+      "parse_errors": 0,
+      "graph_nodes": 17876,
+      "graph_relationships": 31456,
+      "time_seconds": 884.2256810665131,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "chromium-base": {
+    "index_seconds": 2614.7,
+    "peak_rss_mb": 1497,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 3641,
+      "total_symbols": 46486,
+      "total_chunks": 46486,
+      "parse_errors": 0,
+      "graph_nodes": 49245,
+      "graph_relationships": 99647,
+      "time_seconds": 2613.658452987671,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "redis": {
+    "index_seconds": 498.3,
+    "peak_rss_mb": 1481,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 229,
+      "total_symbols": 10502,
+      "total_chunks": 10502,
+      "parse_errors": 1,
+      "graph_nodes": 7158,
+      "graph_relationships": 28707,
+      "time_seconds": 497.3394148349762,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "prometheus": {
+    "index_seconds": 116.8,
+    "peak_rss_mb": 1283,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 201,
+      "total_symbols": 1818,
+      "total_chunks": 1818,
+      "parse_errors": 0,
+      "graph_nodes": 3796,
+      "graph_relationships": 10182,
+      "time_seconds": 115.84873700141907,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "tokio": {
+    "index_seconds": 259.0,
+    "peak_rss_mb": 1341,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 381,
+      "total_symbols": 4733,
+      "total_chunks": 4733,
+      "parse_errors": 0,
+      "graph_nodes": 4746,
+      "graph_relationships": 7762,
+      "time_seconds": 258.0847010612488,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  },
+  "django": {
+    "index_seconds": 2549.0,
+    "peak_rss_mb": 1614,
+    "embedding_model": "default",
+    "result": {
+      "total_files": 3036,
+      "total_symbols": 46052,
+      "total_chunks": 46052,
+      "parse_errors": 0,
+      "graph_nodes": 46893,
+      "graph_relationships": 71366,
+      "time_seconds": 2548.207597017288,
+      "files_added": 0,
+      "files_modified": 0,
+      "files_deleted": 0
+    }
+  }
+}

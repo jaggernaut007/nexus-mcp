@@ -63,6 +63,8 @@ package-lock.json
 benchmarks/repos/
 benchmarks/results/
 benchmarks/.claude-bench/
+benchmarks/.venv-*/
+benchmarks/indexes/
 evals/results/
 evals/.claude-eval/
 

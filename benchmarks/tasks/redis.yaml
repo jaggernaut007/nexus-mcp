@@ -1,0 +1,95 @@
+repo:
+  name: redis
+  url: https://github.com/redis/redis.git
+  pin: a05f30c971ad5c291b9a5b2c688b43ee13ac0c13
+  pinned_date: "2026-11-05"
+  sparse: ["src"]
+  why: >-
+    The Redis server source (src/ only, 735 files, mostly C). C has tree-sitter symbols
+    but no graph function nodes and no call edges in 2.2.2.
+
+defaults:
+  max_budget_usd: 1.00
+  timeout_s: 600
+
+tasks:
+  - id: rd-concept-eviction
+    category: conceptual
+    prompt: >
+      How does Redis choose which keys to evict when memory is over the limit with an
+      approximate LRU policy? Name the file, the key functions and the data structure
+      that holds the best candidates.
+    ground_truth:
+      relevant_files: [src/evict.c]
+      acceptable_extra_files: [src/server.h]
+      facts:
+        - any_of: ["evictionPoolPopulate"]
+        - any_of: ["performEvictions"]
+        - any_of: ["pool", "evictionPoolEntry"]
+      must_mention_files: [src/evict.c]
+
+  - id: rd-concept-active-expire
+    category: conceptual
+    prompt: >
+      How does Redis remove keys whose time to live has passed without a client reading
+      them? Name the file and the function that runs the periodic cycle, and the limit
+      that keeps the cycle short.
+    ground_truth:
+      relevant_files: [src/expire.c]
+      acceptable_extra_files: [src/server.c, src/db.c]
+      facts:
+        - any_of: ["activeExpireCycle"]
+        - any_of: ["time limit", "timelimit", "ACTIVE_EXPIRE_CYCLE"]
+      must_mention_files: [src/expire.c]
+
+  - id: rd-impact-perform-evictions
+    category: impact
+    prompt: >
+      I want to change the signature of performEvictions. Outside of tests, which
+      functions call it? List each caller with its file path.
+    ground_truth:
+      relevant_files: [src/evict.c, src/server.c]
+      acceptable_extra_files: [src/server.h]
+      facts:
+        - any_of: ["processCommand"]
+        - any_of: ["evictionTimeProc"]
+      must_mention_files: [src/server.c, src/evict.c]
+
+  - id: rd-impact-active-expire
+    category: impact
+    prompt: >
+      I want to change the signature of activeExpireCycle. Which functions call it? List
+      each caller with its file path.
+    ground_truth:
+      relevant_files: [src/server.c, src/expire.c]
+      acceptable_extra_files: [src/server.h]
+      facts:
+        - any_of: ["databasesCron"]
+        - any_of: ["beforeSleep"]
+      must_mention_files: [src/server.c]
+
+  - id: rd-arch-command-path
+    category: architecture
+    prompt: >
+      Trace what happens from the moment bytes arrive on a client socket to the moment a
+      command handler runs. List the files and functions in call order.
+    ground_truth:
+      relevant_files: [src/networking.c, src/server.c]
+      acceptable_extra_files: [src/connection.c, src/ae.c]
+      facts:
+        - any_of: ["readQueryFromClient"]
+        - any_of: ["processInputBuffer"]
+        - any_of: ["processCommand"]
+      must_mention_files: [src/networking.c, src/server.c]
+
+  - id: rd-needle-dict-line
+    category: needle
+    prompt: >
+      What file and line number define the struct dict, the main hash table type?
+    ground_truth:
+      relevant_files: [src/dict.h]
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["162"]
+        - any_of: ["struct dict"]
+      must_mention_files: [src/dict.h]

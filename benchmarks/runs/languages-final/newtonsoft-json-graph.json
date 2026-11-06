@@ -1,0 +1,11 @@
+{
+  "csharp": {
+    "files": 242,
+    "symbols": 3029,
+    "functions": 2777,
+    "classes": 288,
+    "calls": 3196,
+    "calls_per_fn": 1.15,
+    "fn_with_calls": 0.552
+  }
+}

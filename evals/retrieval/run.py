@@ -35,13 +35,18 @@ from evals.retrieval import metrics
 EVAL_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = EVAL_DIR.parent
 QUERIES_PATH = Path(__file__).resolve().parent / "queries.yaml"
-WORK_DIR = EVAL_DIR / ".claude-eval" / "retrieval"
+# Indexing is incremental, so a folder that two installs share lets the second reuse the
+# chunks of the first. `benchmarks/run_languages.py` sets this variable to a folder of its own
+# for each labelled run.
+WORK_DIR = Path(os.environ.get("NEXUS_EVAL_WORK_DIR") or EVAL_DIR / ".claude-eval" / "retrieval")
 RESULTS_DIR = EVAL_DIR / "results"
 SOURCE_FIRST_OVERFETCH = 4  # the same factor as core_api.SEARCH_OVERFETCH
 MODES = ("bm25", "vector", "hybrid-source-first", "hybrid-exact")
 
 
 LOCAL_QUERIES_PATH = QUERIES_PATH.with_name("queries.local.yaml")
+# One public suite per language corpus of benchmarks/corpora.yaml (roots under benchmarks/repos).
+LANGUAGE_QUERIES_PATH = QUERIES_PATH.with_name("queries.languages.yaml")
 # A suites file made by --root --generate. Passed by environment so the per-candidate
 # subprocesses load it too.
 EXTRA_QUERIES_ENV = "NEXUS_RETRIEVAL_EXTRA"
@@ -50,13 +55,15 @@ EXTRA_QUERIES_ENV = "NEXUS_RETRIEVAL_EXTRA"
 def load_suites(path: Path = QUERIES_PATH) -> Dict[str, Any]:
     """Load the query suites from queries.yaml.
 
-    For the default path, suites in the git-ignored queries.local.yaml (a private
-    project) and in the file named by NEXUS_RETRIEVAL_EXTRA are added when they exist.
+    For the default path, suites in queries.languages.yaml (one per language corpus), in
+    the git-ignored queries.local.yaml (a private project) and in the file named by
+    NEXUS_RETRIEVAL_EXTRA are added when they exist.
     """
     with open(path) as f:
         suites = yaml.safe_load(f)["suites"]
     if path == QUERIES_PATH:
-        for extra in (LOCAL_QUERIES_PATH, os.environ.get(EXTRA_QUERIES_ENV)):
+        extras = (LANGUAGE_QUERIES_PATH, LOCAL_QUERIES_PATH, os.environ.get(EXTRA_QUERIES_ENV))
+        for extra in extras:
             if extra and Path(extra).exists():
                 with open(extra) as f:
                     suites.update(yaml.safe_load(f)["suites"])

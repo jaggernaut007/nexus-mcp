@@ -1,0 +1,116 @@
+repo:
+  name: laravel
+  url: https://github.com/laravel/framework.git
+  pin: 7d6d8e86138e9dcc250a29bd72cfe5d5dd7b3d6c
+  pinned_date: "2026-11-05"
+  sparse: ["src/Illuminate"]
+  why: >-
+    Laravel framework source (src/Illuminate, 2,010 files, mostly PHP). PHP has no
+    tree-sitter symbols, no graph nodes and no call edges in 2.2.2.
+
+defaults:
+  max_budget_usd: 1.00
+  timeout_s: 600
+
+tasks:
+  - id: lv-concept-queue-worker
+    category: conceptual
+    prompt: >
+      How does the queue worker run in a loop, take the next job and retry or fail it?
+      Name the file, the class and the key methods.
+    ground_truth:
+      relevant_files: [src/Illuminate/Queue/Worker.php]
+      acceptable_extra_files: [src/Illuminate/Queue/WorkerOptions.php]
+      facts:
+        - any_of: ["daemon"]
+        - any_of: ["runNextJob"]
+        - any_of: ["runJob"]
+      must_mention_files: [src/Illuminate/Queue/Worker.php]
+
+  - id: lv-concept-soft-deletes
+    category: conceptual
+    prompt: >
+      How do soft deletes hide removed rows from normal Eloquent queries and let a
+      caller include them? Name the files, the trait and the scope.
+    ground_truth:
+      relevant_files:
+        - src/Illuminate/Database/Eloquent/SoftDeletes.php
+        - src/Illuminate/Database/Eloquent/SoftDeletingScope.php
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["SoftDeletingScope"]
+        - any_of: ["withTrashed"]
+        - any_of: ["deleted_at", "getDeletedAtColumn"]
+      must_mention_files:
+        - src/Illuminate/Database/Eloquent/SoftDeletes.php
+        - src/Illuminate/Database/Eloquent/SoftDeletingScope.php
+
+  - id: lv-impact-too-many-attempts
+    category: impact
+    prompt: >
+      I want to change the signature of RateLimiter::tooManyAttempts. Outside of tests,
+      which methods call it? List each caller with its file path.
+    ground_truth:
+      relevant_files:
+        - src/Illuminate/Cache/RateLimiter.php
+        - src/Illuminate/Routing/Middleware/ThrottleRequests.php
+        - src/Illuminate/Queue/Middleware/RateLimited.php
+      acceptable_extra_files:
+        - src/Illuminate/Routing/Middleware/ThrottleRequestsWithRedis.php
+        - src/Illuminate/Queue/Middleware/RateLimitedWithRedis.php
+        - src/Illuminate/Queue/Middleware/ThrottlesExceptions.php
+        - src/Illuminate/Queue/Middleware/ThrottlesExceptionsWithRedis.php
+      facts:
+        - any_of: ["attempt"]
+        - any_of: ["handleRequest"]
+        - any_of: ["handleJob"]
+      must_mention_files:
+        - src/Illuminate/Cache/RateLimiter.php
+        - src/Illuminate/Routing/Middleware/ThrottleRequests.php
+        - src/Illuminate/Queue/Middleware/RateLimited.php
+
+  - id: lv-impact-rule-compile
+    category: impact
+    prompt: >
+      I want to change the signature of ValidationRuleParser::parse. Outside of tests,
+      which methods in the Validation folder call it? List each caller with its file
+      path.
+    ground_truth:
+      relevant_files:
+        - src/Illuminate/Validation/Validator.php
+        - src/Illuminate/Validation/ValidationRuleParser.php
+      acceptable_extra_files: [src/Illuminate/Validation/Rule.php]
+      facts:
+        - any_of: ["validateAttribute"]
+      must_mention_files: [src/Illuminate/Validation/Validator.php]
+
+  - id: lv-arch-dispatch
+    category: architecture
+    prompt: >
+      Trace an HTTP request from Router::dispatchToRoute to the controller action. List
+      the files and methods in call order, including where middleware runs.
+    ground_truth:
+      relevant_files:
+        - src/Illuminate/Routing/Router.php
+        - src/Illuminate/Routing/Pipeline.php
+      acceptable_extra_files:
+        - src/Illuminate/Routing/Route.php
+        - src/Illuminate/Routing/ControllerDispatcher.php
+        - src/Illuminate/Pipeline/Pipeline.php
+      facts:
+        - any_of: ["dispatchToRoute"]
+        - any_of: ["runRoute"]
+        - any_of: ["runRouteWithinStack"]
+      must_mention_files: [src/Illuminate/Routing/Router.php]
+
+  - id: lv-needle-pipeline-line
+    category: needle
+    prompt: >
+      What file and line number define the class Pipeline in the Pipeline component?
+    ground_truth:
+      relevant_files: [src/Illuminate/Pipeline/Pipeline.php]
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["13"]
+        - any_of: ["class Pipeline"]
+      must_mention_files: [src/Illuminate/Pipeline/Pipeline.php]

@@ -38,7 +38,7 @@ repo to read the skill content directly.
 
 - **Call edges are static and name-based.**
   - `graph()` and the `callers`/`callees` fields of `find_symbol()` come from parsing, not runtime tracing.
-  - Edges exist for Python, JavaScript, TypeScript, Go, Java and Rust. Python has the best coverage. ADR-019 gives the other languages.
+  - Edges exist for Python, JavaScript, TypeScript, Go, Java, Rust, C, C++, C# and PHP. Python has the best coverage. ADR-019 gives the other languages.
   - A call gets an edge only when exactly one callee fits: in the same file, in an imported file, or with a unique name in the index.
   - A name shared by several definitions gets no edge. Treat results as a lower bound.
   - `analyze` complexity is cyclomatic and approximate. Only Python counts `and`/`or`, and only Python functions carry docstrings.
@@ -50,10 +50,9 @@ repo to read the skill content directly.
   one — especially in highly dynamic languages (Python, Ruby) or callback-heavy code
   (JS/TS).
 - **Graph coverage varies by language.** ast-grep structure (functions, classes,
-  imports) exists for Python, JavaScript, TypeScript, Go, Java, and Rust only
-  (`_extract_functions`, `_extract_classes`, `_extract_imports` in
-  `astgrep_parser.py`). Every other language gets tree-sitter symbols and embeddings
-  but no graph nodes.
+  imports) exists for Python, JavaScript, TypeScript, Go, Java, Rust, C, C++, C# and PHP only
+  (`FUNCTION_KINDS`, `CLASS_KINDS`, `_extract_imports` in `astgrep_parser.py`).
+  Bash and Kotlin get tree-sitter symbols and embeddings but no graph nodes.
 - **Auto-reindex has a detection lag, not a guarantee of freshness.** With
   `NEXUS_AUTO_WATCH` enabled (default), edits are picked up after a debounce window
   (a few seconds); `status()`/`search()` additionally run a throttled staleness

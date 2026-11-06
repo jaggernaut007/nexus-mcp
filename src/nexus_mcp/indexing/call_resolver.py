@@ -53,6 +53,36 @@ COMMON_METHOD_NAMES = frozenset({
 # defined in the same file or imported. A match anywhere else is almost always a
 # parameter or local variable that shares a name with an unrelated function.
 IMPORT_SCOPED_LANGUAGES = frozenset({"python", "javascript", "typescript"})
+# Languages that call a method of the own class without a receiver (`helper()`).
+IMPLICIT_SELF_LANGUAGES = frozenset({"java", "cpp", "csharp"})
+# Library method names per language, in lower case, in addition to COMMON_METHOD_NAMES.
+# `list.Add(x)` in C# and `v.push_back(x)` in C++ have a receiver of unknown type.
+LANGUAGE_COMMON_METHOD_NAMES: Dict[str, frozenset] = {
+    "csharp": frozenset({
+        "contains", "containskey", "trygetvalue", "tostring", "equals", "gethashcode",
+        "gettype", "dispose", "disposeasync", "any", "all", "select", "selectmany", "where",
+        "first", "firstordefault", "single", "singleordefault", "last", "tolist",
+        "toarray", "todictionary", "orderby", "groupby", "appendline", "writeline",
+        "invoke", "configureawait", "getawaiter", "getresult", "setresult", "length",
+    }),
+    "cpp": frozenset({
+        "push_back", "emplace_back", "emplace", "push", "begin", "end", "size", "empty",
+        "erase", "reset", "data", "c_str", "str", "front", "back", "reserve", "resize",
+        "swap", "lock", "unlock", "value", "has_value", "at", "substr", "length",
+    }),
+    "php": frozenset({
+        "map", "filter", "each", "first", "all", "toarray", "has", "only", "pluck", "where",
+        "make", "handle", "__invoke",
+    }),
+}
+# Languages whose method names are compared in lower case (C# uses `Add`, `ToString`).
+CASE_INSENSITIVE_LANGUAGES = frozenset({"csharp"})
+# Languages where a base class is often in a file that is not imported: C# `using`
+# names a namespace, and PHP needs no `use` in the same namespace. There `base.m()` and
+# `parent::m()` can also resolve by a unique name.
+SUPER_BY_UNIQUE_NAME_LANGUAGES = frozenset({"csharp", "php"})
+# `std::sort()` names the standard library, never a project function.
+EXTERNAL_SCOPES = frozenset({"std"})
 
 TIER_SAME_FILE = "same_file"
 TIER_IMPORTED = "imported"
@@ -65,7 +95,16 @@ NONE: Resolution = ([], "")
 
 
 def _lang_group(language: str) -> str:
-    return "js" if language in ("javascript", "typescript") else language
+    if language in ("javascript", "typescript"):
+        return "js"
+    if language in ("c", "cpp"):
+        return "c_family"  # a `.h` file can be either, and C++ calls C functions
+    return language
+
+
+def _is_common_method(name: str, language: str) -> bool:
+    key = name.lower() if language in CASE_INSENSITIVE_LANGUAGES else name
+    return key in COMMON_METHOD_NAMES or key in LANGUAGE_COMMON_METHOD_NAMES.get(language, ())
 
 
 def _is_method(node: UniversalNode) -> bool:
@@ -202,6 +241,21 @@ def _single(
     return (fit, tier) if len(fit) == 1 else NONE
 
 
+def _without_constructors(candidates: List[UniversalNode]) -> List[UniversalNode]:
+    """Drop constructors when their class is a candidate too.
+
+    A C++ or C# constructor has the name of its class, so `new Order()` and `Order()`
+    match both. The class is the callee, as for a Python class.
+    """
+    classes = {n.name for n in candidates if n.node_type == NodeType.CLASS}
+    if not classes:
+        return candidates
+    return [
+        n for n in candidates
+        if not (n.name in classes and n.metadata.get("parent_class") == n.name)
+    ]
+
+
 def _in_files(
     index: _Index, name: str, files: Set[str], *, methods: Optional[bool]
 ) -> List[UniversalNode]:
@@ -216,30 +270,37 @@ def _in_files(
     return out
 
 
-def _resolve_plain(name: str, caller: UniversalNode, index: _Index) -> Resolution:
-    """`foo()`: a free function or a class constructor."""
+def _resolve_plain(
+    name: str, caller: UniversalNode, index: _Index, own_methods: bool = True
+) -> Resolution:
+    """`foo()`: a free function or a class constructor.
+
+    own_methods=False leaves out the methods of the caller's own class, for a call that
+    names a namespace (`ns::foo()` in C++).
+    """
     caller_file = caller.location.file_path
     own_class = caller.metadata.get("parent_class")
+    implicit_self = own_methods and caller.language in IMPLICIT_SELF_LANGUAGES
 
     def keep(node: UniversalNode) -> bool:
         if node.node_type == NodeType.CLASS or not _is_method(node):
             return True
-        # Java calls its own methods without a receiver (`helper()`).
-        return caller.language == "java" and node.metadata.get("parent_class") == own_class
+        # Java, C++ and C# call their own methods without a receiver (`helper()`).
+        return implicit_self and node.metadata.get("parent_class") == own_class
 
     same = [n for n in index.by_name_file.get((name, caller_file), ()) if keep(n)]
     if same:
-        return _single(same, caller, TIER_SAME_FILE)
+        return _single(_without_constructors(same), caller, TIER_SAME_FILE)
     imported = [
         n for f in index.imported_files(caller_file)
         for n in index.by_name_file.get((name, f), ()) if keep(n)
     ]
     if imported:
-        return _single(imported, caller, TIER_IMPORTED)
+        return _single(_without_constructors(imported), caller, TIER_IMPORTED)
     if caller.language in IMPORT_SCOPED_LANGUAGES:
         return NONE
     global_free = [n for n in index.by_name.get(name, ()) if keep(n)]
-    return _single(global_free, caller, TIER_UNIQUE)
+    return _single(_without_constructors(global_free), caller, TIER_UNIQUE)
 
 
 def _resolve_self(name: str, caller: UniversalNode, index: _Index) -> Resolution:
@@ -271,6 +332,8 @@ def _resolve_super(name: str, caller: UniversalNode, index: _Index) -> Resolutio
     imported = [n for n in others if n.location.file_path in imported_files]
     if imported:
         return _single(imported, caller, TIER_IMPORTED)
+    if caller.language in SUPER_BY_UNIQUE_NAME_LANGUAGES:
+        return _single(others, caller, TIER_UNIQUE)
     return NONE
 
 
@@ -312,7 +375,9 @@ def _resolve_method_unknown_receiver(
     name: str, caller: UniversalNode, index: _Index
 ) -> Resolution:
     """`obj.method()` where obj's type is unknown: weakest evidence, methods only."""
-    if name in COMMON_METHOD_NAMES:
+    if caller.language == "c":
+        return NONE  # C has no methods: `ops->read()` calls through a function pointer
+    if _is_common_method(name, caller.language):
         return NONE
     caller_file = caller.location.file_path
     same = _in_files(index, name, {caller_file}, methods=True)
@@ -326,11 +391,24 @@ def _resolve_method_unknown_receiver(
     return _single(only_method, caller, TIER_UNIQUE)
 
 
+def _resolve_cpp_scoped(text: str, caller: UniversalNode, index: _Index) -> Resolution:
+    """`Widget::Create()` or `base::Bind()` in C++: a static method or a namespace function."""
+    parts = text.split(".")
+    if parts[0] in EXTERNAL_SCOPES:
+        return NONE
+    qualifier, name = parts[-2], parts[-1]
+    if qualifier in index.class_names:
+        return _resolve_class_qualified(qualifier, name, caller, index)
+    return _resolve_plain(name, caller, index, own_methods=False)
+
+
 def _resolve_one(text: str, caller: UniversalNode, index: _Index) -> Tuple[Resolution, bool]:
     """Resolve one call expression. Returns (resolution, receiver_type_unknown)."""
     receiver, name = _split_call(text)
     if name.startswith("__") and name.endswith("__"):
         return NONE, False  # dunder methods: constructors, operators, super().__init__
+    if receiver is not None and text in caller.metadata.get("scoped_calls", ()):
+        return _resolve_cpp_scoped(text, caller, index), False
     if receiver is None:
         return _resolve_plain(name, caller, index), False
     if text.count(".") == 1:

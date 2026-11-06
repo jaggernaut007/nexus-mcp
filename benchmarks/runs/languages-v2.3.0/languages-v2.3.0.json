@@ -1,0 +1,2252 @@
+{
+  "label": "v2.3.0",
+  "rows": {
+    "flask": {
+      "name": "flask",
+      "language": "Python",
+      "repo": "pallets/flask",
+      "url": "https://github.com/pallets/flask.git",
+      "pin": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35",
+      "label": "v2.3.0",
+      "nexus_version": "2.3.0",
+      "nexus_ref": "0de5088bcf52a7187aa3721efc3702df151a3e29",
+      "quick": {
+        "id": "20261106-144256-273e",
+        "created": "2026-11-06T14:42:56+00:00",
+        "source": {
+          "kind": "path",
+          "label": "flask",
+          "label_public": null,
+          "sha": null
+        },
+        "kept_index": false,
+        "env": {
+          "nexus_mcp_ci": "2.3.0",
+          "python": "3.12.13",
+          "os": "Darwin"
+        },
+        "tier": "quick",
+        "repo": {
+          "files": 83,
+          "chunks": 1632,
+          "size_band": "50-500 files",
+          "languages": [
+            "python"
+          ],
+          "index_seconds": 110.9
+        },
+        "questions": 30,
+        "seed": 7,
+        "summary": {
+          "grep": {
+            "questions": 30,
+            "hit_at_1": 0.2,
+            "hit_at_3": 0.433,
+            "median_tokens": 26720.5,
+            "median_ms": 111.8
+          },
+          "nexus": {
+            "questions": 30,
+            "hit_at_1": 0.933,
+            "hit_at_3": 0.933,
+            "median_tokens": 1387.5,
+            "median_ms": 24.7
+          }
+        },
+        "by_kind": {
+          "concept": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.4,
+              "hit_at_3": 0.7,
+              "median_tokens": 25536.5,
+              "median_ms": 200.3
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 1.0,
+              "hit_at_3": 1.0,
+              "median_tokens": 1415.0,
+              "median_ms": 24.1
+            }
+          },
+          "described": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.0,
+              "hit_at_3": 0.1,
+              "median_tokens": 27470.0,
+              "median_ms": 111.8
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.9,
+              "hit_at_3": 0.9,
+              "median_tokens": 1387.5,
+              "median_ms": 23.5
+            }
+          },
+          "lookup": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.2,
+              "hit_at_3": 0.5,
+              "median_tokens": 26588.0,
+              "median_ms": 52.2
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.9,
+              "hit_at_3": 0.9,
+              "median_tokens": 1298.5,
+              "median_ms": 30.7
+            }
+          }
+        },
+        "verdict": {
+          "label": "Strong fit",
+          "token_saving": 0.948,
+          "hit3_gain": 0.5,
+          "reasons": [
+            "Tokens to reach the right file: Nexus-MCP 1388, Grep and Read 26720 (95% fewer with Nexus-MCP).",
+            "Right file in the top 3: 93% against 43%."
+          ]
+        },
+        "results": [
+          {
+            "id": "concept-get_post",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 24829,
+              "ms": 155.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1026,
+              "ms": 726.7
+            }
+          },
+          {
+            "id": "concept-create_logger",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 31236,
+              "ms": 202.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1222,
+              "ms": 26.0
+            }
+          },
+          {
+            "id": "concept-Config.from_pyfile",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 3590,
+              "ms": 160.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1872,
+              "ms": 24.1
+            }
+          },
+          {
+            "id": "concept-SessionInterface.should_set_cookie",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 4029,
+              "ms": 232.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1504,
+              "ms": 24.2
+            }
+          },
+          {
+            "id": "concept-FormDataRoutingRedirect",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 36573,
+              "ms": 224.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1407,
+              "ms": 24.7
+            }
+          },
+          {
+            "id": "concept-App._find_error_handler",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26244,
+              "ms": 237.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1423,
+              "ms": 22.6
+            }
+          },
+          {
+            "id": "concept-SecureCookieSessionInterface.get_signing_serializer",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 4011,
+              "ms": 198.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 934,
+              "ms": 25.3
+            }
+          },
+          {
+            "id": "concept-MethodView",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2035,
+              "ms": 196.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1724,
+              "ms": 23.4
+            }
+          },
+          {
+            "id": "concept-App.inject_url_defaults",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 26528,
+              "ms": 229.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1819,
+              "ms": 24.1
+            }
+          },
+          {
+            "id": "concept-_path_is_ancestor",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 44282,
+              "ms": 189.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 895,
+              "ms": 23.6
+            }
+          },
+          {
+            "id": "described-App.template_test",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 27146,
+              "ms": 93.1
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 834,
+              "ms": 25.1
+            }
+          },
+          {
+            "id": "described-get_post",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 31288,
+              "ms": 67.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 983,
+              "ms": 22.3
+            }
+          },
+          {
+            "id": "described-create_logger",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 30550,
+              "ms": 78.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1173,
+              "ms": 24.8
+            }
+          },
+          {
+            "id": "described-Request.max_content_length",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 27794,
+              "ms": 152.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1211,
+              "ms": 23.7
+            }
+          },
+          {
+            "id": "described-Config.from_pyfile",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26982,
+              "ms": 74.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1706,
+              "ms": 23.3
+            }
+          },
+          {
+            "id": "described-SessionInterface.should_set_cookie",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 31510,
+              "ms": 178.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1848,
+              "ms": 22.5
+            }
+          },
+          {
+            "id": "described-FormDataRoutingRedirect",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26808,
+              "ms": 130.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1378,
+              "ms": 24.7
+            }
+          },
+          {
+            "id": "described-App._find_error_handler",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 29078,
+              "ms": 134.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1435,
+              "ms": 23.0
+            }
+          },
+          {
+            "id": "described-SecureCookieSessionInterface.get_signing_serializer",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 22436,
+              "ms": 285.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1397,
+              "ms": 23.7
+            }
+          },
+          {
+            "id": "described-MethodView",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 25911,
+              "ms": 71.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2033,
+              "ms": 21.9
+            }
+          },
+          {
+            "id": "lookup-App.template_test",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 37307,
+              "ms": 65.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 997,
+              "ms": 43.9
+            }
+          },
+          {
+            "id": "lookup-_default",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26633,
+              "ms": 30.5
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26818,
+              "ms": 23.8
+            }
+          },
+          {
+            "id": "lookup-get_post",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 3691,
+              "ms": 47.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 986,
+              "ms": 31.6
+            }
+          },
+          {
+            "id": "lookup-create_logger",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 605,
+              "ms": 46.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1223,
+              "ms": 31.4
+            }
+          },
+          {
+            "id": "lookup-Request.max_content_length",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 27803,
+              "ms": 72.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 996,
+              "ms": 30.0
+            }
+          },
+          {
+            "id": "lookup-result",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 27121,
+              "ms": 47.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 681,
+              "ms": 25.2
+            }
+          },
+          {
+            "id": "lookup-Config.from_pyfile",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26982,
+              "ms": 74.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1802,
+              "ms": 32.5
+            }
+          },
+          {
+            "id": "lookup-SessionInterface.should_set_cookie",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 3776,
+              "ms": 91.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1409,
+              "ms": 31.2
+            }
+          },
+          {
+            "id": "lookup-FormDataRoutingRedirect",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 17895,
+              "ms": 48.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1374,
+              "ms": 26.0
+            }
+          },
+          {
+            "id": "lookup-App._find_error_handler",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 26543,
+              "ms": 56.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1809,
+              "ms": 30.2
+            }
+          }
+        ]
+      },
+      "retrieval": {
+        "files": 24,
+        "chunks": 450,
+        "index_seconds": 35.6,
+        "modes": {
+          "bm25": {
+            "hit@1": 0.5909090909090909,
+            "hit@5": 0.7727272727272727,
+            "recall@5": 0.7272727272727273,
+            "recall@10": 0.8181818181818182,
+            "mrr@10": 0.6826298701298701,
+            "queries": 22,
+            "median_query_ms": 4.2,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.5294117647058824,
+                "hit@5": 0.7058823529411765,
+                "recall@5": 0.6470588235294118,
+                "recall@10": 0.7647058823529411,
+                "mrr@10": 0.6186974789915967,
+                "queries": 17
+              },
+              "identifier": {
+                "hit@1": 0.8,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.9,
+                "queries": 5
+              }
+            }
+          },
+          "vector": {
+            "hit@1": 0.7272727272727273,
+            "hit@5": 0.9545454545454546,
+            "recall@5": 0.9090909090909091,
+            "recall@10": 0.9318181818181818,
+            "mrr@10": 0.8083333333333335,
+            "queries": 22,
+            "median_query_ms": 15.8,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.7058823529411765,
+                "hit@5": 0.9411764705882353,
+                "recall@5": 0.8823529411764706,
+                "recall@10": 0.9117647058823529,
+                "mrr@10": 0.7813725490196078,
+                "queries": 17
+              },
+              "identifier": {
+                "hit@1": 0.8,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.9,
+                "queries": 5
+              }
+            }
+          },
+          "hybrid-source-first": {
+            "hit@1": 0.5909090909090909,
+            "hit@5": 0.9090909090909091,
+            "recall@5": 0.8409090909090909,
+            "recall@10": 0.9318181818181818,
+            "mrr@10": 0.7386363636363636,
+            "queries": 22,
+            "median_query_ms": 9.3,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.5294117647058824,
+                "hit@5": 0.8823529411764706,
+                "recall@5": 0.7941176470588235,
+                "recall@10": 0.9117647058823529,
+                "mrr@10": 0.6911764705882353,
+                "queries": 17
+              },
+              "identifier": {
+                "hit@1": 0.8,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.9,
+                "queries": 5
+              }
+            }
+          },
+          "hybrid-exact": {
+            "hit@1": 0.6363636363636364,
+            "hit@5": 0.9090909090909091,
+            "recall@5": 0.8409090909090909,
+            "recall@10": 0.9318181818181818,
+            "mrr@10": 0.7613636363636364,
+            "queries": 22,
+            "median_query_ms": 10.0,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.5294117647058824,
+                "hit@5": 0.8823529411764706,
+                "recall@5": 0.7941176470588235,
+                "recall@10": 0.9117647058823529,
+                "mrr@10": 0.6911764705882353,
+                "queries": 17
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 5
+              }
+            }
+          }
+        }
+      },
+      "index": "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/indexes/.venv-v2.3.0/flask",
+      "index_meta": {
+        "index_seconds": 104.2,
+        "peak_rss_mb": 1013,
+        "embedding_model": "default",
+        "result": {
+          "total_files": 83,
+          "total_symbols": 1632,
+          "total_chunks": 1632,
+          "parse_errors": 0,
+          "graph_nodes": 1705,
+          "graph_relationships": 2387,
+          "time_seconds": 103.30027627944946,
+          "files_added": 0,
+          "files_modified": 0,
+          "files_deleted": 0
+        }
+      },
+      "graph": {
+        "python": {
+          "files": 83,
+          "symbols": 1632,
+          "functions": 1462,
+          "classes": 160,
+          "calls": 765,
+          "calls_per_fn": 0.52,
+          "fn_with_calls": 0.35
+        }
+      }
+    },
+    "django": {
+      "name": "django",
+      "language": "Python",
+      "repo": "django/django",
+      "url": "https://github.com/django/django.git",
+      "pin": "318a316a4c86a65bede68144f9546a6056d91379",
+      "label": "v2.3.0",
+      "nexus_version": "2.3.0",
+      "nexus_ref": "0de5088bcf52a7187aa3721efc3702df151a3e29"
+    },
+    "vite": {
+      "name": "vite",
+      "language": "TypeScript",
+      "repo": "vitejs/vite",
+      "url": "https://github.com/vitejs/vite.git",
+      "pin": "483512809bbdb399d66be59af0f5aeb01ccb7181",
+      "label": "v2.3.0",
+      "nexus_version": "2.3.0",
+      "nexus_ref": "0de5088bcf52a7187aa3721efc3702df151a3e29",
+      "quick": {
+        "id": "20261106-144740-1129",
+        "created": "2026-11-06T14:47:40+00:00",
+        "source": {
+          "kind": "path",
+          "label": "vite",
+          "label_public": null,
+          "sha": null
+        },
+        "kept_index": false,
+        "env": {
+          "nexus_mcp_ci": "2.3.0",
+          "python": "3.12.13",
+          "os": "Darwin"
+        },
+        "tier": "quick",
+        "repo": {
+          "files": 429,
+          "chunks": 1868,
+          "size_band": "50-500 files",
+          "languages": [
+            "javascript",
+            "typescript"
+          ],
+          "index_seconds": 126.3
+        },
+        "questions": 30,
+        "seed": 7,
+        "summary": {
+          "grep": {
+            "questions": 30,
+            "hit_at_1": 0.433,
+            "hit_at_3": 0.633,
+            "median_tokens": 16519.5,
+            "median_ms": 163.2
+          },
+          "nexus": {
+            "questions": 30,
+            "hit_at_1": 0.833,
+            "hit_at_3": 0.933,
+            "median_tokens": 1285.5,
+            "median_ms": 26.9
+          }
+        },
+        "by_kind": {
+          "concept": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.6,
+              "hit_at_3": 0.8,
+              "median_tokens": 13908.0,
+              "median_ms": 484.0
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 1.0,
+              "hit_at_3": 1.0,
+              "median_tokens": 1476.5,
+              "median_ms": 26.3
+            }
+          },
+          "described": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.1,
+              "hit_at_3": 0.2,
+              "median_tokens": 72426.0,
+              "median_ms": 177.2
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.5,
+              "hit_at_3": 0.8,
+              "median_tokens": 1303.0,
+              "median_ms": 26.4
+            }
+          },
+          "lookup": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.6,
+              "hit_at_3": 0.9,
+              "median_tokens": 10233.5,
+              "median_ms": 96.8
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 1.0,
+              "hit_at_3": 1.0,
+              "median_tokens": 1023.0,
+              "median_ms": 27.3
+            }
+          }
+        },
+        "verdict": {
+          "label": "Strong fit",
+          "token_saving": 0.922,
+          "hit3_gain": 0.3,
+          "reasons": [
+            "Tokens to reach the right file: Nexus-MCP 1286, Grep and Read 16520 (92% fewer with Nexus-MCP).",
+            "Right file in the top 3: 93% against 63%."
+          ]
+        },
+        "results": [
+          {
+            "id": "concept-BundledDev.triggerLazyBundling",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 12333,
+              "ms": 675.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1277,
+              "ms": 767.2
+            }
+          },
+          {
+            "id": "concept-resolvePostcssConfig",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 71336,
+              "ms": 215.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1539,
+              "ms": 26.3
+            }
+          },
+          {
+            "id": "concept-isEntirelyImport",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 14800,
+              "ms": 798.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1660,
+              "ms": 26.2
+            }
+          },
+          {
+            "id": "concept-matchImportsToPreloadMarkers",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 8892,
+              "ms": 679.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1419,
+              "ms": 27.3
+            }
+          },
+          {
+            "id": "concept-minifyCSS",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 16791,
+              "ms": 521.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1892,
+              "ms": 24.2
+            }
+          },
+          {
+            "id": "concept-watchPackageDataPlugin",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 76564,
+              "ms": 357.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1487,
+              "ms": 24.1
+            }
+          },
+          {
+            "id": "concept-handlePrunedModules",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 9110,
+              "ms": 368.3
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1133,
+              "ms": 26.3
+            }
+          },
+          {
+            "id": "concept-renderAssetUrlInJS",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 13016,
+              "ms": 154.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1512,
+              "ms": 28.0
+            }
+          },
+          {
+            "id": "concept-resolvePreviewOptions",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2939,
+              "ms": 446.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1266,
+              "ms": 46.4
+            }
+          },
+          {
+            "id": "concept-getRenderedModule",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 16775,
+              "ms": 659.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1466,
+              "ms": 25.3
+            }
+          },
+          {
+            "id": "described-setFnpdCache",
+            "kind": "described",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 3363,
+              "ms": 197.8
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1255,
+              "ms": 28.4
+            }
+          },
+          {
+            "id": "described-EnvironmentPluginContainer._getPluginContext",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 87211,
+              "ms": 264.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 780,
+              "ms": 22.9
+            }
+          },
+          {
+            "id": "described-urlToBuiltUrl",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 60917,
+              "ms": 101.4
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 18558,
+              "ms": 28.9
+            }
+          },
+          {
+            "id": "described-hasCorrectCase",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 71719,
+              "ms": 145.4
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 638,
+              "ms": 24.5
+            }
+          },
+          {
+            "id": "described-resolvePlugins",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 82681,
+              "ms": 89.8
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 20094,
+              "ms": 25.2
+            }
+          },
+          {
+            "id": "described-UserConfigExport",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 74309,
+              "ms": 154.8
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 1987,
+              "ms": 25.4
+            }
+          },
+          {
+            "id": "described-generateWorkerEntryUrlExpr",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 78303,
+              "ms": 300.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1348,
+              "ms": 41.9
+            }
+          },
+          {
+            "id": "described-splitWorkerRequest",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 72768,
+              "ms": 231.3
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1435,
+              "ms": 27.4
+            }
+          },
+          {
+            "id": "described-getCssResolversKeys",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 18861,
+              "ms": 269.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1258,
+              "ms": 29.3
+            }
+          },
+          {
+            "id": "described-getShortName",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 72084,
+              "ms": 156.7
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 654,
+              "ms": 25.3
+            }
+          },
+          {
+            "id": "lookup-setFnpdCache",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2811,
+              "ms": 95.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 798,
+              "ms": 31.0
+            }
+          },
+          {
+            "id": "lookup-EnvironmentPluginContainer._getPluginContext",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 10090,
+              "ms": 169.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1172,
+              "ms": 41.3
+            }
+          },
+          {
+            "id": "lookup-urlToBuiltUrl",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 6393,
+              "ms": 93.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 880,
+              "ms": 26.5
+            }
+          },
+          {
+            "id": "lookup-Queue",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 10377,
+              "ms": 86.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 907,
+              "ms": 23.1
+            }
+          },
+          {
+            "id": "lookup-hasCorrectCase",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 14672,
+              "ms": 100.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 671,
+              "ms": 27.7
+            }
+          },
+          {
+            "id": "lookup-resolvePlugins",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 17508,
+              "ms": 98.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1912,
+              "ms": 26.9
+            }
+          },
+          {
+            "id": "lookup-UserConfigExport",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 28656,
+              "ms": 92.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 686,
+              "ms": 27.9
+            }
+          },
+          {
+            "id": "lookup-generateWorkerEntryUrlExpr",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 7058,
+              "ms": 99.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1676,
+              "ms": 26.9
+            }
+          },
+          {
+            "id": "lookup-splitWorkerRequest",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 7752,
+              "ms": 100.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1294,
+              "ms": 27.9
+            }
+          },
+          {
+            "id": "lookup-getCssResolversKeys",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 16264,
+              "ms": 95.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1139,
+              "ms": 25.9
+            }
+          }
+        ]
+      },
+      "retrieval": {
+        "files": 422,
+        "chunks": 1832,
+        "index_seconds": 135.7,
+        "modes": {
+          "bm25": {
+            "hit@1": 0.2,
+            "hit@5": 0.6,
+            "recall@5": 0.5666666666666667,
+            "recall@10": 0.7,
+            "mrr@10": 0.3685185185185185,
+            "queries": 15,
+            "median_query_ms": 5.2,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.14285714285714285,
+                "hit@5": 0.5714285714285714,
+                "recall@5": 0.5357142857142857,
+                "recall@10": 0.6785714285714286,
+                "mrr@10": 0.32341269841269843,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "vector": {
+            "hit@1": 0.5333333333333333,
+            "hit@5": 0.6666666666666666,
+            "recall@5": 0.6666666666666666,
+            "recall@10": 0.6666666666666666,
+            "mrr@10": 0.56,
+            "queries": 15,
+            "median_query_ms": 20.4,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.5,
+                "hit@5": 0.6428571428571429,
+                "recall@5": 0.6428571428571429,
+                "recall@10": 0.6428571428571429,
+                "mrr@10": 0.5285714285714286,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-source-first": {
+            "hit@1": 0.4666666666666667,
+            "hit@5": 0.7333333333333333,
+            "recall@5": 0.7,
+            "recall@10": 0.8,
+            "mrr@10": 0.5362962962962963,
+            "queries": 15,
+            "median_query_ms": 14.6,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.42857142857142855,
+                "hit@5": 0.7142857142857143,
+                "recall@5": 0.6785714285714286,
+                "recall@10": 0.7857142857142857,
+                "mrr@10": 0.5031746031746032,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-exact": {
+            "hit@1": 0.4666666666666667,
+            "hit@5": 0.7333333333333333,
+            "recall@5": 0.7,
+            "recall@10": 0.8,
+            "mrr@10": 0.5362962962962963,
+            "queries": 15,
+            "median_query_ms": 13.9,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.42857142857142855,
+                "hit@5": 0.7142857142857143,
+                "recall@5": 0.6785714285714286,
+                "recall@10": 0.7857142857142857,
+                "mrr@10": 0.5031746031746032,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          }
+        }
+      },
+      "index": "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/indexes/.venv-v2.3.0/vite",
+      "index_meta": {
+        "index_seconds": 154.6,
+        "peak_rss_mb": 876,
+        "embedding_model": "default",
+        "result": {
+          "total_files": 429,
+          "total_symbols": 1868,
+          "total_chunks": 1868,
+          "parse_errors": 0,
+          "graph_nodes": 2199,
+          "graph_relationships": 4139,
+          "time_seconds": 153.172749042511,
+          "files_added": 0,
+          "files_modified": 0,
+          "files_deleted": 0
+        }
+      },
+      "graph": {
+        "javascript": {
+          "files": 160,
+          "symbols": 34,
+          "functions": 32,
+          "classes": 1,
+          "calls": 1,
+          "calls_per_fn": 0.03,
+          "fn_with_calls": 0.031
+        },
+        "typescript": {
+          "files": 269,
+          "symbols": 1834,
+          "functions": 1689,
+          "classes": 48,
+          "calls": 2368,
+          "calls_per_fn": 1.4,
+          "fn_with_calls": 0.465
+        }
+      }
+    },
+    "webpack": {
+      "name": "webpack",
+      "language": "JavaScript",
+      "repo": "webpack/webpack",
+      "url": "https://github.com/webpack/webpack.git",
+      "pin": "f6366b0bc2afbf1f5494f33e81f2bd0588b802cc",
+      "label": "v2.3.0",
+      "nexus_version": "2.3.0",
+      "nexus_ref": "0de5088bcf52a7187aa3721efc3702df151a3e29",
+      "quick": {
+        "id": "20261106-150220-4b45",
+        "created": "2026-11-06T15:02:20+00:00",
+        "source": {
+          "kind": "path",
+          "label": "webpack",
+          "label_public": null,
+          "sha": null
+        },
+        "kept_index": false,
+        "env": {
+          "nexus_mcp_ci": "2.3.0",
+          "python": "3.12.13",
+          "os": "Darwin"
+        },
+        "tier": "quick",
+        "repo": {
+          "files": 822,
+          "chunks": 8687,
+          "size_band": "500-5k files",
+          "languages": [
+            "javascript",
+            "typescript"
+          ],
+          "index_seconds": 557.4
+        },
+        "questions": 30,
+        "seed": 7,
+        "summary": {
+          "grep": {
+            "questions": 30,
+            "hit_at_1": 0.367,
+            "hit_at_3": 0.567,
+            "median_tokens": 25634.0,
+            "median_ms": 587.4
+          },
+          "nexus": {
+            "questions": 30,
+            "hit_at_1": 0.667,
+            "hit_at_3": 0.833,
+            "median_tokens": 1251.0,
+            "median_ms": 40.5
+          }
+        },
+        "by_kind": {
+          "concept": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.4,
+              "hit_at_3": 0.5,
+              "median_tokens": 17549.5,
+              "median_ms": 653.5
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.6,
+              "hit_at_3": 0.6,
+              "median_tokens": 1955.0,
+              "median_ms": 38.7
+            }
+          },
+          "described": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.0,
+              "hit_at_3": 0.3,
+              "median_tokens": 66531.0,
+              "median_ms": 701.2
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 0.4,
+              "hit_at_3": 0.9,
+              "median_tokens": 1352.5,
+              "median_ms": 34.2
+            }
+          },
+          "lookup": {
+            "grep": {
+              "questions": 10,
+              "hit_at_1": 0.7,
+              "hit_at_3": 0.9,
+              "median_tokens": 17214.0,
+              "median_ms": 542.7
+            },
+            "nexus": {
+              "questions": 10,
+              "hit_at_1": 1.0,
+              "hit_at_3": 1.0,
+              "median_tokens": 1192.5,
+              "median_ms": 55.8
+            }
+          }
+        },
+        "verdict": {
+          "label": "Strong fit",
+          "token_saving": 0.951,
+          "hit3_gain": 0.266,
+          "reasons": [
+            "Tokens to reach the right file: Nexus-MCP 1251, Grep and Read 25634 (95% fewer with Nexus-MCP).",
+            "Right file in the top 3: 83% against 57%."
+          ]
+        },
+        "results": [
+          {
+            "id": "concept-harmonyImportTargets",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 3755,
+              "ms": 279.7
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 37701,
+              "ms": 816.4
+            }
+          },
+          {
+            "id": "concept-WebpackParser.parseArrowExpression",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17570,
+              "ms": 1487.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 2142,
+              "ms": 34.5
+            }
+          },
+          {
+            "id": "concept-SyntaxParser.parseImportSpecifiers",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17509,
+              "ms": 341.1
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 4388,
+              "ms": 54.0
+            }
+          },
+          {
+            "id": "concept-HtmlGenerator._renderHtml",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 68223,
+              "ms": 696.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 707,
+              "ms": 34.7
+            }
+          },
+          {
+            "id": "concept-Compilation._codeGenerationModule",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 63070,
+              "ms": 1096.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1548,
+              "ms": 32.2
+            }
+          },
+          {
+            "id": "concept-WebpackParser.parseFunctionBody",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17529,
+              "ms": 1470.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1232,
+              "ms": 47.9
+            }
+          },
+          {
+            "id": "concept-DependenciesBlock.getRootBlock",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 34014,
+              "ms": 324.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1186,
+              "ms": 43.3
+            }
+          },
+          {
+            "id": "concept-SerializerMiddleware",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 36948,
+              "ms": 610.6
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 26631,
+              "ms": 35.7
+            }
+          },
+          {
+            "id": "concept-ModuleLibraryPlugin._checkStarReexportedExternals",
+            "kind": "concept",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 3764,
+              "ms": 175.0
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 18244,
+              "ms": 38.4
+            }
+          },
+          {
+            "id": "concept-findSourceMappingURL",
+            "kind": "concept",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 3171,
+              "ms": 1704.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1768,
+              "ms": 39.0
+            }
+          },
+          {
+            "id": "described-LazyBucketSortedSet._addInternal",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 37305,
+              "ms": 1075.2
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1749,
+              "ms": 34.8
+            }
+          },
+          {
+            "id": "described-MinifierLabel",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 51601,
+              "ms": 474.3
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 34175,
+              "ms": 38.1
+            }
+          },
+          {
+            "id": "described-WebpackParser.treatFunctionsAsVarInScope",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 72714,
+              "ms": 938.3
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 661,
+              "ms": 31.3
+            }
+          },
+          {
+            "id": "described-WebpackParser._takeModuleDeclarations",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 63648,
+              "ms": 571.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 653,
+              "ms": 33.3
+            }
+          },
+          {
+            "id": "described-AsyncDependenciesBlock.chunkName",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 78721,
+              "ms": 716.6
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 1364,
+              "ms": 35.0
+            }
+          },
+          {
+            "id": "described-Compilation._attachPendingRuntimeModules",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 63105,
+              "ms": 960.9
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 1341,
+              "ms": 33.9
+            }
+          },
+          {
+            "id": "described-ChunkSiblingIds",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 70553,
+              "ms": 597.9
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 597,
+              "ms": 31.5
+            }
+          },
+          {
+            "id": "described-Logger.trace",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 19344,
+              "ms": 573.4
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1670,
+              "ms": 81.4
+            }
+          },
+          {
+            "id": "described-WebpackParser.insertSemicolon",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 88472,
+              "ms": 700.7
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 559,
+              "ms": 33.7
+            }
+          },
+          {
+            "id": "described-DependenciesBlock.removeDependency",
+            "kind": "described",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 69414,
+              "ms": 701.6
+            },
+            "nexus": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 1487,
+              "ms": 34.6
+            }
+          },
+          {
+            "id": "lookup-LazyBucketSortedSet._addInternal",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1963,
+              "ms": 543.6
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1242,
+              "ms": 93.0
+            }
+          },
+          {
+            "id": "lookup-MinifierLabel",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 16221,
+              "ms": 312.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1334,
+              "ms": 42.0
+            }
+          },
+          {
+            "id": "lookup-WebpackParser.treatFunctionsAsVarInScope",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17214,
+              "ms": 573.3
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1146,
+              "ms": 54.1
+            }
+          },
+          {
+            "id": "lookup-WebpackParser._takeModuleDeclarations",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17214,
+              "ms": 476.9
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1212,
+              "ms": 61.1
+            }
+          },
+          {
+            "id": "lookup-AsyncDependenciesBlock.chunkName",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": false,
+              "tokens": 31924,
+              "ms": 541.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1173,
+              "ms": 55.9
+            }
+          },
+          {
+            "id": "lookup-Compilation._attachPendingRuntimeModules",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17864,
+              "ms": 391.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 773,
+              "ms": 56.1
+            }
+          },
+          {
+            "id": "lookup-ChunkSiblingIds",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 37914,
+              "ms": 306.1
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 602,
+              "ms": 55.7
+            }
+          },
+          {
+            "id": "lookup-Logger.trace",
+            "kind": "lookup",
+            "grep": {
+              "hit1": false,
+              "hit3": true,
+              "tokens": 19344,
+              "ms": 582.0
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1232,
+              "ms": 48.4
+            }
+          },
+          {
+            "id": "lookup-WebpackParser.insertSemicolon",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 17214,
+              "ms": 622.5
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1260,
+              "ms": 57.1
+            }
+          },
+          {
+            "id": "lookup-DependenciesBlock.removeDependency",
+            "kind": "lookup",
+            "grep": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1387,
+              "ms": 592.7
+            },
+            "nexus": {
+              "hit1": true,
+              "hit3": true,
+              "tokens": 1166,
+              "ms": 54.5
+            }
+          }
+        ]
+      },
+      "retrieval": {
+        "files": 814,
+        "chunks": 7428,
+        "index_seconds": 584.2,
+        "modes": {
+          "bm25": {
+            "hit@1": 0.06666666666666667,
+            "hit@5": 0.3333333333333333,
+            "recall@5": 0.26666666666666666,
+            "recall@10": 0.4,
+            "mrr@10": 0.18185185185185185,
+            "queries": 15,
+            "median_query_ms": 6.1,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.07142857142857142,
+                "hit@5": 0.35714285714285715,
+                "recall@5": 0.2857142857142857,
+                "recall@10": 0.35714285714285715,
+                "mrr@10": 0.18293650793650792,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 0.0,
+                "recall@5": 0.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.16666666666666666,
+                "queries": 1
+              }
+            }
+          },
+          "vector": {
+            "hit@1": 0.2,
+            "hit@5": 0.4,
+            "recall@5": 0.36666666666666664,
+            "recall@10": 0.4666666666666667,
+            "mrr@10": 0.28833333333333333,
+            "queries": 15,
+            "median_query_ms": 26.4,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.14285714285714285,
+                "hit@5": 0.35714285714285715,
+                "recall@5": 0.32142857142857145,
+                "recall@10": 0.42857142857142855,
+                "mrr@10": 0.23750000000000002,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 1.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 1.0,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-source-first": {
+            "hit@1": 0.2,
+            "hit@5": 0.5333333333333333,
+            "recall@5": 0.5,
+            "recall@10": 0.6,
+            "mrr@10": 0.32,
+            "queries": 15,
+            "median_query_ms": 20.2,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.21428571428571427,
+                "hit@5": 0.5,
+                "recall@5": 0.4642857142857143,
+                "recall@10": 0.5714285714285714,
+                "mrr@10": 0.3071428571428571,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.5,
+                "queries": 1
+              }
+            }
+          },
+          "hybrid-exact": {
+            "hit@1": 0.2,
+            "hit@5": 0.5333333333333333,
+            "recall@5": 0.5,
+            "recall@10": 0.6,
+            "mrr@10": 0.32,
+            "queries": 15,
+            "median_query_ms": 21.0,
+            "by_kind": {
+              "concept": {
+                "hit@1": 0.21428571428571427,
+                "hit@5": 0.5,
+                "recall@5": 0.4642857142857143,
+                "recall@10": 0.5714285714285714,
+                "mrr@10": 0.3071428571428571,
+                "queries": 14
+              },
+              "identifier": {
+                "hit@1": 0.0,
+                "hit@5": 1.0,
+                "recall@5": 1.0,
+                "recall@10": 1.0,
+                "mrr@10": 0.5,
+                "queries": 1
+              }
+            }
+          }
+        }
+      },
+      "index": "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/indexes/.venv-v2.3.0/webpack",
+      "index_meta": {
+        "index_seconds": 572.8,
+        "peak_rss_mb": 1153,
+        "embedding_model": "default",
+        "result": {
+          "total_files": 822,
+          "total_symbols": 8687,
+          "total_chunks": 8687,
+          "parse_errors": 0,
+          "graph_nodes": 6813,
+          "graph_relationships": 12938,
+          "time_seconds": 571.3719968795776,
+          "files_added": 0,
+          "files_modified": 0,
+          "files_deleted": 0
+        }
+      },
+      "graph": {
+        "javascript": {
+          "files": 818,
+          "symbols": 7430,
+          "functions": 5030,
+          "classes": 764,
+          "calls": 6947,
+          "calls_per_fn": 1.38,
+          "fn_with_calls": 0.433
+        },
+        "typescript": {
+          "files": 4,
+          "symbols": 1257,
+          "functions": 0,
+          "classes": 197,
+          "calls": 0,
+          "calls_per_fn": 0.0,
+          "fn_with_calls": 0.0
+        }
+      }
+    }
+  }
+}

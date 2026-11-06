@@ -8,6 +8,11 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+# Tools that the server does not show unless NEXUS_EXTRA_TOOLS names them. In the live
+# benchmark agents almost never called them, but their descriptions cost about 750 tokens
+# on each turn.
+OPTIONAL_TOOLS = ("status", "analyze", "memory")
+
 
 @dataclass
 class Settings:
@@ -43,6 +48,10 @@ class Settings:
     warm_start: bool = True  # load the index and the embedding model while the server starts
     auto_watch_enabled: bool = True
     staleness_check_interval_s: float = 15.0
+
+    # Tools that are off by default, because each tool description costs tokens on every
+    # turn. "all" or a comma-separated list of names from OPTIONAL_TOOLS turns them on.
+    extra_tools: str = ""
 
     # Logging
     log_level: str = "INFO"
@@ -84,6 +93,7 @@ class Settings:
             "NEXUS_WARM_START": ("warm_start", _bool),
             "NEXUS_AUTO_WATCH": ("auto_watch_enabled", _bool),
             "NEXUS_STALENESS_CHECK_INTERVAL": ("staleness_check_interval_s", float),
+            "NEXUS_EXTRA_TOOLS": ("extra_tools", str),
             "NEXUS_LOG_LEVEL": ("log_level", str),
             "NEXUS_LOG_FORMAT": ("log_format", str),
             "NEXUS_TRUST_REMOTE_CODE": ("trust_remote_code", _bool),
@@ -106,6 +116,16 @@ class Settings:
                         "Invalid value for %s=%r: %s — using default %r",
                         env_key, value, e, getattr(self, attr),
                     )
+
+    def enabled_optional_tools(self) -> set[str]:
+        """Return the optional tools that NEXUS_EXTRA_TOOLS turns on."""
+        wanted = {n.strip() for n in self.extra_tools.split(",") if n.strip()}
+        if "all" in wanted:
+            return set(OPTIONAL_TOOLS)
+        unknown = wanted - set(OPTIONAL_TOOLS)
+        if unknown:
+            logger.warning("NEXUS_EXTRA_TOOLS: unknown tools %s", sorted(unknown))
+        return wanted & set(OPTIONAL_TOOLS)
 
     @property
     def storage_path(self) -> Path:

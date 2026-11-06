@@ -487,3 +487,110 @@ def test_warm_up_sends_one_small_prompt_and_waits(tmp_path, monkeypatch):
     assert runner.WARM_UP_PROMPT in seen["argv"]
     assert seen["cwd"] == str(tmp_path)
     assert seen["timeout"] == runner.WARM_UP_TIMEOUT_S
+
+
+def test_run_order_turns_the_condition_order_round_each_task_and_rep():
+    tasks = [{"id": "t1"}, {"id": "t2"}]
+    order = [(t["id"], c, r) for t, c, r in runner.run_order(tasks, ["baseline", "nexus"], 2)]
+    assert order == [
+        ("t1", "baseline", 0), ("t1", "nexus", 0),
+        ("t2", "nexus", 0), ("t2", "baseline", 0),
+        ("t1", "nexus", 1), ("t1", "baseline", 1),
+        ("t2", "baseline", 1), ("t2", "nexus", 1),
+    ]
+
+
+def test_run_order_each_condition_goes_first_equally_often():
+    tasks = [{"id": f"t{i}"} for i in range(6)]
+    order = runner.run_order(tasks, ["baseline", "nexus"], 3)
+    firsts = [order[i][1] for i in range(0, len(order), 2)]
+    assert firsts.count("baseline") == firsts.count("nexus")
+
+
+def test_done_keys_with_effort_ignores_runs_at_another_effort(tmp_path):
+    out = tmp_path / "runs.jsonl"
+    runner.write_record(
+        {"task_id": "t1", "condition": "baseline", "rep": 0, "model": "m", "effort": "high"}, out
+    )
+    assert runner.done_keys(out, "m", "medium") == set()
+    assert runner.done_keys(out, "m", "high") == {("t1", "baseline", 0)}
+
+
+def test_run_once_records_effort_and_the_pinned_version(tmp_path, monkeypatch):
+    stdout = (FIXTURES / "baseline_run.jsonl").read_text()
+    seen = {}
+
+    def fake_popen(argv, **kwargs):
+        seen["argv"] = argv
+        return _FakePopen(stdout)
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(runner, "RESULTS_DIR", tmp_path / "results")
+    pinned = runner.PinnedNexus(venv=tmp_path / ".venv-v2.2.2", version="2.2.2", ref="0430f01")
+    record = runner.run_once(
+        _task(), "nexus", _repo(), tmp_path, "sonnet", tmp_path, effort="medium", pinned=pinned
+    )
+    assert record["effort"] == "medium"
+    assert (record["nexus_version"], record["nexus_ref"]) == ("2.2.2", "0430f01")
+    config = json.loads(Path(seen["argv"][seen["argv"].index("--mcp-config") + 1]).read_text())
+    assert config["mcpServers"]["nexus-mcp"]["command"] == str(pinned.bin)
+
+
+def test_pinned_index_dir_is_outside_the_corpus(tmp_path):
+    pinned = runner.PinnedNexus(venv=tmp_path / ".venv-x", version="1", ref="r")
+    repo_dir = tmp_path / "repos" / "flask"
+    assert repo_dir not in runner.pinned_index_dir(pinned, repo_dir).parents
+
+
+def test_run_suite_rejects_a_pinned_install_with_embedding_models(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "repo_dir_for", lambda suite: tmp_path)
+    pinned = runner.PinnedNexus(venv=tmp_path / ".venv-x", version="1", ref="r")
+    with pytest.raises(SystemExit):
+        runner.run_suite(
+            _suite(), ["nexus@bge-small-en"], 1, "m", tmp_path, tmp_path / "o.jsonl",
+            pinned=pinned,
+        )
+
+
+def test_load_pinned_without_an_install_exits(tmp_path):
+    with pytest.raises(SystemExit):
+        runner.load_pinned(tmp_path / ".venv-missing")
+
+
+def test_main_passes_medium_effort_by_default(tmp_path, monkeypatch):
+    suite_path = tmp_path / "suite.yaml"
+    suite_path.write_text("repo:\n  name: django\n  pin: abc\ntasks:\n  - id: t1\n    prompt: a\n")
+    captured = {}
+
+    def fake_run_suite(*args, **kwargs):
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(runner, "run_suite", fake_run_suite)
+    assert runner.main(["--tasks", str(suite_path)]) == 0
+    assert captured["effort"] == "medium"
+    assert captured["pinned"] is None
+
+
+def test_main_task_ids_runs_only_those_tasks(tmp_path, monkeypatch):
+    suite_path = tmp_path / "suite.yaml"
+    suite_path.write_text(
+        "repo:\n  name: django\n  pin: abc\n"
+        "tasks:\n  - id: t1\n    prompt: a\n  - id: t2\n    prompt: b\n  - id: t3\n    prompt: c\n"
+    )
+    captured = {}
+
+    def fake_run_suite(suite, *args, **kwargs):
+        captured["ids"] = [t["id"] for t in suite["tasks"]]
+        return []
+
+    monkeypatch.setattr(runner, "run_suite", fake_run_suite)
+    assert runner.main(["--tasks", str(suite_path), "--task-ids", "t3,t1"]) == 0
+    assert captured["ids"] == ["t1", "t3"]
+
+
+def test_main_task_ids_not_in_the_suite_is_an_error(tmp_path):
+    suite_path = tmp_path / "suite.yaml"
+    suite_path.write_text("repo:\n  name: django\n  pin: abc\ntasks:\n  - id: t1\n    prompt: a\n")
+    with pytest.raises(SystemExit):
+        runner.main(["--tasks", str(suite_path), "--task-ids", "nope"])

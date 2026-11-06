@@ -32,14 +32,76 @@ SCHEMA_PARAMETERS = {
 }
 
 
+DEFAULT_TOOLS = {"index", "search", "find_symbol", "graph", "map"}
+
+
+def _server(extra_tools: str):
+    """Build the server with NEXUS_EXTRA_TOOLS set to `extra_tools`."""
+    import os
+
+    from nexus_mcp.config import reset_settings
+
+    old = os.environ.get("NEXUS_EXTRA_TOOLS")
+    os.environ["NEXUS_EXTRA_TOOLS"] = extra_tools
+    reset_settings()
+    try:
+        return server_module.create_server()
+    finally:
+        if old is None:
+            os.environ.pop("NEXUS_EXTRA_TOOLS", None)
+        else:
+            os.environ["NEXUS_EXTRA_TOOLS"] = old
+        reset_settings()
+
+
 @pytest.fixture(scope="module")
 def mcp():
-    return server_module.create_server()
+    return _server("all")
 
 
 @pytest.fixture(scope="module")
 def tools(mcp):
     return {t.name: t for t in asyncio.run(mcp.list_tools())}
+
+
+@pytest.fixture(scope="module")
+def default_mcp():
+    return _server("")
+
+
+@pytest.fixture(scope="module")
+def default_tools(default_mcp):
+    return {t.name: t for t in asyncio.run(default_mcp.list_tools())}
+
+
+class TestDefaultToolSurface:
+    """By default the server shows 5 tools. Each description costs tokens on every turn."""
+
+    def test_create_server_default_shows_only_the_five_core_tools(self, default_tools):
+        assert set(default_tools) == DEFAULT_TOOLS
+
+    def test_create_server_default_instructions_name_no_hidden_tool(self, default_mcp):
+        named = set(re.findall(r"`([a-z_]+)`", default_mcp.instructions))
+        assert named - {"indexed", "parse_config"} <= DEFAULT_TOOLS
+        assert "what was decided" not in default_mcp.instructions
+
+    def test_create_server_default_descriptions_name_no_hidden_tool(self, default_tools):
+        for name, tool in default_tools.items():
+            named = set(re.findall(r"`([a-z_]+)`", tool.description or ""))
+            assert not named & {"status", "analyze", "memory"}, name
+
+    def test_create_server_extra_tools_turns_on_only_the_named_tools(self):
+        tools = {t.name for t in asyncio.run(_server("memory").list_tools())}
+        assert tools == DEFAULT_TOOLS | {"memory"}
+
+    def test_create_server_hidden_tool_cannot_be_called(self, default_mcp):
+        with pytest.raises(Exception):
+            asyncio.run(default_mcp.call_tool("status", {}))
+
+    def test_skill_names_default_tools_only(self):
+        text = (ROOT / "plugin" / "skills" / "nexus-mcp" / "SKILL.md").read_text()
+        named = set(re.findall(r"`([a-z_]+)`", text))
+        assert not named & {"status", "analyze", "memory"}
 
 
 def _hints(tool):

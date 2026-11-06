@@ -1,0 +1,20 @@
+{
+  "javascript": {
+    "files": 2,
+    "symbols": 0,
+    "functions": 2,
+    "classes": 0,
+    "calls": 0,
+    "calls_per_fn": 0.0,
+    "fn_with_calls": 0.0
+  },
+  "php": {
+    "files": 1749,
+    "symbols": 16119,
+    "functions": 14470,
+    "classes": 1653,
+    "calls": 15331,
+    "calls_per_fn": 1.06,
+    "fn_with_calls": 0.54
+  }
+}

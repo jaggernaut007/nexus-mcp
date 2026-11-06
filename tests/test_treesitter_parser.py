@@ -107,6 +107,23 @@ def test_parse_python_file(parser, python_file):
     assert len(result.imports) >= 2
 
 
+def test_parse_file_c_definition_gives_one_symbol_and_a_prototype_gives_one(parser, tmp_path):
+    src = tmp_path / "expire.c"
+    src.write_text(
+        "int removeExpire(void *db, void *key);\n"
+        "\n"
+        "int removeExpire(void *db, void *key) {\n"
+        "    int table = 0;\n"
+        "    return table;\n"
+        "}\n"
+    )
+    result = parser.parse_file(str(src))
+    spans = sorted(
+        (s.line_start, s.line_end) for s in result.symbols if s.name == "removeExpire"
+    )
+    assert spans == [(1, 1), (3, 6)]  # the prototype and the definition, no inner declarator
+
+
 def test_parse_js_file(parser, js_file):
     result = parser.parse_file(str(js_file))
     assert result.is_successful

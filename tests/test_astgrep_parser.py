@@ -161,3 +161,27 @@ def test_docstring_is_capped(tmp_path):
     long_text = "x" * 2000
     funcs = _functions_by_name(tmp_path, "e.py", f'def f():\n    """{long_text}"""\n')
     assert len(funcs["f"].docstring) == 500
+
+
+def test_astgrep_lang_ids_are_all_known_to_ast_grep():
+    # `c_sharp` is not an ast-grep id. SgRoot then raises a pyo3 PanicException, a
+    # BaseException that `except Exception` does not catch, so one `.cs` file stopped
+    # the whole index.
+    from ast_grep_py import SgRoot
+
+    from nexus_mcp.parsing.astgrep_parser import ASTGREP_LANG_IDS
+
+    for language, ast_grep_id in ASTGREP_LANG_IDS.items():
+        assert SgRoot("", ast_grep_id).root() is not None, language
+
+
+def test_parse_file_csharp_does_not_stop_the_index(tmp_path):
+    src = tmp_path / "Order.cs"
+    src.write_text("public class Order { public void Add() { } }\n")
+    assert AstGrepParser().parse_file(str(src), UniversalGraph()) >= 1
+
+
+def test_parse_file_dart_does_not_stop_the_index(tmp_path):
+    src = tmp_path / "main.dart"
+    src.write_text("void main() { }\n")
+    assert AstGrepParser().parse_file(str(src), UniversalGraph()) == 0

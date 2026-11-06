@@ -35,6 +35,7 @@ DESCRIPTIONS = {
     "NEXUS_WARM_START": "Load the index and the model in the background while the server starts.",
     "NEXUS_AUTO_WATCH": "Watch indexed folders and reindex changed files in the background.",
     "NEXUS_STALENESS_CHECK_INTERVAL": "Seconds between stale-file checks in `status` and `search`.",
+    "NEXUS_EXTRA_TOOLS": "Turn on tools that are off by default: `all`, or names from `status`, `analyze`, `memory`.",
     "NEXUS_LOG_LEVEL": "`DEBUG`, `INFO`, `WARNING` or `ERROR`.",
     "NEXUS_LOG_FORMAT": "`text` or `json`.",
     "NEXUS_TRUST_REMOTE_CODE": "Needed only by the deprecated `jina-code` model.",

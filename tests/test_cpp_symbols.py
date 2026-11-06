@@ -465,3 +465,12 @@ class TestExportMacros:
         syms = dict(_symbols(parser, path))
         assert time.perf_counter() - start < 0.5
         assert syms.get("Check") == SymbolType.FUNCTION, syms
+
+
+def test_parse_file_cpp_keyword_is_not_a_symbol_name(tmp_path):
+    # fmt: `FMT_BEGIN_NAMESPACE namespace detail {` gave a function named `namespace`.
+    path = tmp_path / "impl.cc"
+    path.write_text("FMT_BEGIN_NAMESPACE namespace detail {\nvoid parse_width() { }\n}\n")
+    names = {s.name for s in TreeSitterParser().parse_file(str(path)).symbols}
+    assert "namespace" not in names
+    assert "parse_width" in names

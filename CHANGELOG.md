@@ -4,6 +4,81 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Parser gaps closed for C, C++, C#, PHP and Rust.** Each language had at least one of
+  these gaps: no tree-sitter symbols, no graph nodes, no CALLS edges.
+  - Tree-sitter symbols for Rust, PHP and C#. A Rust `impl` block gives its methods the
+    type as parent. Doc comments (`///`, `/** */`, C# XML) fill the docstring.
+  - ast-grep function and class nodes for C, C++, C# and PHP. C and C++ names come from the
+    declarator, as in the tree-sitter parser; an out-of-line `Widget::Paint` is a method of
+    `Widget`.
+  - CALLS edges for C, C++, C# and PHP, precision first (ADR-019, amendment of 2026-11-05).
+    Includes and `use` lines count as imports; `std::` calls and library method names
+    (`push_back`, `Add`, `map`) get no edge.
+
+- **A per-language results table, ready for data.** `results.json` is schema v2: it can hold
+  an optional `languages` list, with a `before` run and an optional `after` run for each
+  language. `publish_results.py` writes the table to the README, the site results rows,
+  `llms.txt`, the benchmarks page and the CSV. A cell shows "before → after" when both runs
+  exist. On a phone the table scrolls in its own box. Schema v1 files still work. No
+  language numbers are published yet. The CSV has new columns for the language rows.
+  North star: no change (output only).
+
+### Fixed
+
+- **C# and Dart files stopped the whole index.** The ast-grep ids `c_sharp` and `dart` do not
+  exist. ast-grep-py then raises a `BaseException` panic that `except Exception` does not
+  catch. C# now uses `csharp`; Dart has no id and is skipped.
+- **C++ keyword as a function name.** `FMT_BEGIN_NAMESPACE namespace detail {` gave a
+  function named `namespace` (8 in fmt). Such a declarator now gives no symbol.
+- `find_symbol` puts a constructor after the class of the same name.
+
+### Changed
+
+- **Less fixed text on every turn.** The tool descriptions, the parameter descriptions, the
+  server instructions and the skill body are shorter. They were 3.6k tokens above the Grep
+  condition on each turn, and tool results were the same size in both conditions, so this
+  text explained most of the token gap. No tool, parameter or enum changed.
+
+  Token measure (north star), first-turn context of `claude -p` on Redis, Sonnet, medium
+  effort, no tool call: Grep 12,480; Nexus-MCP 16,105 before and 15,322 after. The gap to
+  Grep falls from 3.6k to 2.8k tokens on each turn.
+
+  Live benchmark, Nexus-MCP only, 6 tasks × 3 reps, same model and effort as the 2.2.2 run
+  (Grep numbers are from the 2.2.2 run). Median tokens per task, 2.2.2 → this branch (Grep):
+  Vite 57,342 → 60,920 (77,004); commons-lang 34,602 → 32,848 (56,271); Redis 70,567 →
+  48,020 (42,290); Prometheus 57,716 → 52,196 (52,662). Correct answers: 71 of 72 → 72 of
+  72. The Redis change includes the new C function nodes and the Vite change is inside the
+  run-to-run noise, so read the four rows as one result: the mean of the four medians falls
+  from 55.1k to 48.5k (Grep 57.1k) and accuracy does not fall.
+
+### Measured
+
+`nexus-mcp-ci eval` quick tier, 30 questions, seed 7, default model, on pinned public repos.
+Before is release 2.2.2 (`0430f01`); after is this branch. hit@1 / hit@3 of Nexus-MCP:
+
+| Language | Repo (commit) | Before | After |
+|---|---|---|---|
+| C | redis/hiredis (5bb7f03) | 0.733 / 0.933 | 0.733 / 0.933 |
+| C++ | fmtlib/fmt (4ed3535) | 0.933 / 1.000 | 0.933 / 1.000 |
+| C# | jbogard/MediatR (62010ba) | crash (`c_sharp` panic), no index | 0.833 / 0.967 |
+| PHP | Seldaek/monolog (3bed304) | "No source code was indexed" | 0.933 / 1.000 |
+| Rust | BurntSushi/ripgrep (91f5d22) | 1.000 / 1.000 on 26 questions, Bash only (16 chunks) | 0.900 / 1.000 on 30 questions (3,417 chunks) |
+
+The Rust "before" covered only the Bash scripts of the repo. The drop from 1.000 to 0.900 is
+a harder question set (Rust symbols are now in it), not a loss on the same questions.
+C and C++ do not change: both already had symbols; this work adds graph nodes and edges.
+
+Retrieval gate (`python -m evals.retrieval.run --candidates bge-small-en`, hybrid hit@1;
+only the `nexus_mcp` and `shop_repo` suites run here, the others need local clones):
+`nexus_mcp` 0.62 → 0.71, `shop_repo` 0.50 → 0.62. It does not fall. The `nexus_mcp` source
+is larger after this change, and the suites have 24 and 8 queries, so read the rise as noise
+around "no loss". `pytest` (1366 passed) and `ruff check .` are green.
+
+Token measure (north star): the change adds no tokens per query. Median tokens of the
+quick tier did not change on hiredis (755.5) or fmt (868.0).
+
 ## [2.2.2] - 2026-11-05
 
 ### Added

@@ -1,0 +1,585 @@
+{
+  "id": "20261106-063147-85f6",
+  "created": "2026-11-06T06:31:47+00:00",
+  "source": {
+    "kind": "path",
+    "label": "flask",
+    "label_public": null,
+    "sha": null
+  },
+  "kept_index": false,
+  "env": {
+    "nexus_mcp_ci": "2.2.2",
+    "python": "3.12.13",
+    "os": "Darwin"
+  },
+  "tier": "quick",
+  "repo": {
+    "files": 83,
+    "chunks": 1632,
+    "size_band": "50-500 files",
+    "languages": [
+      "python"
+    ],
+    "index_seconds": 107.6
+  },
+  "questions": 30,
+  "seed": 7,
+  "summary": {
+    "grep": {
+      "questions": 30,
+      "hit_at_1": 0.2,
+      "hit_at_3": 0.433,
+      "median_tokens": 26720.5,
+      "median_ms": 112.4
+    },
+    "nexus": {
+      "questions": 30,
+      "hit_at_1": 0.933,
+      "hit_at_3": 0.933,
+      "median_tokens": 1392.5,
+      "median_ms": 23.4
+    }
+  },
+  "by_kind": {
+    "concept": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.4,
+        "hit_at_3": 0.7,
+        "median_tokens": 25536.5,
+        "median_ms": 202.4
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "median_tokens": 1415.0,
+        "median_ms": 23.1
+      }
+    },
+    "described": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.0,
+        "hit_at_3": 0.1,
+        "median_tokens": 27470.0,
+        "median_ms": 110.6
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.9,
+        "hit_at_3": 0.9,
+        "median_tokens": 1387.5,
+        "median_ms": 22.5
+      }
+    },
+    "lookup": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.2,
+        "hit_at_3": 0.5,
+        "median_tokens": 26588.0,
+        "median_ms": 54.3
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.9,
+        "hit_at_3": 0.9,
+        "median_tokens": 1305.5,
+        "median_ms": 29.9
+      }
+    }
+  },
+  "verdict": {
+    "label": "Strong fit",
+    "token_saving": 0.948,
+    "hit3_gain": 0.5,
+    "reasons": [
+      "Tokens to reach the right file: Nexus-MCP 1392, Grep and Read 26720 (95% fewer with Nexus-MCP).",
+      "Right file in the top 3: 93% against 43%."
+    ]
+  },
+  "results": [
+    {
+      "id": "concept-get_post",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 24829,
+        "ms": 152.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1026,
+        "ms": 625.7
+      }
+    },
+    {
+      "id": "concept-create_logger",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 31236,
+        "ms": 203.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1222,
+        "ms": 24.4
+      }
+    },
+    {
+      "id": "concept-Config.from_pyfile",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 3590,
+        "ms": 160.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1872,
+        "ms": 22.6
+      }
+    },
+    {
+      "id": "concept-SessionInterface.should_set_cookie",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 4029,
+        "ms": 229.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1504,
+        "ms": 22.5
+      }
+    },
+    {
+      "id": "concept-FormDataRoutingRedirect",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 36573,
+        "ms": 224.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1407,
+        "ms": 24.2
+      }
+    },
+    {
+      "id": "concept-App._find_error_handler",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 26244,
+        "ms": 211.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1423,
+        "ms": 21.8
+      }
+    },
+    {
+      "id": "concept-SecureCookieSessionInterface.get_signing_serializer",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 4011,
+        "ms": 201.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 934,
+        "ms": 24.8
+      }
+    },
+    {
+      "id": "concept-MethodView",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2035,
+        "ms": 191.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1724,
+        "ms": 22.5
+      }
+    },
+    {
+      "id": "concept-App.inject_url_defaults",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 26528,
+        "ms": 228.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1819,
+        "ms": 23.6
+      }
+    },
+    {
+      "id": "concept-_path_is_ancestor",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 44282,
+        "ms": 190.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 895,
+        "ms": 22.5
+      }
+    },
+    {
+      "id": "described-App.template_test",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 27146,
+        "ms": 90.2
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 834,
+        "ms": 22.2
+      }
+    },
+    {
+      "id": "described-get_post",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 31288,
+        "ms": 70.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 983,
+        "ms": 21.4
+      }
+    },
+    {
+      "id": "described-create_logger",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 30550,
+        "ms": 78.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1173,
+        "ms": 23.4
+      }
+    },
+    {
+      "id": "described-Request.max_content_length",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 27794,
+        "ms": 152.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1211,
+        "ms": 22.8
+      }
+    },
+    {
+      "id": "described-Config.from_pyfile",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 26982,
+        "ms": 74.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1706,
+        "ms": 22.5
+      }
+    },
+    {
+      "id": "described-SessionInterface.should_set_cookie",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 31510,
+        "ms": 178.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1848,
+        "ms": 21.6
+      }
+    },
+    {
+      "id": "described-FormDataRoutingRedirect",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 26808,
+        "ms": 131.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1378,
+        "ms": 23.3
+      }
+    },
+    {
+      "id": "described-App._find_error_handler",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 29078,
+        "ms": 135.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1435,
+        "ms": 22.5
+      }
+    },
+    {
+      "id": "described-SecureCookieSessionInterface.get_signing_serializer",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 22436,
+        "ms": 278.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1397,
+        "ms": 22.9
+      }
+    },
+    {
+      "id": "described-MethodView",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 25911,
+        "ms": 67.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2033,
+        "ms": 21.6
+      }
+    },
+    {
+      "id": "lookup-App.template_test",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 37307,
+        "ms": 66.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 997,
+        "ms": 43.6
+      }
+    },
+    {
+      "id": "lookup-_default",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 26633,
+        "ms": 32.4
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 26818,
+        "ms": 23.4
+      }
+    },
+    {
+      "id": "lookup-get_post",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 3691,
+        "ms": 49.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 986,
+        "ms": 30.9
+      }
+    },
+    {
+      "id": "lookup-create_logger",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 605,
+        "ms": 47.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1223,
+        "ms": 31.5
+      }
+    },
+    {
+      "id": "lookup-Request.max_content_length",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 27803,
+        "ms": 73.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 996,
+        "ms": 28.0
+      }
+    },
+    {
+      "id": "lookup-result",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 27121,
+        "ms": 43.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 681,
+        "ms": 24.6
+      }
+    },
+    {
+      "id": "lookup-Config.from_pyfile",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 26982,
+        "ms": 77.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1802,
+        "ms": 32.0
+      }
+    },
+    {
+      "id": "lookup-SessionInterface.should_set_cookie",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 3776,
+        "ms": 93.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1409,
+        "ms": 30.9
+      }
+    },
+    {
+      "id": "lookup-FormDataRoutingRedirect",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 17895,
+        "ms": 49.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1388,
+        "ms": 25.1
+      }
+    },
+    {
+      "id": "lookup-App._find_error_handler",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 26543,
+        "ms": 59.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1809,
+        "ms": 28.8
+      }
+    }
+  ]
+}

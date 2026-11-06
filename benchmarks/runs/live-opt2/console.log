@@ -1,0 +1,80 @@
+[1/18] vt-concept-hmr / nexus / rep 1
+    warm-up call for nexus
+[2/18] vt-concept-prebundle / nexus / rep 1
+[3/18] vt-impact-transform-request / nexus / rep 1
+[4/18] vt-impact-create-server / nexus / rep 1
+[5/18] vt-arch-request-path / nexus / rep 1
+[6/18] vt-needle-createserver-line / nexus / rep 1
+[7/18] vt-concept-hmr / nexus / rep 2
+[8/18] vt-concept-prebundle / nexus / rep 2
+[9/18] vt-impact-transform-request / nexus / rep 2
+[10/18] vt-impact-create-server / nexus / rep 2
+[11/18] vt-arch-request-path / nexus / rep 2
+[12/18] vt-needle-createserver-line / nexus / rep 2
+[13/18] vt-concept-hmr / nexus / rep 3
+[14/18] vt-concept-prebundle / nexus / rep 3
+[15/18] vt-impact-transform-request / nexus / rep 3
+[16/18] vt-impact-create-server / nexus / rep 3
+[17/18] vt-arch-request-path / nexus / rep 3
+[18/18] vt-needle-createserver-line / nexus / rep 3
+Wrote 18 records to benchmarks/results/live-opt2/vite.jsonl
+[1/18] cl-concept-circuit-breaker / nexus / rep 1
+    warm-up call for nexus
+[2/18] cl-concept-fastdateformat / nexus / rep 1
+[3/18] cl-impact-root-cause / nexus / rep 1
+[4/18] cl-impact-matching-method / nexus / rep 1
+[5/18] cl-arch-reflection-tostring / nexus / rep 1
+[6/18] cl-needle-stopwatch-line / nexus / rep 1
+[7/18] cl-concept-circuit-breaker / nexus / rep 2
+[8/18] cl-concept-fastdateformat / nexus / rep 2
+[9/18] cl-impact-root-cause / nexus / rep 2
+[10/18] cl-impact-matching-method / nexus / rep 2
+[11/18] cl-arch-reflection-tostring / nexus / rep 2
+[12/18] cl-needle-stopwatch-line / nexus / rep 2
+[13/18] cl-concept-circuit-breaker / nexus / rep 3
+[14/18] cl-concept-fastdateformat / nexus / rep 3
+[15/18] cl-impact-root-cause / nexus / rep 3
+[16/18] cl-impact-matching-method / nexus / rep 3
+[17/18] cl-arch-reflection-tostring / nexus / rep 3
+[18/18] cl-needle-stopwatch-line / nexus / rep 3
+Wrote 18 records to benchmarks/results/live-opt2/commons-lang.jsonl
+[1/18] rd-concept-eviction / nexus / rep 1
+    warm-up call for nexus
+[2/18] rd-concept-active-expire / nexus / rep 1
+[3/18] rd-impact-perform-evictions / nexus / rep 1
+[4/18] rd-impact-active-expire / nexus / rep 1
+[5/18] rd-arch-command-path / nexus / rep 1
+[6/18] rd-needle-dict-line / nexus / rep 1
+[7/18] rd-concept-eviction / nexus / rep 2
+[8/18] rd-concept-active-expire / nexus / rep 2
+[9/18] rd-impact-perform-evictions / nexus / rep 2
+[10/18] rd-impact-active-expire / nexus / rep 2
+[11/18] rd-arch-command-path / nexus / rep 2
+[12/18] rd-needle-dict-line / nexus / rep 2
+[13/18] rd-concept-eviction / nexus / rep 3
+[14/18] rd-concept-active-expire / nexus / rep 3
+[15/18] rd-impact-perform-evictions / nexus / rep 3
+[16/18] rd-impact-active-expire / nexus / rep 3
+[17/18] rd-arch-command-path / nexus / rep 3
+[18/18] rd-needle-dict-line / nexus / rep 3
+Wrote 18 records to benchmarks/results/live-opt2/redis.jsonl
+[1/18] pm-concept-compaction / nexus / rep 1
+    warm-up call for nexus
+[2/18] pm-concept-rate / nexus / rep 1
+[3/18] pm-impact-bucket-quantile / nexus / rep 1
+[4/18] pm-impact-postings-for-matchers / nexus / rep 1
+[5/18] pm-arch-query-path / nexus / rep 1
+[6/18] pm-needle-bucket-quantile-line / nexus / rep 1
+[7/18] pm-concept-compaction / nexus / rep 2
+[8/18] pm-concept-rate / nexus / rep 2
+[9/18] pm-impact-bucket-quantile / nexus / rep 2
+[10/18] pm-impact-postings-for-matchers / nexus / rep 2
+[11/18] pm-arch-query-path / nexus / rep 2
+[12/18] pm-needle-bucket-quantile-line / nexus / rep 2
+[13/18] pm-concept-compaction / nexus / rep 3
+[14/18] pm-concept-rate / nexus / rep 3
+[15/18] pm-impact-bucket-quantile / nexus / rep 3
+[16/18] pm-impact-postings-for-matchers / nexus / rep 3
+[17/18] pm-arch-query-path / nexus / rep 3
+[18/18] pm-needle-bucket-quantile-line / nexus / rep 3
+Wrote 18 records to benchmarks/results/live-opt2/prometheus.jsonl

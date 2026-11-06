@@ -157,6 +157,17 @@ class TestFindSymbolCode:
         assert all(s["code"] for s in result["symbols"])
         assert result["not_found"] == ["no_such_name"]
 
+    def test_find_symbol_sends_a_symbol_once_when_two_names_match_it(self, names_repo, tmp_path):
+        # `run_step_0` and `step_07` both match run_step_07 with exact=False.
+        result = _run(
+            names_repo, tmp_path, "find_symbol",
+            {"symbol_name": "run_step_0, step_07", "exact": False},
+        )
+        places = [(s["name"], s["file"], s["start_line"]) for s in result["symbols"]]
+        assert len(places) == len(set(places))
+        assert any(s["name"] == "run_step_07" for s in result["symbols"])
+        assert "not_found" not in result
+
     def test_find_symbol_dedents_the_code_of_a_method(self, names_repo, tmp_path):
         result = _run(names_repo, tmp_path, "find_symbol", {"symbol_name": "wait_seconds"})
         assert result["symbols"][0]["code"].startswith("def wait_seconds(self, attempt):")

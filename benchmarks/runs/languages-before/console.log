@@ -1,0 +1,382 @@
+[corpora] flask already at d73fa1cdcb
+[flask] done: 
+[corpora] django already at 318a316a4c
+[1/36] dj-concept-signal-dispatch / baseline / rep 1
+    warm-up call for baseline
+[2/36] dj-concept-signal-dispatch / nexus / rep 1
+    warm-up call for nexus
+[3/36] dj-concept-field-validation / nexus / rep 1
+[4/36] dj-concept-field-validation / baseline / rep 1
+[5/36] dj-impact-sqlcompiler-as-sql / baseline / rep 1
+[6/36] dj-impact-sqlcompiler-as-sql / nexus / rep 1
+[7/36] dj-impact-field-validate / nexus / rep 1
+[8/36] dj-impact-field-validate / baseline / rep 1
+[9/36] dj-arch-request-to-query / baseline / rep 1
+[10/36] dj-arch-request-to-query / nexus / rep 1
+[11/36] dj-needle-charfield-class / nexus / rep 1
+[12/36] dj-needle-charfield-class / baseline / rep 1
+[13/36] dj-concept-signal-dispatch / nexus / rep 2
+[14/36] dj-concept-signal-dispatch / baseline / rep 2
+[15/36] dj-concept-field-validation / baseline / rep 2
+[16/36] dj-concept-field-validation / nexus / rep 2
+[17/36] dj-impact-sqlcompiler-as-sql / nexus / rep 2
+[18/36] dj-impact-sqlcompiler-as-sql / baseline / rep 2
+[19/36] dj-impact-field-validate / baseline / rep 2
+[20/36] dj-impact-field-validate / nexus / rep 2
+[21/36] dj-arch-request-to-query / nexus / rep 2
+[22/36] dj-arch-request-to-query / baseline / rep 2
+[23/36] dj-needle-charfield-class / baseline / rep 2
+[24/36] dj-needle-charfield-class / nexus / rep 2
+[25/36] dj-concept-signal-dispatch / baseline / rep 3
+[26/36] dj-concept-signal-dispatch / nexus / rep 3
+[27/36] dj-concept-field-validation / nexus / rep 3
+[28/36] dj-concept-field-validation / baseline / rep 3
+[29/36] dj-impact-sqlcompiler-as-sql / baseline / rep 3
+[30/36] dj-impact-sqlcompiler-as-sql / nexus / rep 3
+[31/36] dj-impact-field-validate / nexus / rep 3
+[32/36] dj-impact-field-validate / baseline / rep 3
+[33/36] dj-arch-request-to-query / baseline / rep 3
+[34/36] dj-arch-request-to-query / nexus / rep 3
+[35/36] dj-needle-charfield-class / nexus / rep 3
+[36/36] dj-needle-charfield-class / baseline / rep 3
+Wrote 36 records to /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-before/django-live.jsonl
+[django] done: live
+[corpora] vite already at 483512809b
+[1/36] vt-concept-hmr / baseline / rep 1
+    warm-up call for baseline
+[2/36] vt-concept-hmr / nexus / rep 1
+    warm-up call for nexus
+[3/36] vt-concept-prebundle / nexus / rep 1
+[4/36] vt-concept-prebundle / baseline / rep 1
+[5/36] vt-impact-transform-request / baseline / rep 1
+[6/36] vt-impact-transform-request / nexus / rep 1
+[7/36] vt-impact-create-server / nexus / rep 1
+[8/36] vt-impact-create-server / baseline / rep 1
+[9/36] vt-arch-request-path / baseline / rep 1
+[10/36] vt-arch-request-path / nexus / rep 1
+[11/36] vt-needle-createserver-line / nexus / rep 1
+[12/36] vt-needle-createserver-line / baseline / rep 1
+[13/36] vt-concept-hmr / nexus / rep 2
+[14/36] vt-concept-hmr / baseline / rep 2
+[15/36] vt-concept-prebundle / baseline / rep 2
+[16/36] vt-concept-prebundle / nexus / rep 2
+[17/36] vt-impact-transform-request / nexus / rep 2
+[18/36] vt-impact-transform-request / baseline / rep 2
+[19/36] vt-impact-create-server / baseline / rep 2
+[20/36] vt-impact-create-server / nexus / rep 2
+[21/36] vt-arch-request-path / nexus / rep 2
+[22/36] vt-arch-request-path / baseline / rep 2
+[23/36] vt-needle-createserver-line / baseline / rep 2
+[24/36] vt-needle-createserver-line / nexus / rep 2
+[25/36] vt-concept-hmr / baseline / rep 3
+[26/36] vt-concept-hmr / nexus / rep 3
+[27/36] vt-concept-prebundle / nexus / rep 3
+[28/36] vt-concept-prebundle / baseline / rep 3
+[29/36] vt-impact-transform-request / baseline / rep 3
+[30/36] vt-impact-transform-request / nexus / rep 3
+[31/36] vt-impact-create-server / nexus / rep 3
+[32/36] vt-impact-create-server / baseline / rep 3
+[33/36] vt-arch-request-path / baseline / rep 3
+[34/36] vt-arch-request-path / nexus / rep 3
+[35/36] vt-needle-createserver-line / nexus / rep 3
+[36/36] vt-needle-createserver-line / baseline / rep 3
+Wrote 36 records to /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-before/vite-live.jsonl
+[vite] done: live
+[corpora] webpack already at f6366b0bc2
+[webpack] done: 
+[corpora] commons-lang already at e547d704b2
+[1/36] cl-concept-circuit-breaker / baseline / rep 1
+    warm-up call for baseline
+[2/36] cl-concept-circuit-breaker / nexus / rep 1
+    warm-up call for nexus
+[3/36] cl-concept-fastdateformat / nexus / rep 1
+[4/36] cl-concept-fastdateformat / baseline / rep 1
+[5/36] cl-impact-root-cause / baseline / rep 1
+[6/36] cl-impact-root-cause / nexus / rep 1
+[7/36] cl-impact-matching-method / nexus / rep 1
+[8/36] cl-impact-matching-method / baseline / rep 1
+[9/36] cl-arch-reflection-tostring / baseline / rep 1
+[10/36] cl-arch-reflection-tostring / nexus / rep 1
+[11/36] cl-needle-stopwatch-line / nexus / rep 1
+[12/36] cl-needle-stopwatch-line / baseline / rep 1
+[13/36] cl-concept-circuit-breaker / nexus / rep 2
+[14/36] cl-concept-circuit-breaker / baseline / rep 2
+[15/36] cl-concept-fastdateformat / baseline / rep 2
+[16/36] cl-concept-fastdateformat / nexus / rep 2
+[17/36] cl-impact-root-cause / nexus / rep 2
+[18/36] cl-impact-root-cause / baseline / rep 2
+[19/36] cl-impact-matching-method / baseline / rep 2
+[20/36] cl-impact-matching-method / nexus / rep 2
+[21/36] cl-arch-reflection-tostring / nexus / rep 2
+[22/36] cl-arch-reflection-tostring / baseline / rep 2
+[23/36] cl-needle-stopwatch-line / baseline / rep 2
+[24/36] cl-needle-stopwatch-line / nexus / rep 2
+[25/36] cl-concept-circuit-breaker / baseline / rep 3
+[26/36] cl-concept-circuit-breaker / nexus / rep 3
+[27/36] cl-concept-fastdateformat / nexus / rep 3
+[28/36] cl-concept-fastdateformat / baseline / rep 3
+[29/36] cl-impact-root-cause / baseline / rep 3
+[30/36] cl-impact-root-cause / nexus / rep 3
+[31/36] cl-impact-matching-method / nexus / rep 3
+[32/36] cl-impact-matching-method / baseline / rep 3
+[33/36] cl-arch-reflection-tostring / baseline / rep 3
+[34/36] cl-arch-reflection-tostring / nexus / rep 3
+[35/36] cl-needle-stopwatch-line / nexus / rep 3
+[36/36] cl-needle-stopwatch-line / baseline / rep 3
+Wrote 36 records to /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-before/commons-lang-live.jsonl
+[commons-lang] done: live
+[corpora] newtonsoft-json already at 52fa3aef1f
+[index] newtonsoft-json with nexus-mcp-ci 2.2.2
+/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-v2.2.2/lib/python3.12/site-packages/tree_sitter/__init__.py:36: FutureWarning: Language(path, name) is deprecated. Use Language(ptr, name) instead.
+  warn("{} is deprecated. Use {} instead.".format(old, new), FutureWarning)
+
+thread '<unnamed>' (397960) panicked at crates/pyo3/src/lib.rs:44:37:
+called `Result::unwrap()` on an `Err` value: LanguageNotSupported("c_sharp")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Traceback (most recent call last):
+  File "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/_preindex_one.py", line 95, in <module>
+    main()
+  File "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/_preindex_one.py", line 62, in main
+    result = asyncio.run(result)
+             ^^^^^^^^^^^^^^^^^^^
+  File "/Users/shreyas/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/Users/shreyas/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shreyas/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-v2.2.2/lib/python3.12/site-packages/nexus_mcp/server.py", line 189, in async_wrapper
+    result = await fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-v2.2.2/lib/python3.12/site-packages/nexus_mcp/server.py", line 339, in index
+    return await core_api.index(path, paths, progress_callback=progress_callback)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-v2.2.2/lib/python3.12/site-packages/nexus_mcp/core_api.py", line 621, in index
+    result, state = await asyncio.shield(asyncio.to_thread(_locked_index))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shreyas/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/asyncio/threads.py", line 25, in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shreyas/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-v2.2.2/lib/python3.12/site-packages/nexus_mcp/core_api.py", line 609, in _locked_index
+    result = _pipeline.index(codebase_path, _cb)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-v2.2.2/lib/python3.12/site-packages/nexus_mcp/indexing/pipeline.py", line 280, in index
+    self._astgrep.parse_file(str(filepath), universal_graph)
+  File "/Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-v2.2.2/lib/python3.12/site-packages/nexus_mcp/parsing/astgrep_parser.py", line 214, in parse_file
+    root = SgRoot(content, ast_grep_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pyo3_runtime.PanicException: called `Result::unwrap()` on an `Err` value: LanguageNotSupported("c_sharp")
+[newtonsoft-json] index tier failed: Indexing /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/repos/newtonsoft-json with /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/.venv-v2.2.2 failed
+[newtonsoft-json] done: 
+[corpora] laravel already at 7d6d8e8613
+[1/36] lv-concept-queue-worker / baseline / rep 1
+    warm-up call for baseline
+[2/36] lv-concept-queue-worker / nexus / rep 1
+    warm-up call for nexus
+[3/36] lv-concept-soft-deletes / nexus / rep 1
+[4/36] lv-concept-soft-deletes / baseline / rep 1
+[5/36] lv-impact-too-many-attempts / baseline / rep 1
+[6/36] lv-impact-too-many-attempts / nexus / rep 1
+[7/36] lv-impact-rule-compile / nexus / rep 1
+[8/36] lv-impact-rule-compile / baseline / rep 1
+[9/36] lv-arch-dispatch / baseline / rep 1
+[10/36] lv-arch-dispatch / nexus / rep 1
+[11/36] lv-needle-pipeline-line / nexus / rep 1
+[12/36] lv-needle-pipeline-line / baseline / rep 1
+[13/36] lv-concept-queue-worker / nexus / rep 2
+[14/36] lv-concept-queue-worker / baseline / rep 2
+[15/36] lv-concept-soft-deletes / baseline / rep 2
+[16/36] lv-concept-soft-deletes / nexus / rep 2
+[17/36] lv-impact-too-many-attempts / nexus / rep 2
+[18/36] lv-impact-too-many-attempts / baseline / rep 2
+[19/36] lv-impact-rule-compile / baseline / rep 2
+[20/36] lv-impact-rule-compile / nexus / rep 2
+[21/36] lv-arch-dispatch / nexus / rep 2
+[22/36] lv-arch-dispatch / baseline / rep 2
+[23/36] lv-needle-pipeline-line / baseline / rep 2
+[24/36] lv-needle-pipeline-line / nexus / rep 2
+[25/36] lv-concept-queue-worker / baseline / rep 3
+[26/36] lv-concept-queue-worker / nexus / rep 3
+[27/36] lv-concept-soft-deletes / nexus / rep 3
+[28/36] lv-concept-soft-deletes / baseline / rep 3
+[29/36] lv-impact-too-many-attempts / baseline / rep 3
+[30/36] lv-impact-too-many-attempts / nexus / rep 3
+[31/36] lv-impact-rule-compile / nexus / rep 3
+[32/36] lv-impact-rule-compile / baseline / rep 3
+[33/36] lv-arch-dispatch / baseline / rep 3
+[34/36] lv-arch-dispatch / nexus / rep 3
+[35/36] lv-needle-pipeline-line / nexus / rep 3
+[36/36] lv-needle-pipeline-line / baseline / rep 3
+Wrote 36 records to /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-before/laravel-live.jsonl
+[laravel] done: live
+[corpora] chromium-base already at d8ebdd2598
+[1/36] cr-concept-weakptr-invalidate / baseline / rep 1
+    warm-up call for baseline
+[2/36] cr-concept-weakptr-invalidate / nexus / rep 1
+    warm-up call for nexus
+[3/36] cr-impact-atexit-registercallback / nexus / rep 1
+[4/36] cr-impact-atexit-registercallback / baseline / rep 1
+[5/36] cr-impact-histogram-bucket-ranges / baseline / rep 1
+[6/36] cr-impact-histogram-bucket-ranges / nexus / rep 1
+[7/36] cr-concept-json-reader-backend / nexus / rep 1
+[8/36] cr-concept-json-reader-backend / baseline / rep 1
+[9/36] cr-needle-json-max-depth / baseline / rep 1
+[10/36] cr-needle-json-max-depth / nexus / rep 1
+[11/36] cr-arch-task-scheduling / nexus / rep 1
+[12/36] cr-arch-task-scheduling / baseline / rep 1
+[13/36] cr-concept-weakptr-invalidate / nexus / rep 2
+[14/36] cr-concept-weakptr-invalidate / baseline / rep 2
+[15/36] cr-impact-atexit-registercallback / baseline / rep 2
+[16/36] cr-impact-atexit-registercallback / nexus / rep 2
+[17/36] cr-impact-histogram-bucket-ranges / nexus / rep 2
+[18/36] cr-impact-histogram-bucket-ranges / baseline / rep 2
+[19/36] cr-concept-json-reader-backend / baseline / rep 2
+[20/36] cr-concept-json-reader-backend / nexus / rep 2
+[21/36] cr-needle-json-max-depth / nexus / rep 2
+[22/36] cr-needle-json-max-depth / baseline / rep 2
+[23/36] cr-arch-task-scheduling / baseline / rep 2
+[24/36] cr-arch-task-scheduling / nexus / rep 2
+[25/36] cr-concept-weakptr-invalidate / baseline / rep 3
+[26/36] cr-concept-weakptr-invalidate / nexus / rep 3
+[27/36] cr-impact-atexit-registercallback / nexus / rep 3
+[28/36] cr-impact-atexit-registercallback / baseline / rep 3
+[29/36] cr-impact-histogram-bucket-ranges / baseline / rep 3
+[30/36] cr-impact-histogram-bucket-ranges / nexus / rep 3
+[31/36] cr-concept-json-reader-backend / nexus / rep 3
+[32/36] cr-concept-json-reader-backend / baseline / rep 3
+[33/36] cr-needle-json-max-depth / baseline / rep 3
+[34/36] cr-needle-json-max-depth / nexus / rep 3
+[35/36] cr-arch-task-scheduling / nexus / rep 3
+[36/36] cr-arch-task-scheduling / baseline / rep 3
+Wrote 36 records to /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-before/chromium-base-live.jsonl
+[chromium-base] done: live
+[corpora] redis already at a05f30c971
+[1/36] rd-concept-eviction / baseline / rep 1
+    warm-up call for baseline
+[2/36] rd-concept-eviction / nexus / rep 1
+    warm-up call for nexus
+[3/36] rd-concept-active-expire / nexus / rep 1
+[4/36] rd-concept-active-expire / baseline / rep 1
+[5/36] rd-impact-perform-evictions / baseline / rep 1
+[6/36] rd-impact-perform-evictions / nexus / rep 1
+[7/36] rd-impact-active-expire / nexus / rep 1
+[8/36] rd-impact-active-expire / baseline / rep 1
+[9/36] rd-arch-command-path / baseline / rep 1
+[10/36] rd-arch-command-path / nexus / rep 1
+[11/36] rd-needle-dict-line / nexus / rep 1
+[12/36] rd-needle-dict-line / baseline / rep 1
+[13/36] rd-concept-eviction / nexus / rep 2
+[14/36] rd-concept-eviction / baseline / rep 2
+[15/36] rd-concept-active-expire / baseline / rep 2
+[16/36] rd-concept-active-expire / nexus / rep 2
+[17/36] rd-impact-perform-evictions / nexus / rep 2
+[18/36] rd-impact-perform-evictions / baseline / rep 2
+[19/36] rd-impact-active-expire / baseline / rep 2
+[20/36] rd-impact-active-expire / nexus / rep 2
+[21/36] rd-arch-command-path / nexus / rep 2
+[22/36] rd-arch-command-path / baseline / rep 2
+[23/36] rd-needle-dict-line / baseline / rep 2
+[24/36] rd-needle-dict-line / nexus / rep 2
+[25/36] rd-concept-eviction / baseline / rep 3
+[26/36] rd-concept-eviction / nexus / rep 3
+[27/36] rd-concept-active-expire / nexus / rep 3
+[28/36] rd-concept-active-expire / baseline / rep 3
+[29/36] rd-impact-perform-evictions / baseline / rep 3
+[30/36] rd-impact-perform-evictions / nexus / rep 3
+[31/36] rd-impact-active-expire / nexus / rep 3
+[32/36] rd-impact-active-expire / baseline / rep 3
+[33/36] rd-arch-command-path / baseline / rep 3
+[34/36] rd-arch-command-path / nexus / rep 3
+[35/36] rd-needle-dict-line / nexus / rep 3
+[36/36] rd-needle-dict-line / baseline / rep 3
+Wrote 36 records to /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-before/redis-live.jsonl
+[redis] done: live
+[corpora] prometheus already at 4bfb6bb5b3
+[1/36] pm-concept-compaction / baseline / rep 1
+    warm-up call for baseline
+[2/36] pm-concept-compaction / nexus / rep 1
+    warm-up call for nexus
+[3/36] pm-concept-rate / nexus / rep 1
+[4/36] pm-concept-rate / baseline / rep 1
+[5/36] pm-impact-bucket-quantile / baseline / rep 1
+[6/36] pm-impact-bucket-quantile / nexus / rep 1
+[7/36] pm-impact-postings-for-matchers / nexus / rep 1
+[8/36] pm-impact-postings-for-matchers / baseline / rep 1
+[9/36] pm-arch-query-path / baseline / rep 1
+[10/36] pm-arch-query-path / nexus / rep 1
+[11/36] pm-needle-bucket-quantile-line / nexus / rep 1
+[12/36] pm-needle-bucket-quantile-line / baseline / rep 1
+[13/36] pm-concept-compaction / nexus / rep 2
+[14/36] pm-concept-compaction / baseline / rep 2
+[15/36] pm-concept-rate / baseline / rep 2
+[16/36] pm-concept-rate / nexus / rep 2
+[17/36] pm-impact-bucket-quantile / nexus / rep 2
+[18/36] pm-impact-bucket-quantile / baseline / rep 2
+[19/36] pm-impact-postings-for-matchers / baseline / rep 2
+[20/36] pm-impact-postings-for-matchers / nexus / rep 2
+[21/36] pm-arch-query-path / nexus / rep 2
+[22/36] pm-arch-query-path / baseline / rep 2
+[23/36] pm-needle-bucket-quantile-line / baseline / rep 2
+[24/36] pm-needle-bucket-quantile-line / nexus / rep 2
+[25/36] pm-concept-compaction / baseline / rep 3
+[26/36] pm-concept-compaction / nexus / rep 3
+[27/36] pm-concept-rate / nexus / rep 3
+[28/36] pm-concept-rate / baseline / rep 3
+[29/36] pm-impact-bucket-quantile / baseline / rep 3
+[30/36] pm-impact-bucket-quantile / nexus / rep 3
+[31/36] pm-impact-postings-for-matchers / nexus / rep 3
+[32/36] pm-impact-postings-for-matchers / baseline / rep 3
+[33/36] pm-arch-query-path / baseline / rep 3
+[34/36] pm-arch-query-path / nexus / rep 3
+[35/36] pm-needle-bucket-quantile-line / nexus / rep 3
+[36/36] pm-needle-bucket-quantile-line / baseline / rep 3
+Wrote 36 records to /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-before/prometheus-live.jsonl
+[prometheus] done: live
+[corpora] tokio already at 695a07dd5e
+[1/36] tk-concept-oneshot / baseline / rep 1
+    warm-up call for baseline
+[2/36] tk-concept-oneshot / nexus / rep 1
+    warm-up call for nexus
+[3/36] tk-concept-timeout / nexus / rep 1
+[4/36] tk-concept-timeout / baseline / rep 1
+[5/36] tk-impact-coop-stop / baseline / rep 1
+[6/36] tk-impact-coop-stop / nexus / rep 1
+[7/36] tk-impact-has-budget / nexus / rep 1
+[8/36] tk-impact-has-budget / baseline / rep 1
+[9/36] tk-arch-spawn / baseline / rep 1
+[10/36] tk-arch-spawn / nexus / rep 1
+[11/36] tk-needle-semaphore-line / nexus / rep 1
+[12/36] tk-needle-semaphore-line / baseline / rep 1
+[13/36] tk-concept-oneshot / nexus / rep 2
+[14/36] tk-concept-oneshot / baseline / rep 2
+[15/36] tk-concept-timeout / baseline / rep 2
+[16/36] tk-concept-timeout / nexus / rep 2
+[17/36] tk-impact-coop-stop / nexus / rep 2
+[18/36] tk-impact-coop-stop / baseline / rep 2
+[19/36] tk-impact-has-budget / baseline / rep 2
+[20/36] tk-impact-has-budget / nexus / rep 2
+[21/36] tk-arch-spawn / nexus / rep 2
+[22/36] tk-arch-spawn / baseline / rep 2
+[23/36] tk-needle-semaphore-line / baseline / rep 2
+[24/36] tk-needle-semaphore-line / nexus / rep 2
+[25/36] tk-concept-oneshot / baseline / rep 3
+[26/36] tk-concept-oneshot / nexus / rep 3
+[27/36] tk-concept-timeout / nexus / rep 3
+[28/36] tk-concept-timeout / baseline / rep 3
+[29/36] tk-impact-coop-stop / baseline / rep 3
+[30/36] tk-impact-coop-stop / nexus / rep 3
+[31/36] tk-impact-has-budget / nexus / rep 3
+[32/36] tk-impact-has-budget / baseline / rep 3
+[33/36] tk-arch-spawn / baseline / rep 3
+[34/36] tk-arch-spawn / nexus / rep 3
+[35/36] tk-needle-semaphore-line / nexus / rep 3
+[36/36] tk-needle-semaphore-line / baseline / rep 3
+Wrote 36 records to /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-before/tokio-live.jsonl
+[tokio] done: live
+Wrote /Users/shreyas/dev/nexus-mcp/.claude/worktrees/lang-bench/benchmarks/results/languages-before.json

@@ -1,0 +1,102 @@
+repo:
+  name: commons-lang
+  url: https://github.com/apache/commons-lang.git
+  pin: e547d704b21a1b10a2dae0158f7288d7afa4d064
+  pinned_date: "2026-11-05"
+  sparse: ["src/main"]
+  why: >-
+    Apache Commons Lang main source (277 Java files). Java has symbols, graph nodes and
+    call edges in 2.2.2 (own-class and unique-name rules, ADR-019).
+
+defaults:
+  max_budget_usd: 1.00
+  timeout_s: 600
+
+tasks:
+  - id: cl-concept-circuit-breaker
+    category: conceptual
+    prompt: >
+      How does EventCountCircuitBreaker decide to open after too many events in a time
+      window and to close again? Name the file, the class and the key methods.
+    ground_truth:
+      relevant_files: [src/main/java/org/apache/commons/lang3/concurrent/EventCountCircuitBreaker.java]
+      acceptable_extra_files:
+        - src/main/java/org/apache/commons/lang3/concurrent/AbstractCircuitBreaker.java
+      facts:
+        - any_of: ["performStateCheck"]
+        - any_of: ["incrementAndCheckState"]
+        - any_of: ["CheckIntervalData", "openingThreshold"]
+      must_mention_files: [src/main/java/org/apache/commons/lang3/concurrent/EventCountCircuitBreaker.java]
+
+  - id: cl-concept-fastdateformat
+    category: conceptual
+    prompt: >
+      How does FastDateFormat avoid creating a new formatter for each call? Name the
+      files, the cache class and the method that looks up an instance.
+    ground_truth:
+      relevant_files:
+        - src/main/java/org/apache/commons/lang3/time/FastDateFormat.java
+        - src/main/java/org/apache/commons/lang3/time/AbstractFormatCache.java
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["AbstractFormatCache", "FormatCache"]
+        - any_of: ["getInstance"]
+      must_mention_files:
+        - src/main/java/org/apache/commons/lang3/time/FastDateFormat.java
+        - src/main/java/org/apache/commons/lang3/time/AbstractFormatCache.java
+
+  - id: cl-impact-root-cause
+    category: impact
+    prompt: >
+      I want to change the signature of ExceptionUtils.getRootCause. Outside of tests,
+      which methods call it? List each caller with its file path.
+    ground_truth:
+      relevant_files: [src/main/java/org/apache/commons/lang3/exception/ExceptionUtils.java]
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["getRootCauseMessage"]
+      must_mention_files: [src/main/java/org/apache/commons/lang3/exception/ExceptionUtils.java]
+
+  - id: cl-impact-matching-method
+    category: impact
+    prompt: >
+      I want to change the signature of MethodUtils.getMatchingAccessibleMethod. Outside
+      of tests, which methods call it? List each caller with its file path.
+    ground_truth:
+      relevant_files: [src/main/java/org/apache/commons/lang3/reflect/MethodUtils.java]
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["getInvokeMethod"]
+        - any_of: ["invokeStaticMethod"]
+        - any_of: ["getOverrideHierarchy"]
+      must_mention_files: [src/main/java/org/apache/commons/lang3/reflect/MethodUtils.java]
+
+  - id: cl-arch-reflection-tostring
+    category: architecture
+    prompt: >
+      Trace ToStringBuilder.reflectionToString to the code that reads the fields of the
+      object and formats them. List the files and methods in call order.
+    ground_truth:
+      relevant_files:
+        - src/main/java/org/apache/commons/lang3/builder/ToStringBuilder.java
+        - src/main/java/org/apache/commons/lang3/builder/ReflectionToStringBuilder.java
+      acceptable_extra_files: [src/main/java/org/apache/commons/lang3/builder/ToStringStyle.java]
+      facts:
+        - any_of: ["reflectionToString"]
+        - any_of: ["appendFieldsIn"]
+        - any_of: ["ToStringStyle"]
+      must_mention_files:
+        - src/main/java/org/apache/commons/lang3/builder/ToStringBuilder.java
+        - src/main/java/org/apache/commons/lang3/builder/ReflectionToStringBuilder.java
+
+  - id: cl-needle-stopwatch-line
+    category: needle
+    prompt: >
+      What file and line number define the class StopWatch?
+    ground_truth:
+      relevant_files: [src/main/java/org/apache/commons/lang3/time/StopWatch.java]
+      acceptable_extra_files: []
+      facts:
+        - any_of: ["74"]
+        - any_of: ["class StopWatch"]
+      must_mention_files: [src/main/java/org/apache/commons/lang3/time/StopWatch.java]

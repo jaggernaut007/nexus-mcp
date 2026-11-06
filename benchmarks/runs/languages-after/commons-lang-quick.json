@@ -1,0 +1,569 @@
+{
+  "id": "20261105-231911-eccb",
+  "created": "2026-11-05T23:19:11+00:00",
+  "source": {
+    "kind": "path",
+    "label": "commons-lang",
+    "label_public": null,
+    "sha": null
+  },
+  "kept_index": false,
+  "env": {
+    "nexus_mcp_ci": "2.2.2",
+    "python": "3.12.13",
+    "os": "Darwin"
+  },
+  "tier": "quick",
+  "repo": {
+    "files": 264,
+    "chunks": 4973,
+    "size_band": "50-500 files",
+    "languages": [
+      "java"
+    ],
+    "index_seconds": 273.6
+  },
+  "questions": 30,
+  "seed": 7,
+  "summary": {
+    "grep": {
+      "questions": 30,
+      "hit_at_1": 0.233,
+      "hit_at_3": 0.7,
+      "median_tokens": 48175.5,
+      "median_ms": 201.1
+    },
+    "nexus": {
+      "questions": 30,
+      "hit_at_1": 0.867,
+      "hit_at_3": 1.0,
+      "median_tokens": 1277.0,
+      "median_ms": 30.9
+    }
+  },
+  "by_kind": {
+    "described": {
+      "grep": {
+        "questions": 15,
+        "hit_at_1": 0.067,
+        "hit_at_3": 0.533,
+        "median_tokens": 56802,
+        "median_ms": 243.1
+      },
+      "nexus": {
+        "questions": 15,
+        "hit_at_1": 0.733,
+        "hit_at_3": 1.0,
+        "median_tokens": 1330,
+        "median_ms": 27.0
+      }
+    },
+    "lookup": {
+      "grep": {
+        "questions": 15,
+        "hit_at_1": 0.4,
+        "hit_at_3": 0.867,
+        "median_tokens": 39953,
+        "median_ms": 179.0
+      },
+      "nexus": {
+        "questions": 15,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "median_tokens": 1266,
+        "median_ms": 36.5
+      }
+    }
+  },
+  "verdict": {
+    "label": "Strong fit",
+    "token_saving": 0.973,
+    "hit3_gain": 0.3,
+    "reasons": [
+      "Tokens to reach the right file: Nexus-MCP 1277, Grep and Read 48176 (97% fewer with Nexus-MCP).",
+      "Right file in the top 3: 100% against 70%."
+    ]
+  },
+  "results": [
+    {
+      "id": "described-StringUtils.leftPad",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 59363,
+        "ms": 292.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1459,
+        "ms": 684.3
+      }
+    },
+    {
+      "id": "described-CharSequenceTranslator.with",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 47103,
+        "ms": 243.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1637,
+        "ms": 28.0
+      }
+    },
+    {
+      "id": "described-JavaVersion",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 2742,
+        "ms": 44.0
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 825,
+        "ms": 28.9
+      }
+    },
+    {
+      "id": "described-EnumUtils",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 53805,
+        "ms": 130.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1330,
+        "ms": 27.0
+      }
+    },
+    {
+      "id": "described-ExceptionUtils.getRootCauseStackTrace",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 56802,
+        "ms": 466.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1353,
+        "ms": 27.3
+      }
+    },
+    {
+      "id": "described-ClassUtils.toEncodedName",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 59331,
+        "ms": 231.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2037,
+        "ms": 27.1
+      }
+    },
+    {
+      "id": "described-DurationUtils",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 57824,
+        "ms": 135.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1327,
+        "ms": 26.2
+      }
+    },
+    {
+      "id": "described-WeekDateRecorder.setTimeZone",
+      "kind": "described",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 13960,
+        "ms": 432.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1441,
+        "ms": 26.8
+      }
+    },
+    {
+      "id": "described-ComparableCheckBuilder.ComparableCheckBuilder",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 72959,
+        "ms": 199.2
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1282,
+        "ms": 27.2
+      }
+    },
+    {
+      "id": "described-TypeUtils.containsTypeVariables",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 60959,
+        "ms": 243.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1907,
+        "ms": 25.8
+      }
+    },
+    {
+      "id": "described-CharSet.getCharRanges",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 40548,
+        "ms": 234.2
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 910,
+        "ms": 26.7
+      }
+    },
+    {
+      "id": "described-LocaleUtils.getCcToLocalesMap",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 42961,
+        "ms": 338.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1399,
+        "ms": 25.6
+      }
+    },
+    {
+      "id": "described-RandomStringUtils.randomPrint",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 50043,
+        "ms": 246.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 710,
+        "ms": 25.9
+      }
+    },
+    {
+      "id": "described-NoMatcher.NoMatcher",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 67616,
+        "ms": 98.2
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 925,
+        "ms": 26.2
+      }
+    },
+    {
+      "id": "described-StringUtils.isNoneBlank",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 64269,
+        "ms": 249.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 795,
+        "ms": 27.1
+      }
+    },
+    {
+      "id": "lookup-StringUtils.leftPad",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 59302,
+        "ms": 175.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1143,
+        "ms": 50.3
+      }
+    },
+    {
+      "id": "lookup-CharSequenceTranslator.with",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 46517,
+        "ms": 105.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1332,
+        "ms": 30.9
+      }
+    },
+    {
+      "id": "lookup-JavaVersion",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 39953,
+        "ms": 102.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1272,
+        "ms": 32.9
+      }
+    },
+    {
+      "id": "lookup-EnumUtils",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 42823,
+        "ms": 107.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1299,
+        "ms": 31.0
+      }
+    },
+    {
+      "id": "lookup-ExceptionUtils.getRootCauseStackTrace",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 49248,
+        "ms": 207.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1305,
+        "ms": 36.9
+      }
+    },
+    {
+      "id": "lookup-ClassUtils.toEncodedName",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 21612,
+        "ms": 188.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1730,
+        "ms": 36.5
+      }
+    },
+    {
+      "id": "lookup-DurationUtils",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 57172,
+        "ms": 99.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1268,
+        "ms": 32.0
+      }
+    },
+    {
+      "id": "lookup-WeekDateRecorder.setTimeZone",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 13300,
+        "ms": 205.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1247,
+        "ms": 37.0
+      }
+    },
+    {
+      "id": "lookup-ComparableCheckBuilder.ComparableCheckBuilder",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 39704,
+        "ms": 104.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1266,
+        "ms": 31.1
+      }
+    },
+    {
+      "id": "lookup-TypeUtils.containsTypeVariables",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 59469,
+        "ms": 203.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1721,
+        "ms": 37.7
+      }
+    },
+    {
+      "id": "lookup-CharSet.getCharRanges",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2662,
+        "ms": 196.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1198,
+        "ms": 37.3
+      }
+    },
+    {
+      "id": "lookup-LocaleUtils.getCcToLocalesMap",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 5033,
+        "ms": 205.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1222,
+        "ms": 38.8
+      }
+    },
+    {
+      "id": "lookup-RandomStringUtils.randomPrint",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 49371,
+        "ms": 213.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 758,
+        "ms": 36.5
+      }
+    },
+    {
+      "id": "lookup-NoMatcher.NoMatcher",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 3757,
+        "ms": 111.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 920,
+        "ms": 31.9
+      }
+    },
+    {
+      "id": "lookup-StringUtils.isNoneBlank",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 22016,
+        "ms": 179.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1242,
+        "ms": 38.8
+      }
+    }
+  ]
+}

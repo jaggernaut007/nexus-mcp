@@ -1,0 +1,585 @@
+{
+  "id": "20261105-233124-f34d",
+  "created": "2026-11-05T23:31:24+00:00",
+  "source": {
+    "kind": "path",
+    "label": "newtonsoft-json",
+    "label_public": null,
+    "sha": null
+  },
+  "kept_index": false,
+  "env": {
+    "nexus_mcp_ci": "2.2.2",
+    "python": "3.12.13",
+    "os": "Darwin"
+  },
+  "tier": "quick",
+  "repo": {
+    "files": 242,
+    "chunks": 3029,
+    "size_band": "50-500 files",
+    "languages": [
+      "csharp"
+    ],
+    "index_seconds": 178.8
+  },
+  "questions": 30,
+  "seed": 7,
+  "summary": {
+    "grep": {
+      "questions": 30,
+      "hit_at_1": 0.233,
+      "hit_at_3": 0.633,
+      "median_tokens": 14004.0,
+      "median_ms": 156.2
+    },
+    "nexus": {
+      "questions": 30,
+      "hit_at_1": 0.733,
+      "hit_at_3": 0.8,
+      "median_tokens": 1585.0,
+      "median_ms": 25.4
+    }
+  },
+  "by_kind": {
+    "concept": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.2,
+        "hit_at_3": 0.6,
+        "median_tokens": 13326.0,
+        "median_ms": 156.9
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.5,
+        "hit_at_3": 0.6,
+        "median_tokens": 1892.0,
+        "median_ms": 25.1
+      }
+    },
+    "described": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.1,
+        "hit_at_3": 0.5,
+        "median_tokens": 20419.0,
+        "median_ms": 182.4
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 0.7,
+        "hit_at_3": 0.8,
+        "median_tokens": 1581.5,
+        "median_ms": 24.4
+      }
+    },
+    "lookup": {
+      "grep": {
+        "questions": 10,
+        "hit_at_1": 0.4,
+        "hit_at_3": 0.8,
+        "median_tokens": 12730.5,
+        "median_ms": 138.8
+      },
+      "nexus": {
+        "questions": 10,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "median_tokens": 1525.5,
+        "median_ms": 32.8
+      }
+    }
+  },
+  "verdict": {
+    "label": "Strong fit",
+    "token_saving": 0.887,
+    "hit3_gain": 0.167,
+    "reasons": [
+      "Tokens to reach the right file: Nexus-MCP 1585, Grep and Read 14004 (89% fewer with Nexus-MCP).",
+      "Right file in the top 3: 80% against 63%."
+    ]
+  },
+  "results": [
+    {
+      "id": "concept-JsonConvert.SerializeXmlNode",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 14661,
+        "ms": 234.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1014,
+        "ms": 668.0
+      }
+    },
+    {
+      "id": "concept-MissingMemberHandling",
+      "kind": "concept",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1018,
+        "ms": 327.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1659,
+        "ms": 26.8
+      }
+    },
+    {
+      "id": "concept-DefaultContractResolver.GetSerializableMembers",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 25281,
+        "ms": 214.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1471,
+        "ms": 25.1
+      }
+    },
+    {
+      "id": "concept-JTokenReader.JTokenReader",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 13326,
+        "ms": 156.0
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 4421,
+        "ms": 25.2
+      }
+    },
+    {
+      "id": "concept-DefaultContractResolver.CreateContract",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 31184,
+        "ms": 303.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 2061,
+        "ms": 25.4
+      }
+    },
+    {
+      "id": "concept-DefaultJsonNameTable.DefaultJsonNameTable",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 13326,
+        "ms": 156.8
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 4421,
+        "ms": 12.5
+      }
+    },
+    {
+      "id": "concept-JsonSchemaGenerator.Generate",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 12936,
+        "ms": 147.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 945,
+        "ms": 25.5
+      }
+    },
+    {
+      "id": "concept-CamelCaseNamingStrategy.CamelCaseNamingStrategy",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 13326,
+        "ms": 157.1
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 4421,
+        "ms": 12.2
+      }
+    },
+    {
+      "id": "concept-JsonMergeSettings.JsonMergeSettings",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 13326,
+        "ms": 156.5
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 4421,
+        "ms": 13.6
+      }
+    },
+    {
+      "id": "concept-WriteState",
+      "kind": "concept",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 13347,
+        "ms": 130.6
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1723,
+        "ms": 24.9
+      }
+    },
+    {
+      "id": "described-JavaScriptUtils.ToEscapedJavaScriptString",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 36040,
+        "ms": 254.5
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 26556,
+        "ms": 25.6
+      }
+    },
+    {
+      "id": "described-JsonConvert.SerializeXmlNode",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 32965,
+        "ms": 245.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1040,
+        "ms": 23.6
+      }
+    },
+    {
+      "id": "described-JsonContract.InvokeOnError",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 24202,
+        "ms": 168.7
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 14910,
+        "ms": 23.5
+      }
+    },
+    {
+      "id": "described-MissingMemberHandling",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 20105,
+        "ms": 179.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1674,
+        "ms": 24.8
+      }
+    },
+    {
+      "id": "described-StringUtils.ToLower",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 37246,
+        "ms": 138.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 811,
+        "ms": 23.9
+      }
+    },
+    {
+      "id": "described-JsonTextReader.ReadData",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 16320,
+        "ms": 196.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1971,
+        "ms": 26.2
+      }
+    },
+    {
+      "id": "described-BsonReader.GetString",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 11142,
+        "ms": 187.0
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1176,
+        "ms": 22.7
+      }
+    },
+    {
+      "id": "described-JContainer.ReplaceItem",
+      "kind": "described",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 11202,
+        "ms": 176.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 835,
+        "ms": 25.2
+      }
+    },
+    {
+      "id": "described-PathFilter",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 20733,
+        "ms": 123.7
+      },
+      "nexus": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 1727,
+        "ms": 23.1
+      }
+    },
+    {
+      "id": "described-JsonPosition.FormatMessage",
+      "kind": "described",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 3045,
+        "ms": 185.6
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1489,
+        "ms": 25.1
+      }
+    },
+    {
+      "id": "lookup-JavaScriptUtils.ToEscapedJavaScriptString",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 20619,
+        "ms": 148.5
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1614,
+        "ms": 33.9
+      }
+    },
+    {
+      "id": "lookup-JsonConvert.SerializeXmlNode",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 14683,
+        "ms": 129.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 983,
+        "ms": 32.3
+      }
+    },
+    {
+      "id": "lookup-JsonContract.InvokeOnError",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 3523,
+        "ms": 143.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1586,
+        "ms": 33.4
+      }
+    },
+    {
+      "id": "lookup-MissingMemberHandling",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 19638,
+        "ms": 75.3
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1584,
+        "ms": 28.1
+      }
+    },
+    {
+      "id": "lookup-StringUtils.ToLower",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 23303,
+        "ms": 134.7
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1582,
+        "ms": 33.6
+      }
+    },
+    {
+      "id": "lookup-JsonTextReader.ReadData",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 38854,
+        "ms": 140.2
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 934,
+        "ms": 33.5
+      }
+    },
+    {
+      "id": "lookup-BsonReader.GetString",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 7716,
+        "ms": 142.1
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1689,
+        "ms": 31.6
+      }
+    },
+    {
+      "id": "lookup-JContainer.ReplaceItem",
+      "kind": "lookup",
+      "grep": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 10778,
+        "ms": 140.9
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 732,
+        "ms": 28.0
+      }
+    },
+    {
+      "id": "lookup-PathFilter",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": false,
+        "tokens": 1526,
+        "ms": 72.8
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1219,
+        "ms": 26.7
+      }
+    },
+    {
+      "id": "lookup-JsonPosition.FormatMessage",
+      "kind": "lookup",
+      "grep": {
+        "hit1": false,
+        "hit3": true,
+        "tokens": 2612,
+        "ms": 137.4
+      },
+      "nexus": {
+        "hit1": true,
+        "hit3": true,
+        "tokens": 1469,
+        "ms": 35.1
+      }
+    }
+  ]
+}

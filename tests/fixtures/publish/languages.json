@@ -1,0 +1,69 @@
+{
+  "note": "Sample entries for tests only. The numbers are not measured. Do not publish them.",
+  "languages": [
+    {
+      "language": "C#",
+      "project": "JamesNK/Newtonsoft.Json",
+      "url": "https://github.com/JamesNK/Newtonsoft.Json",
+      "pin": "0123456789abcdef0123456789abcdef01234567",
+      "files": 250,
+      "model": "sonnet",
+      "effort": "medium",
+      "isolation": "bare",
+      "before": {
+        "nexus_version": "2.2.2",
+        "date": "2026-11-01",
+        "index_seconds": 12.3,
+        "quick_tier": {
+          "grep": {"hit_at_1": 0.41, "median_tokens": 9100},
+          "nexus": {"hit_at_1": 0.72, "median_tokens": 2350},
+          "verdict": "Nexus-MCP helps"
+        },
+        "retrieval_hit_at_1": 0.6,
+        "graph": {"fn_nodes": 3100, "calls_per_fn": 1.42},
+        "live": {
+          "baseline": {"median_tokens": 210000, "cost_usd": 0.512, "correct": 10, "of": 12},
+          "nexus": {"median_tokens": 150000, "cost_usd": 0.388, "correct": 11, "of": 12}
+        }
+      }
+    },
+    {
+      "language": "C++",
+      "project": "<sample> fmtlib/fmt",
+      "url": "https://github.com/fmtlib/fmt",
+      "pin": "fedcba9876543210fedcba9876543210fedcba98",
+      "files": 120,
+      "model": "sonnet",
+      "effort": "medium",
+      "isolation": "bare",
+      "before": {
+        "nexus_version": "2.2.2",
+        "date": "2026-11-01",
+        "index_seconds": 30.5,
+        "quick_tier": {
+          "grep": {"hit_at_1": 0.35, "median_tokens": 14000},
+          "nexus": {"hit_at_1": 0.48, "median_tokens": 6100},
+          "verdict": "Nexus-MCP helps a little"
+        },
+        "retrieval_hit_at_1": 0.45,
+        "graph": {"fn_nodes": 900, "calls_per_fn": 0.61}
+      },
+      "after": {
+        "nexus_version": "2.3.0",
+        "date": "2026-11-04",
+        "index_seconds": 30.5,
+        "quick_tier": {
+          "grep": {"hit_at_1": 0.35, "median_tokens": 14000},
+          "nexus": {"hit_at_1": 0.66, "median_tokens": 4200},
+          "verdict": "Nexus-MCP helps"
+        },
+        "retrieval_hit_at_1": 0.58,
+        "graph": {"fn_nodes": 1250, "calls_per_fn": 1.05},
+        "live": {
+          "baseline": {"median_tokens": 260000, "cost_usd": 0.640, "correct": 9, "of": 12},
+          "nexus": {"median_tokens": 170000, "cost_usd": 0.455, "correct": 10, "of": 12}
+        }
+      }
+    }
+  ]
+}

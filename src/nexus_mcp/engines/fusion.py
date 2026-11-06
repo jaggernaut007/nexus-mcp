@@ -52,14 +52,53 @@ def demote_test_files(query: str, results: List[Dict[str, Any]]) -> List[Dict[st
     cover (measured: 70% of the chunks of a large project were tests, and a prose
     query returned five tests before the function). The order is unchanged when the
     query itself asks for tests. No result is removed.
+
+    Error, warning and exception classes go after the other source results, before the
+    tests. Their messages repeat the words of a feature, so on webpack `*Warning.js`
+    files outranked the plugin that does the work. A query about errors keeps them.
     """
     if query_mentions_tests(query):
         return results
-    source, tests = [], []
+    source, errors, tests = [], [], []
+    error_query = query_mentions_errors(query)
     for r in results:
         path = r.get("absolute_path") or r.get("filepath") or ""
-        (tests if is_test_path(path) else source).append(r)
-    return source + tests
+        if is_test_path(path):
+            tests.append(r)
+        elif not error_query and is_error_class(r):
+            errors.append(r)
+        else:
+            source.append(r)
+    return source + errors + tests
+
+
+# Query words that show the user wants an error or warning class.
+ERROR_QUERY_WORDS = frozenset({
+    "error", "errors", "warning", "warnings", "warn", "exception", "exceptions", "raise",
+    "raises", "throw", "throws", "fail", "fails", "failure", "bailout",
+})
+_ERROR_SUFFIXES = ("error", "errors", "warning", "warnings", "exception", "exceptions")
+
+
+def query_mentions_errors(query: str) -> bool:
+    """True when the query asks about errors, warnings or exceptions."""
+    words = set()
+    for token in query.replace("/", " ").replace(".", " ").split():
+        words.update(identifier_words(token))
+        words.add(token.lower())
+    return bool(words & ERROR_QUERY_WORDS)
+
+
+def is_error_class(result: Dict[str, Any]) -> bool:
+    """True when a result is an error, warning or exception class, or lives in a file
+    named for one (`LargeModulesWarning.js`, `ValidationError`, `exceptions.py`)."""
+    path = str(result.get("absolute_path") or result.get("filepath") or "")
+    stem = path.replace("\\", "/").rsplit("/", 1)[-1].split(".", 1)[0].lower()
+    if stem.endswith(_ERROR_SUFFIXES):
+        return True
+    kind = str(result.get("symbol_type") or "").lower()
+    name = str(result.get("symbol_name") or "").lower()
+    return kind == "class" and name.endswith(_ERROR_SUFFIXES)
 
 
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")

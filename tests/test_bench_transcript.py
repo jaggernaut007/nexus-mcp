@@ -59,6 +59,13 @@ def test_parse_lines_nexus_retrieval_tokens_estimated():
     assert trace.retrieval_tokens_est > 0
 
 
+def test_parse_lines_result_tokens_by_tool_sum_to_the_total():
+    trace = parse_lines(_load_lines("nexus_run.jsonl"))
+    by_tool = trace.result_tokens_by_tool
+    assert by_tool.get("mcp__nexus-mcp__search", 0) > 0
+    assert sum(by_tool.values()) == trace.retrieval_tokens_est
+
+
 def test_parse_lines_budget_capped_marks_error():
     trace = parse_lines(_load_lines("budget_capped_run.jsonl"))
     assert trace.is_error is True

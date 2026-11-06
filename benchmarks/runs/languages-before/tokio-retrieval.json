@@ -1,0 +1,115 @@
+{
+  "files": 381,
+  "chunks": 0,
+  "index_seconds": 0.7,
+  "modes": {
+    "bm25": {
+      "hit@1": 0.0,
+      "hit@5": 0.0,
+      "recall@5": 0.0,
+      "recall@10": 0.0,
+      "mrr@10": 0.0,
+      "queries": 15,
+      "median_query_ms": 0.1,
+      "by_kind": {
+        "concept": {
+          "hit@1": 0.0,
+          "hit@5": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "queries": 14
+        },
+        "identifier": {
+          "hit@1": 0.0,
+          "hit@5": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "queries": 1
+        }
+      }
+    },
+    "vector": {
+      "hit@1": 0.0,
+      "hit@5": 0.0,
+      "recall@5": 0.0,
+      "recall@10": 0.0,
+      "mrr@10": 0.0,
+      "queries": 15,
+      "median_query_ms": 0.1,
+      "by_kind": {
+        "concept": {
+          "hit@1": 0.0,
+          "hit@5": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "queries": 14
+        },
+        "identifier": {
+          "hit@1": 0.0,
+          "hit@5": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "queries": 1
+        }
+      }
+    },
+    "hybrid-source-first": {
+      "hit@1": 0.0,
+      "hit@5": 0.0,
+      "recall@5": 0.0,
+      "recall@10": 0.0,
+      "mrr@10": 0.0,
+      "queries": 15,
+      "median_query_ms": 0.2,
+      "by_kind": {
+        "concept": {
+          "hit@1": 0.0,
+          "hit@5": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "queries": 14
+        },
+        "identifier": {
+          "hit@1": 0.0,
+          "hit@5": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "queries": 1
+        }
+      }
+    },
+    "hybrid-exact": {
+      "hit@1": 0.0,
+      "hit@5": 0.0,
+      "recall@5": 0.0,
+      "recall@10": 0.0,
+      "mrr@10": 0.0,
+      "queries": 15,
+      "median_query_ms": 0.2,
+      "by_kind": {
+        "concept": {
+          "hit@1": 0.0,
+          "hit@5": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "queries": 14
+        },
+        "identifier": {
+          "hit@1": 0.0,
+          "hit@5": 0.0,
+          "recall@5": 0.0,
+          "recall@10": 0.0,
+          "mrr@10": 0.0,
+          "queries": 1
+        }
+      }
+    }
+  }
+}

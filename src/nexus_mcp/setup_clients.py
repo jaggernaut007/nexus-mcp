@@ -29,6 +29,11 @@ END = "<!-- nexus-mcp:end -->"
 TOML_BEGIN = "# nexus-mcp:begin"
 TOML_END = "# nexus-mcp:end"
 RELOAD_LINE = "Reload your client (or start a new session) to see the nexus tools."
+# Printed once, after a successful install only. It is not in any MCP tool output (no token cost).
+STAR_LINE = (
+    "If Nexus-MCP helps you, a star helps other developers find it: "
+    "https://github.com/jaggernaut007/Nexus-MCP"
+)
 
 # Each client: where its MCP config lives and how its skill text is installed.
 # `skill` is one of: "skill-dir" (a SKILL.md folder), "rules-mdc" (Cursor rules file),
@@ -580,6 +585,7 @@ def run_setup(argv: List[str]) -> int:
                     "Your agent can call `index` in the right folder."
                 )
         print(f"\n{RELOAD_LINE}")
+        print(STAR_LINE)
     elif changed:
         print("\nRemoved. Reload your client.")
     return 0

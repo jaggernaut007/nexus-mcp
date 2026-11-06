@@ -7,6 +7,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
 [![CI](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml/badge.svg)](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml)
 [![Glama MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
+[![GitHub stars](https://img.shields.io/github/stars/jaggernaut007/Nexus-MCP?style=social)](https://github.com/jaggernaut007/Nexus-MCP/stargazers)
+
+> ⭐ **If Nexus-MCP saves you tokens, [star the repo](https://github.com/jaggernaut007/Nexus-MCP).** It helps other developers find it.
 
 **Hybrid search + code graph + semantic memory in a single local MCP server. About 90 MB idle and 460 MB with the embedding model loaded ([measurements](https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/MEMORY.md)).**
 

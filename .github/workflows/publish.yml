@@ -105,7 +105,8 @@ jobs:
 
   image:
     name: Push the Docker image to GHCR
-    needs: build
+    # Wait for PyPI: the image must not exist for a version that failed to publish.
+    needs: [build, publish]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -113,6 +114,7 @@ jobs:
     env:
       IMAGE: ghcr.io/jaggernaut007/nexus-mcp
       GH_TOKEN: ${{ github.token }}
+      PRERELEASE: ${{ github.event.release.prerelease }}
     steps:
       - uses: actions/checkout@v4
       - name: Log in to GHCR
@@ -121,6 +123,10 @@ jobs:
         run: |
           version="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')"
           docker build -f docker/Dockerfile.stdio --build-arg "VERSION=${version}" \
-            -t "${IMAGE}:${version}" -t "${IMAGE}:latest" .
+            -t "${IMAGE}:${version}" .
           docker push "${IMAGE}:${version}"
-          docker push "${IMAGE}:latest"
+          # A pre-release must not take the :latest tag.
+          if [ "$PRERELEASE" != "true" ]; then
+            docker tag "${IMAGE}:${version}" "${IMAGE}:latest"
+            docker push "${IMAGE}:latest"
+          fi

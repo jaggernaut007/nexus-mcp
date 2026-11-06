@@ -1,6 +1,7 @@
 """Tests for `nexus-mcp-ci setup` (src/nexus_mcp/setup_clients.py)."""
 
 import json
+import os
 import shutil
 
 import pytest
@@ -233,3 +234,89 @@ def test_skill_loaders_cut_the_install_section():
     from nexus_mcp.evaluate import runners
 
     assert "If the nexus tools are missing" not in runners.skill_text()
+
+
+# --- regressions from the code review of PR 24 ------------------------------------------
+
+
+def test_write_atomic_keeps_the_file_mode(tmp_path):
+    cfg = tmp_path / ".claude.json"
+    cfg.write_text("{}")
+    os.chmod(cfg, 0o600)
+    sc._write_atomic(cfg, '{"a": 1}')
+    assert cfg.stat().st_mode & 0o777 == 0o600
+
+
+def test_write_atomic_follows_a_symlink(tmp_path):
+    real = tmp_path / "dotfiles" / "settings.json"
+    real.parent.mkdir()
+    real.write_text("{}")
+    link = tmp_path / "settings.json"
+    link.symlink_to(real)
+    sc._write_atomic(link, '{"a": 1}')
+    assert link.is_symlink()
+    assert json.loads(real.read_text()) == {"a": 1}
+
+
+def test_setup_keeps_a_skill_file_of_the_user_and_uninstall_puts_it_back(env):
+    home, project = env
+    skill = home / ".claude" / "skills" / "nexus-mcp" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("my own notes")
+    assert _run(home, project, "--client", "claude-code", "--yes") == 0
+    assert skill.read_text().startswith("---")
+    assert _run(home, project, "--client", "claude-code", "--yes", "--uninstall") == 0
+    assert skill.read_text() == "my own notes"
+
+
+def test_setup_codex_refuses_a_table_the_user_already_wrote(env):
+    home, project = env
+    cfg = home / ".codex" / "config.toml"
+    cfg.parent.mkdir(parents=True)
+    original = '[mcp_servers.nexus-mcp]\ncommand = "mine"\n'
+    cfg.write_text(original)
+    assert _run(home, project, "--client", "codex", "--yes", "--no-skill") == 1
+    assert cfg.read_text() == original
+
+
+def test_setup_refuses_a_block_with_only_one_marker(env):
+    home, project = env
+    gemini_md = project / "GEMINI.md"
+    original = f"notes\n{sc.BEGIN}\nhalf a block\n"
+    gemini_md.write_text(original)
+    assert _run(home, project, "--client", "gemini", "--yes") == 1
+    assert gemini_md.read_text() == original
+
+
+def test_setup_claude_code_second_run_does_not_call_the_cli_again(env, monkeypatch):
+    home, project = env
+    (home / ".claude.json").write_text(json.dumps({"mcpServers": {sc.SERVER_NAME: {}}}))
+    calls = []
+    monkeypatch.setattr(
+        sc.shutil, "which", lambda name, *a, **k: "/bin/claude" if name == "claude" else None
+    )
+    monkeypatch.setattr(sc.subprocess, "run", lambda cmd, **kw: calls.append(cmd))
+    monkeypatch.setattr(sc.Path, "home", classmethod(lambda cls: home))
+    argv = ["--project", str(project), "--no-index", "--client", "claude-code", "--yes"]
+    assert sc.run_setup(argv) == 0
+    assert calls == []
+
+
+def test_setup_indexes_only_a_folder_that_looks_like_a_project(env, monkeypatch, capsys):
+    home, project = env
+    started = []
+    monkeypatch.setattr(sc, "_start_index", lambda path: started.append(path))
+    argv = ["--home", str(home), "--project", str(project), "--client", "cursor", "--yes"]
+    assert sc.run_setup(argv) == 0
+    assert started == []
+    assert "does not look like a project folder" in capsys.readouterr().out
+    (project / ".git").mkdir()
+    assert sc.run_setup(argv) == 0
+    assert started == [project.resolve()]
+    assert "130 MB" in capsys.readouterr().out
+    # The home folder is never indexed, even if it holds a marker.
+    (home / ".git").mkdir()
+    started.clear()
+    argv_home = ["--home", str(home), "--project", str(home), "--client", "cursor", "--yes"]
+    assert sc.run_setup(argv_home) == 0
+    assert started == []

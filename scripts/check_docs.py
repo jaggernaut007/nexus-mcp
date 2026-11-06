@@ -49,6 +49,12 @@ def check_versions() -> List[str]:
         "plugin/.cursor-plugin/plugin.json": json.loads(
             (ROOT / "plugin" / ".cursor-plugin" / "plugin.json").read_text()
         )["version"],
+        # The server reports this value to MCP clients.
+        "src/nexus_mcp/__init__.py": re.search(
+            r'^__version__ = "([^"]+)"',
+            (ROOT / "src" / "nexus_mcp" / "__init__.py").read_text(),
+            re.M,
+        ).group(1),
     }
     server = json.loads((ROOT / "server.json").read_text())
     found["server.json"] = server["version"]
@@ -69,9 +75,9 @@ def check_versions() -> List[str]:
         "=="
     )[-1]
     plugin_mcp = json.loads((ROOT / "plugin" / ".mcp.json").read_text())
-    found["plugin/.mcp.json launch"] = plugin_mcp["mcpServers"]["nexus-mcp"]["args"][0].split(
-        "=="
-    )[-1]
+    found["plugin/.mcp.json launch"] = plugin_mcp["mcpServers"]["nexus-mcp"]["args"][0].split("==")[
+        -1
+    ]
     return [
         f"{where}: version {v}, pyproject.toml says {want}"
         for where, v in found.items()

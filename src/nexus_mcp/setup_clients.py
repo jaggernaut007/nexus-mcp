@@ -120,10 +120,15 @@ def _backup(path: Path) -> None:
 
 
 def _write_atomic(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + ".nexus-tmp")
+    """Replace a file in one step. Keep its mode (a config can be 0600) and follow a symlink."""
+    target = path.resolve() if path.is_symlink() else path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    mode = target.stat().st_mode & 0o777 if target.exists() else None
+    tmp = target.with_name(target.name + ".nexus-tmp")
     tmp.write_text(text)
-    os.replace(tmp, path)
+    if mode is not None:
+        os.chmod(tmp, mode)
+    os.replace(tmp, target)
 
 
 def _read_json(path: Path) -> dict:
@@ -171,11 +176,21 @@ def _json_entry(path: Path, key: str, entry: dict) -> Change:
     return Change("", path, f"add MCP server '{SERVER_NAME}' to {path}", apply, undo, present)
 
 
-def _marked_block(path: Path, block: str, begin: str, end: str, what: str) -> Change:
-    """Write `block` between markers in a text file. Text outside the markers is not touched."""
+def _marked_block(
+    path: Path, block: str, begin: str, end: str, what: str, refuse_if: str = ""
+) -> Change:
+    """Write `block` between markers in a text file. Text outside the markers is not touched.
+
+    ``refuse_if`` is a text that must not appear outside the markers (for example a TOML table
+    the user already wrote by hand: a second one would make the file invalid).
+    """
 
     def strip(text: str) -> str:
-        if begin in text and end in text:
+        if (begin in text) != (end in text):
+            raise SetupError(
+                f"{path} has only one of the two nexus-mcp markers. Fix or remove it, then retry."
+            )
+        if begin in text:
             head, rest = text.split(begin, 1)
             _, tail = rest.split(end, 1)
             return (head.rstrip("\n") + "\n" + tail.lstrip("\n")).strip("\n")
@@ -184,6 +199,11 @@ def _marked_block(path: Path, block: str, begin: str, end: str, what: str) -> Ch
     def apply() -> None:
         existing = path.read_text() if path.exists() else ""
         base = strip(existing)
+        if refuse_if and refuse_if in base:
+            raise SetupError(
+                f"{path} already defines {refuse_if}. Remove it or edit it by hand: "
+                "a second table would make the file invalid."
+            )
         sep = "\n\n" if base else ""
         _backup(path)
         _write_atomic(path, f"{base}{sep}{begin}\n{block.rstrip()}\n{end}\n")
@@ -192,7 +212,7 @@ def _marked_block(path: Path, block: str, begin: str, end: str, what: str) -> Ch
         if not path.exists():
             return
         text = path.read_text()
-        if begin not in text:
+        if begin not in text and end not in text:
             return
         rest = strip(text)
         if rest.strip():
@@ -209,11 +229,18 @@ def _marked_block(path: Path, block: str, begin: str, end: str, what: str) -> Ch
 def _own_file(path: Path, text: str, what: str) -> Change:
     """A file that setup owns completely (a skill file or a rules file)."""
 
+    bak = path.with_name(path.name + ".nexus-bak")
+
     def apply() -> None:
+        # A file of the user with other content is kept, and put back by --uninstall.
+        if path.exists() and path.read_text() != text:
+            _backup(path)
         _write_atomic(path, text)
 
     def undo() -> None:
-        if path.exists():
+        if bak.exists():
+            os.replace(bak, path)
+        elif path.exists():
             path.unlink()
             try:
                 path.parent.rmdir()  # only when empty
@@ -268,6 +295,8 @@ def _claude_code_change(spec: Dict[str, object], home: Path) -> Change:
         return fallback
 
     def apply() -> None:
+        if fallback.present():
+            return  # already added: `claude mcp add` fails on a second run
         cmd = [
             claude,
             "mcp",
@@ -365,6 +394,7 @@ def build_plan(client: str, project: Path, home: Path, with_skill: bool = True) 
                 TOML_BEGIN,
                 TOML_END,
                 f"add [mcp_servers.{SERVER_NAME}] to {home / '.codex' / 'config.toml'}",
+                refuse_if=f"[mcp_servers.{SERVER_NAME}]",
             )
         )
         if with_skill:
@@ -446,6 +476,27 @@ def _confirm(question: str) -> bool:
     return input(f"{question} [y/N] ").strip().lower() in ("y", "yes")
 
 
+_PROJECT_MARKERS = (
+    ".git",
+    "pyproject.toml",
+    "package.json",
+    "go.mod",
+    "Cargo.toml",
+    "pom.xml",
+    "build.gradle",
+    "Gemfile",
+    "composer.json",
+    "requirements.txt",
+)
+
+
+def _looks_like_project(project: Path, home: Path) -> bool:
+    """A folder worth indexing: not the home folder, not the root, and it has a project marker."""
+    if project == home.resolve() or project == Path(project.anchor):
+        return False
+    return any((project / marker).exists() for marker in _PROJECT_MARKERS)
+
+
 def _start_index(project: Path) -> None:
     code = "import asyncio; from nexus_mcp import core_api; asyncio.run(core_api.index('.'))"
     subprocess.Popen(
@@ -508,8 +559,17 @@ def run_setup(argv: List[str]) -> int:
         return 1
     if changed and not args.uninstall:
         if not args.no_index and args.yes:
-            _start_index(project)
-            print(f"\nIndexing {project} in the background.")
+            if _looks_like_project(project, home):
+                _start_index(project)
+                print(
+                    f"\nIndexing {project} in the background. The first index downloads the "
+                    "embedding model (about 130 MB) unless it is already cached."
+                )
+            else:
+                print(
+                    f"\nNot indexing {project}: it does not look like a project folder. "
+                    "Your agent can call `index` in the right folder."
+                )
         print(f"\n{RELOAD_LINE}")
     elif changed:
         print("\nRemoved. Reload your client.")

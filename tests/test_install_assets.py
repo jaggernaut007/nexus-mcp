@@ -210,6 +210,10 @@ def test_check_docs_flags_a_channel_pin_that_drifted(tmp_path, monkeypatch):
         tmp_path / "plugin" / ".cursor-plugin" / "plugin.json",
     )
     shutil.copy(ROOT / "plugin" / ".mcp.json", tmp_path / "plugin" / ".mcp.json")
+    (tmp_path / "src" / "nexus_mcp").mkdir(parents=True)
+    shutil.copy(
+        ROOT / "src" / "nexus_mcp" / "__init__.py", tmp_path / "src" / "nexus_mcp" / "__init__.py"
+    )
     monkeypatch.setattr(check, "ROOT", tmp_path)
     errors = check.check_versions()
     assert any("gemini-extension.json" in e for e in errors)

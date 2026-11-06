@@ -25,10 +25,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-# Public values, not secrets. The owner sets POLAR_ORG_ID after making the Polar organization.
+# Public values, not secrets: the Polar organization id and the Polar checkout link.
 POLAR_ORG_ID = "3442192f-05d2-49f3-9a28-b6f4890f712b"
 PRICING_URL = "https://github.com/jaggernaut007/Nexus-MCP#pricing"
-CHECKOUT_URL = PRICING_URL  # replaced by the Polar checkout link when it exists
+CHECKOUT_URL = "https://buy.polar.sh/polar_cl_YmdKkkbt5AVAAHKefru7iUz9qpXBctKLCW0xF3hDZGL"
 API_BASE = "https://api.polar.sh"
 PACKAGE_LABEL = "nexus-mcp-ci"
 

@@ -817,8 +817,9 @@ nexus-mcp-ci license activate <your-key>
 ```
 
 Or set `NEXUS_LICENSE_KEY` in the environment of the server. One key covers one developer on up
-to three machines. Payment goes through Polar.sh, which handles tax. The checkout link is added
-when 2.3.0 is released.
+to three machines. Payment goes through Polar.sh, which handles tax.
+**[Buy a commercial licence](https://buy.polar.sh/polar_cl_YmdKkkbt5AVAAHKefru7iUz9qpXBctKLCW0xF3hDZGL)**
+($5 per developer per month).
 
 With no key, the server makes no network call. With a key, it sends only the key, a random
 machine label and the organization id to `api.polar.sh`, at most once a day. If the server is

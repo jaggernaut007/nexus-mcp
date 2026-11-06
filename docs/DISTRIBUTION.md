@@ -63,7 +63,7 @@ page before you submit. The skill is one `SKILL.md`, and it is shipped in the wh
 | Route | What to add | Where to submit |
 |---|---|---|
 | Anthropic plugin directory | nothing: `plugin/` and `.claude-plugin/` already fit | `claude.ai/directory/manage` (needs a paid Claude plan). `claude-plugins-official` does not take portal submissions. Reviews can be slow. |
-| Cursor Marketplace | a `.cursor-plugin/plugin.json` that reuses `plugin/skills/` and `plugin/.mcp.json` | `cursor.com/marketplace/publish`. Manual review, no set time. MIT meets the licence rule. |
+| Cursor Marketplace | done: `.cursor-plugin/marketplace.json`, `plugin/.cursor-plugin/plugin.json` | owner: `cursor.com/marketplace/publish` after the release. Manual review, no set time. MIT meets the licence rule. |
 | Codex plugin marketplace | a `.codex-plugin/plugin.json` (from a third-party guide: verify in the OpenAI Codex docs) | the Codex marketplace flow |
 | GitHub Copilot and VS Code plugins | a `.github/plugin/plugin.json` (from a third-party guide: verify) | a `marketplace.json` in the repository |
 | Skill directories | nothing: `SKILL.md` already follows the shared format | `npx skills add jaggernaut007/Nexus-MCP` (untested); skill lists that take a GitHub URL; Agensi.io (a paid-skill shop, optional) |

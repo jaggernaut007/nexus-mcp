@@ -25,6 +25,7 @@ Start with the group that matches what you want to do.
 - [EVALS.md](EVALS.md): the benchmark method and the run history
 - [RESEARCH.md](RESEARCH.md): library evaluations
 - [DISTRIBUTION.md](DISTRIBUTION.md): every install channel, and the owner steps for each
+- [SUBMISSIONS.md](SUBMISSIONS.md): ready-to-paste text for each marketplace listing
 - [GITHUB-ACTION.md](GITHUB-ACTION.md): run Nexus-MCP in a GitHub workflow
 - [adr/](adr/): architecture decision records (ADR-001 to ADR-024)
 

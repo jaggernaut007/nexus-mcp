@@ -61,6 +61,21 @@ def test_every_channel_pins_the_project_version():
     assert f'"nexus-mcp-ci=={want}"' in (ROOT / "mcpb" / "pyproject.toml").read_text()
 
 
+def test_cursor_marketplace_points_at_a_plugin_that_has_its_files():
+    market = json.loads((ROOT / ".cursor-plugin" / "marketplace.json").read_text())
+    assert market["owner"]["name"]
+    entry = market["plugins"][0]
+    plugin_dir = ROOT / entry["source"]
+    manifest = json.loads((plugin_dir / ".cursor-plugin" / "plugin.json").read_text())
+    assert manifest["name"] == entry["name"] == "nexus-mcp"
+    assert re.fullmatch(r"[a-z0-9]([a-z0-9.-]*[a-z0-9])?", manifest["name"])
+    assert manifest["version"] == _version()
+    assert manifest["license"] == "MIT"
+    assert (plugin_dir / manifest["logo"]).is_file()
+    assert (plugin_dir / manifest["mcpServers"]).is_file()
+    assert (plugin_dir / "skills" / "nexus-mcp" / "SKILL.md").is_file()
+
+
 def test_gemini_context_file_is_the_skill_without_the_install_section():
     skill = (ROOT / "plugin" / "skills" / "nexus-mcp" / "SKILL.md").read_text()
     skill = skill.split("<!-- nexus-install -->")[0].rstrip() + "\n"
@@ -134,6 +149,7 @@ def test_bump_version_changes_every_pinned_file(tmp_path, monkeypatch):
         "CITATION.cff",
         "server.json",
         "plugin/.claude-plugin/plugin.json",
+        "plugin/.cursor-plugin/plugin.json",
         "plugin/.mcp.json",
         "mcpb/manifest.json",
         "mcpb/pyproject.toml",
@@ -151,7 +167,12 @@ def test_bump_version_changes_every_pinned_file(tmp_path, monkeypatch):
     assert "version: 9.8.7" in (tmp_path / "CITATION.cff").read_text()
     server = json.loads((tmp_path / "server.json").read_text())
     assert {server["version"], *(p["version"] for p in server["packages"])} == {"9.8.7"}
-    for rel in ("plugin/.claude-plugin/plugin.json", "mcpb/manifest.json", "gemini-extension.json"):
+    for rel in (
+        "plugin/.claude-plugin/plugin.json",
+        "plugin/.cursor-plugin/plugin.json",
+        "mcpb/manifest.json",
+        "gemini-extension.json",
+    ):
         assert json.loads((tmp_path / rel).read_text())["version"] == "9.8.7"
     for rel in ("plugin/.mcp.json", "gemini-extension.json"):
         args = json.loads((tmp_path / rel).read_text())["mcpServers"]["nexus-mcp"]["args"]
@@ -182,6 +203,11 @@ def test_check_docs_flags_a_channel_pin_that_drifted(tmp_path, monkeypatch):
     shutil.copy(
         ROOT / "plugin" / ".claude-plugin" / "plugin.json",
         tmp_path / "plugin" / ".claude-plugin" / "plugin.json",
+    )
+    (tmp_path / "plugin" / ".cursor-plugin").mkdir(parents=True)
+    shutil.copy(
+        ROOT / "plugin" / ".cursor-plugin" / "plugin.json",
+        tmp_path / "plugin" / ".cursor-plugin" / "plugin.json",
     )
     shutil.copy(ROOT / "plugin" / ".mcp.json", tmp_path / "plugin" / ".mcp.json")
     monkeypatch.setattr(check, "ROOT", tmp_path)

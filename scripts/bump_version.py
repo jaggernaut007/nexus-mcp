@@ -47,6 +47,7 @@ def bump(new: str) -> None:
 
     _json_set(ROOT / "server.json", server)
     _json_set(ROOT / "plugin" / ".claude-plugin" / "plugin.json", lambda d: d.update(version=new))
+    _json_set(ROOT / "plugin" / ".cursor-plugin" / "plugin.json", lambda d: d.update(version=new))
     _json_set(ROOT / "mcpb" / "manifest.json", lambda d: d.update(version=new))
 
     def gemini(data: dict) -> None:

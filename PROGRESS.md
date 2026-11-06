@@ -34,6 +34,9 @@ removed; ADR-023 is superseded. The default install is "ask your agent" or `uvx 
 - [ ] **Todo:** install and test on the real clients: Gemini CLI, Cursor, VS Code and the Claude
   Desktop app. None of them is installed on the dev machine.
 - [ ] **Todo:** release 2.3.0 (version files are bumped; merge, then create the GitHub release).
+- [ ] **Todo, after the release:** submit to Cline, Cursor, the Anthropic directory, the Docker
+  catalog, mcp.so and mcpservers.org with the text in [docs/SUBMISSIONS.md](docs/SUBMISSIONS.md).
+  Add Codex, Copilot and Antigravity support first if wanted (formats not checked yet).
 
 ## Phase 1: Scaffold + Port Core Modules — COMPLETE
 - [x] Project structure created

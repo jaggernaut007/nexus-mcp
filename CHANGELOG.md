@@ -19,6 +19,9 @@ All notable changes to this project will be documented in this file.
   install links, a `docker/Dockerfile.stdio` image pushed to GHCR, and a composite GitHub
   Action (`action.yml`). `scripts/bump_version.py` sets every pinned version at once.
   [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md) lists each channel and the owner steps.
+- **Cursor plugin.** `.cursor-plugin/marketplace.json` and `plugin/.cursor-plugin/plugin.json`
+  reuse the skill and the `uvx` launch. `bump_version.py` and `check_docs.py` cover the new file.
+  [docs/SUBMISSIONS.md](docs/SUBMISSIONS.md) holds ready-to-paste text for each listing.
 
 ### Changed
 

@@ -46,6 +46,9 @@ def check_versions() -> List[str]:
         "plugin/.claude-plugin/plugin.json": json.loads(
             (ROOT / "plugin" / ".claude-plugin" / "plugin.json").read_text()
         )["version"],
+        "plugin/.cursor-plugin/plugin.json": json.loads(
+            (ROOT / "plugin" / ".cursor-plugin" / "plugin.json").read_text()
+        )["version"],
     }
     server = json.loads((ROOT / "server.json").read_text())
     found["server.json"] = server["version"]

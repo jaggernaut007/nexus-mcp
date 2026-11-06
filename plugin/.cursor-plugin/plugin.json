@@ -1,0 +1,20 @@
+{
+  "name": "nexus-mcp",
+  "description": "Code search, call graph and project memory for Cursor. Runs the nexus-mcp-ci server through uvx, so it needs uv (https://docs.astral.sh/uv/) and no pip install. It also teaches the agent when to use the tools.",
+  "version": "2.3.0",
+  "author": {
+    "name": "Shreyas Jagannath"
+  },
+  "homepage": "https://github.com/jaggernaut007/Nexus-MCP",
+  "repository": "https://github.com/jaggernaut007/Nexus-MCP",
+  "license": "MIT",
+  "keywords": [
+    "code-search",
+    "code-graph",
+    "semantic-search",
+    "mcp",
+    "code-intelligence"
+  ],
+  "logo": "assets/logo.png",
+  "mcpServers": "./.mcp.json"
+}

@@ -37,13 +37,12 @@ def test_mcpb_manifest_lists_exactly_the_server_tools():
     assert {tool["name"] for tool in manifest["tools"]} == TOOLS
 
 
-def test_mcpb_licence_key_is_optional_and_sensitive():
+def test_mcpb_manifest_asks_for_no_secret_and_sets_no_licence_key():
+    # Requirement changed on 2026-11-06: the project is MIT and has no licence key.
     manifest = json.loads((ROOT / "mcpb" / "manifest.json").read_text())
-    field = manifest["user_config"]["license_key"]
-    assert field["sensitive"] is True
-    assert field["required"] is False
-    env = manifest["server"]["mcp_config"]["env"]
-    assert env["NEXUS_LICENSE_KEY"] == "${user_config.license_key}"
+    assert "user_config" not in manifest
+    assert manifest["license"] == "MIT"
+    assert "NEXUS_LICENSE_KEY" not in manifest["server"]["mcp_config"]["env"]
 
 
 def test_mcpb_entry_point_starts_the_server():
@@ -97,8 +96,8 @@ def test_cursor_link_on_the_site_decodes_to_a_uvx_launch():
 def test_action_is_a_composite_action_with_the_documented_inputs():
     action = yaml.safe_load((ROOT / "action.yml").read_text())
     assert action["runs"]["using"] == "composite"
-    assert set(action["inputs"]) == {"args", "version", "python-version", "license-key"}
-    assert action["inputs"]["license-key"]["default"] == ""
+    # Requirement changed on 2026-11-06: the `license-key` input went away with the key feature.
+    assert set(action["inputs"]) == {"args", "version", "python-version"}
 
 
 def test_action_does_not_put_inputs_into_the_shell_script_text():

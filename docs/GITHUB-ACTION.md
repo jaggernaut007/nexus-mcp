@@ -25,22 +25,6 @@ jobs:
 | `args` | `eval .` | Arguments for `nexus-mcp-ci`. Any subcommand works. |
 | `version` | latest | Version of `nexus-mcp-ci` to run, for example `2.3.0`. |
 | `python-version` | `3.12` | Python for `uvx`. Supported: 3.10, 3.11, 3.12. |
-| `license-key` | empty | Commercial licence key. Pass it from a secret. |
-
-## Commercial use in CI
-
-A workflow at a company is commercial use. Set the key from a repository secret:
-
-```yaml
-      - uses: jaggernaut007/Nexus-MCP@v2
-        with:
-          license-key: ${{ secrets.NEXUS_LICENSE_KEY }}
-```
-
-With no key, the action makes no network call. With a key, the code calls the licence server
-once, as [PRIVACY.md](PRIVACY.md) says. A CI runner is a new machine in each run, so a key that
-covers three machines can run out of activations. Run `nexus-mcp-ci license deactivate` as the
-last step, or ask for a team licence.
 
 ## Notes
 

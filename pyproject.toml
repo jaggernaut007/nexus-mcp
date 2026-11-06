@@ -7,7 +7,7 @@ name = "nexus-mcp-ci"
 version = "2.2.2"
 description = "Local code-intelligence MCP server for Claude Code, Codex and Cursor: hybrid code search, call graph and project memory in fewer tokens. Measure it on your repo with `nexus-mcp-ci eval`."
 readme = "README.md"
-license = "PolyForm-Noncommercial-1.0.0"
+license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10,<3.13"
 authors = [
@@ -26,7 +26,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
-    "License :: Other/Proprietary License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",

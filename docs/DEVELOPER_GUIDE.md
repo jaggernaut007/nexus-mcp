@@ -51,7 +51,7 @@ Nexus-MCP/
 ├── AGENTS.md               # Source of truth for agent harnesses
 ├── CLAUDE.md               # Claude Code context
 ├── PROGRESS.md             # Phase tracking
-└── LICENSE                 # PolyForm Noncommercial 1.0.0
+└── LICENSE                 # MIT
 ```
 
 ## Running Tests

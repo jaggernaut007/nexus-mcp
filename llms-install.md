@@ -20,4 +20,4 @@ call graph and project memory. Install it for the client that you run in. Follow
 
 To remove it: `uvx nexus-mcp-ci setup --client <client> --uninstall --yes`.
 
-Licence: free for noncommercial use. Commercial use needs a paid licence (see README, "Pricing").
+Licence: MIT.

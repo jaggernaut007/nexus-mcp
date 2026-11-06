@@ -49,5 +49,4 @@ comparison.
 
 ## Is it free?
 
-Yes, for noncommercial use, under the PolyForm Noncommercial 1.0.0 license. Commercial use
-needs a separate license from the maintainer.
+Yes. Nexus-MCP uses the MIT license, for any use, including at work.

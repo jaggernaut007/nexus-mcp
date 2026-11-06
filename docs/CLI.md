@@ -74,26 +74,6 @@ options:
   --project PROJECT     Project folder for project-level files (default: .)
 ```
 
-## nexus-mcp-ci license
-
-```text
-usage: nexus-mcp-ci license [-h] {activate,status,deactivate} ...
-
-Commercial licence key. Free for noncommercial use; commercial use needs a paid key
-(https://github.com/jaggernaut007/Nexus-MCP#pricing). Nothing is ever blocked.
-
-positional arguments:
-  {activate,status,deactivate}
-    activate            Activate a key on this machine and save it
-    status              Show the licence state (checks the server if a key is set)
-    deactivate          Free this machine's activation and delete the saved key
-
-options:
-  -h, --help            show this help message and exit
-
-With no key, Nexus-MCP makes no network call.
-```
-
 ## nexus-mcp-ci data
 
 ```text

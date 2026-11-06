@@ -12,13 +12,6 @@ All notable changes to this project will be documented in this file.
   ask, `--client` picks one, `--uninstall` removes what it wrote. An agent can run it from
   `llms-install.md` ("Install Nexus-MCP from the repository URL"). It keeps the other servers
   in a config file and refuses a config that is not valid JSON.
-- **Commercial licence, $5 per developer per month** ([ADR-022](docs/adr/ADR-022-commercial-licence-check.md)).
-  Polar.sh sells the key. `nexus-mcp-ci license activate <key>|status|deactivate`, or set
-  `NEXUS_LICENSE_KEY`. Soft mode: nothing is blocked. With no key the server makes no network
-  call. With a key it sends only the key, the organization id and a random machine label, at
-  most once a day. A good check stays valid for 7 days offline. `status()` gets a one-word
-  `license` field only when a key is set. `COMMERCIAL-LICENSE.md` is a draft. The Polar
-  organization id is not set yet, so the code makes no licence call until it is.
 - **More install channels.** A Claude Desktop extension (`mcpb/`, built by `publish.yml`; it is
   also the way to list the server on Smithery), a Gemini CLI extension, VS Code and Cursor
   install links, a `docker/Dockerfile.stdio` image pushed to GHCR, and a composite GitHub
@@ -27,6 +20,12 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **Licence: PolyForm Noncommercial 1.0.0 → MIT** ([ADR-023](docs/adr/ADR-023-mit-licence.md)),
+  to remove the barrier for companies and directories that accept only OSI licences. Every new
+  release is MIT. Versions 2.0.1 to 2.2.2 keep the PolyForm terms for those who got them. A paid
+  commercial tier (a Polar licence key, built and tested in the sandbox during this cycle) was
+  dropped before release, and its code is not in this release. The server again makes no
+  network call of its own.
 - The Claude Code plugin starts the server with `uvx nexus-mcp-ci==X`, so it needs `uv` and no
   `pip install`. The README quickstart now starts with "ask your agent" and `uvx nexus-mcp-ci setup`.
 - The skill has an install section for a client with no nexus tools. The always-loaded files

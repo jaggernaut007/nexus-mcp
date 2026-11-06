@@ -9,6 +9,6 @@
   },
   "homepage": "https://github.com/jaggernaut007/Nexus-MCP",
   "repository": "https://github.com/jaggernaut007/Nexus-MCP",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "MIT",
   "keywords": ["code-search", "code-graph", "semantic-search", "mcp", "code-intelligence"]
 }

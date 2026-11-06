@@ -48,7 +48,7 @@ Done on 2026-10-03 and removed from this list: tool descriptions and server `ins
 
 | Item | Source | Notes |
 |---|---|---|
-| Licence | POSITIONING D8 | PolyForm Noncommercial limits company use. Gates registry listings and the adoption push |
+| Licence | POSITIONING D8 | Decided 2026-11-06: MIT, for adoption. Revisit a commercial model when the user base is large |
 | Embedding default | `docs/research/embedding-models-2026-10.md` | Evidence says keep `bge-small-en`. Reopen only with larger query sets |
 | `docs/POSITIONING.md` and `docs/AGENT-WORKFLOW-CHANGES.md` are local files, not in this repository (the first is git-ignored, the second is untracked). Items below that cite "POSITIONING" refer to the maintainer's copy | maintainer's checkout | Commit them, or move the decisions into this backlog |
 

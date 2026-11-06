@@ -4,7 +4,7 @@
 [![PyPI downloads](https://static.pepy.tech/badge/nexus-mcp-ci)](https://pepy.tech/projects/nexus-mcp-ci)
 [![PyPI downloads (pypistats)](https://img.shields.io/endpoint?url=https%3A%2F%2Fjaggernaut007.github.io%2Fnexus-mcp%2Fdownloads-badge.json)](https://pypistats.org/packages/nexus-mcp-ci)
 [![Python 3.10–3.12](https://img.shields.io/badge/python-3.10--3.12-blue)](https://pypi.org/project/nexus-mcp-ci/)
-[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue.svg)](#license)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
 [![CI](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml/badge.svg)](https://github.com/jaggernaut007/Nexus-MCP/actions/workflows/publish.yml)
 [![Glama MCP server](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP/badges/card.svg)](https://glama.ai/mcp/servers/jaggernaut007/Nexus-MCP)
 
@@ -615,7 +615,7 @@ ast-grep-mcp. Check each project's docs. Corrections to this table are welcome.
 | Change impact analysis | static callers only | partial | ❌ | ❌ | ❌ |
 | Token-budgeted responses | ✅ 3 levels | ❌ | ❌ | ❌ | ❌ |
 | Languages | 25+ | 30+ | many | many | many |
-| Cost | **Free noncommercial; paid commercial license** | $$$ | $40/mo | $10–39/mo | Free |
+| Cost | **Free (MIT)** | $$$ | $40/mo | $10–39/mo | Free |
 | API keys required | **No** | Yes | Yes | Yes | No |
 
 ### vs. AI Code Tools
@@ -629,8 +629,8 @@ ast-grep-mcp. Check each project's docs. Corrections to this table are welcome.
 | Code graph | partial (containment + imports) | unknown | unknown | ✅ SCIP | basic | ❌ |
 | Semantic memory | ✅ persistent | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Token-budgeted output | ✅ | — | — | — | — | — |
-| Source available | ✅ PolyForm Noncommercial | ❌ | ❌ | partial | ✅ | ✅ |
-| Cost | **Free noncommercial; paid commercial license** | $20–40/mo | $10–39/mo | $0–49/mo | Free | Free |
+| Source available | ✅ MIT | ❌ | ❌ | partial | ✅ | ✅ |
+| Cost | **Free (MIT)** | $20–40/mo | $10–39/mo | $0–49/mo | Free | Free |
 
 ---
 
@@ -791,34 +791,12 @@ Source files retain "Ported from" attribution in their module docstrings. See [A
 
 ---
 
-## Pricing
-
-| | Noncommercial | Commercial |
-|---|---|---|
-| Who | Personal projects, study, research, hobby, charity, education | Use at work, in a company, or for a paid product |
-| Price | Free | **$5 per developer per month**, or $50 per developer per year |
-| Licence | [PolyForm Noncommercial 1.0.0](LICENSE) | [Commercial license](COMMERCIAL-LICENSE.md) (draft) |
-| Features | All of them | All of them. The two tiers differ only in the licence. |
-
-Nothing is ever blocked and there is no trial timer. A commercial user buys a key, then runs:
-
-```bash
-nexus-mcp-ci license activate <your-key>
-```
-
-Or set `NEXUS_LICENSE_KEY` in the environment of the server. One key covers one developer on up
-to three machines. Payment goes through Polar.sh, which handles tax.
-**[Buy a commercial licence](https://buy.polar.sh/polar_cl_YmdKkkbt5AVAAHKefru7iUz9qpXBctKLCW0xF3hDZGL)**
-($5 per developer per month).
-
-With no key, the server makes no network call. With a key, it sends only the key, a random
-machine label and the organization id to `api.polar.sh`, at most once a day. If the server is
-offline, the key stays valid for seven days. Details: [docs/PRIVACY.md](docs/PRIVACY.md) and
-[ADR-022](docs/adr/ADR-022-commercial-licence-check.md). Check a key with
-`nexus-mcp-ci license status`.
-
 ## License
 
-[PolyForm Noncommercial License 1.0.0](https://github.com/jaggernaut007/Nexus-MCP/blob/main/LICENSE). Free to use, copy, modify, and distribute for any noncommercial purpose. Commercial use requires the [commercial license](COMMERCIAL-LICENSE.md): see [Pricing](#pricing).
+[MIT](LICENSE). Free to use, copy, modify and distribute, for any purpose, including at work.
 
-Versions published before 2.0.1 (0.1.0, 0.1.1, 2.0.0) remain available under their original MIT terms for anyone who obtained them under that license.
+Versions 2.0.1 to 2.2.2 were released under the PolyForm Noncommercial License 1.0.0. Anyone who
+obtained one of those versions keeps the terms they got. Versions 0.1.0, 0.1.1 and 2.0.0 were MIT.
+Every new release is MIT.
+
+If Nexus-MCP saves you tokens at work, a star or a sponsorship is welcome. Neither is required.

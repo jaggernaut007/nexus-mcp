@@ -14,25 +14,21 @@ Lower token use for an agent, with the same accuracy. Set by the owner on 2026-1
 - Keep a change only when it lowers the measure and passes the gate. Record the two
   numbers, before and after, in `CHANGELOG.md`.
 
-## Commercial licence and install channels — 2026-11-05 (branch, not released)
+## MIT licence and install channels — 2026-11-06 (branch, not released)
 
-Decisions: Polar.sh issues the keys, $5 per developer per month ($50 per year), soft mode (nothing
-is blocked), no network call without a key. See [ADR-022](docs/adr/ADR-022-commercial-licence-check.md).
-The default install is "ask your agent" or `uvx nexus-mcp-ci setup`; the plugin is the second route.
+Decisions: MIT for every new release ([ADR-023](docs/adr/ADR-023-mit-licence.md)), for adoption. A
+paid licence key (Polar, $5 per developer per month) was built and tested in the sandbox, then
+removed; ADR-022 is superseded. The default install is "ask your agent" or `uvx nexus-mcp-ci setup`.
 
 - [x] `nexus-mcp-ci setup` (8 clients, `--dry-run`, `--uninstall`), `llms-install.md`, plugin on `uvx`
-- [x] `nexus-mcp-ci license activate|status|deactivate`, `status()` gets `license` only with a key
-- [x] `COMMERCIAL-LICENSE.md` (draft), README and site pricing, PRIVACY.md, ADR-022
 - [x] Channel files: `mcpb/` (Claude Desktop and Smithery), `gemini-extension.json`, VS Code and
   Cursor links, `docker/Dockerfile.stdio`, `action.yml`, `publish.yml` jobs, `scripts/bump_version.py`
 - [x] `smithery.yaml` removed: Smithery takes only HTTP servers there. Local servers go as `.mcpb`.
-- [ ] **Owner:** Polar organization, product, licence benefit; then set `POLAR_ORG_ID` and
-  `CHECKOUT_URL` in `src/nexus_mcp/licensing.py`. Until then the code makes no licence call.
-- [ ] **Owner:** lawyer review of `COMMERCIAL-LICENSE.md`
+- [ ] **Owner:** GitHub Sponsors (optional), then `.github/FUNDING.yml`
 - [ ] **Owner:** Smithery publish, GitHub Marketplace tick, Cline issue, Context7 (see
   [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md))
 - [ ] Not verified here: `mcpb pack` (npm install needs approval), the Docker build (no Docker
-  daemon), a live Polar sandbox run, the real clients (Gemini CLI, Cursor, VS Code, Desktop)
+  daemon), the real clients (Gemini CLI, Cursor, VS Code, Desktop)
 
 ## Phase 1: Scaffold + Port Core Modules — COMPLETE
 - [x] Project structure created

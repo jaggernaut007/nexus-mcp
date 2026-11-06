@@ -4,7 +4,7 @@ title: "Nexus-MCP: Unified Code Intelligence Server"
 type: software
 version: 2.2.2
 date-released: 2026-11-05
-license: PolyForm-Noncommercial-1.0.0
+license: MIT
 url: "https://github.com/jaggernaut007/Nexus-MCP"
 repository-code: "https://github.com/jaggernaut007/Nexus-MCP"
 repository-artifact: "https://pypi.org/project/nexus-mcp-ci/"

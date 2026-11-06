@@ -26,12 +26,6 @@
           "isSecret": false
         },
         {
-          "name": "NEXUS_LICENSE_KEY",
-          "description": "Optional commercial licence key. Leave it unset for noncommercial use; with no key the server makes no network call.",
-          "isRequired": false,
-          "isSecret": true
-        },
-        {
           "name": "NEXUS_OFFLINE",
           "description": "Set to 1 to block the embedding model download after the first run",
           "isRequired": false,

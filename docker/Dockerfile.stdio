@@ -12,7 +12,7 @@ ARG VERSION=dev
 LABEL org.opencontainers.image.title="nexus-mcp" \
       org.opencontainers.image.description="Local code search, call graph and project memory for AI coding agents" \
       org.opencontainers.image.source="https://github.com/jaggernaut007/Nexus-MCP" \
-      org.opencontainers.image.licenses="PolyForm-Noncommercial-1.0.0" \
+      org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="${VERSION}"
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \

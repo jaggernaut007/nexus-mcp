@@ -482,13 +482,6 @@ def status() -> dict[str, Any]:
         "memory": {"peak_rss_mb": round(peak_rss_mb, 1)},
     }
 
-    # One word, and only when a commercial key is set: no extra tokens for a free user.
-    from nexus_mcp import licensing
-
-    license_status = licensing.current_state().status
-    if license_status != licensing.NONE:
-        result["license"] = license_status
-
     if state.is_indexed:
         if state.vector_engine:
             result["vector_chunks"] = state.vector_engine.count()

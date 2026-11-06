@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 # Public values, not secrets. The owner sets POLAR_ORG_ID after making the Polar organization.
-POLAR_ORG_ID = "UNSET"
+POLAR_ORG_ID = "3442192f-05d2-49f3-9a28-b6f4890f712b"
 PRICING_URL = "https://github.com/jaggernaut007/Nexus-MCP#pricing"
 CHECKOUT_URL = PRICING_URL  # replaced by the Polar checkout link when it exists
 API_BASE = "https://api.polar.sh"

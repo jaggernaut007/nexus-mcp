@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **A star prompt.** The README has a GitHub stars badge and one line that asks for a star. The
+  site's GitHub button now says "Star", and the hero has a star link. `setup` prints one line
+  with the repository link after a successful install only (not for `--dry-run` or
+  `--uninstall`).
+
+### North star
+
+- Tokens: no change for the MCP tools. `status()` and every tool answer are the same. The star
+  line is CLI output of `setup`, printed once per install: about 25 tokens when an agent runs it.
+
 ## [2.4.1] - 2026-11-08
 
 ### Added

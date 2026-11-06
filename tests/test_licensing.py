@@ -152,10 +152,16 @@ def test_validate_revoked_key_gives_revoked(polar):
     assert state.status == licensing.REVOKED
 
 
-def test_validate_rejected_key_gives_invalid(polar):
+def test_validate_404_after_a_good_activation_gives_revoked(polar):
+    # Requirement changed on 2026-11-06. A sandbox test showed that Polar answers 404 (not a
+    # 200 with status "revoked") for a key that was revoked after its activation. A key that
+    # worked here and now gets 404 is therefore a revoked key. A key that Polar never
+    # accepted is still `invalid` (see the activate 404 test above).
     licensing.activate(KEY)
     polar.routes[VALIDATE] = (404, {})
-    assert licensing.validate(force=True).status == licensing.INVALID
+    state = licensing.validate(force=True)
+    assert state.status == licensing.REVOKED
+    assert "no longer valid" in state.message
 
 
 def test_validate_uses_the_cache_for_a_day(polar):

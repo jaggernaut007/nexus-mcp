@@ -263,6 +263,11 @@ def validate(force: bool = False) -> LicenseState:
         )
 
     if code != 200 and state.status == NONE:
+        if same_key and record.get("activation_id"):
+            # Polar answers 404 for a key that was revoked or whose subscription ended. A key
+            # that worked here before and now gets 404 is therefore a revoked key.
+            msg = "key is no longer valid (subscription ended or key revoked)"
+            return LicenseState(REVOKED, record.get("display_key") or _mask(key), None, now, msg)
         return LicenseState(INVALID, _mask(key), None, now, "key was not accepted")
     if state.status == ACTIVE:
         record.update(last_ok_at=state.checked_at, expires_at=state.expires_at)
@@ -421,7 +426,7 @@ def run_license(argv: List[str]) -> int:
     key, _ = resolve_key()
     if key and configured() and not offline():
         print(f"Contacting {api_base().split('//')[-1]} to check this key.", file=sys.stderr)
-    state = validate(force=False)
+    state = validate(force=True)  # the user asked: skip the 24 h cache
     print(f"status:   {state.status}")
     print(f"key:      {state.display_key or '-'}")
     print(f"expires:  {state.expires_at or '-'}")

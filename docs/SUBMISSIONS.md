@@ -16,8 +16,8 @@ GitHub release. Every install route pins `nexus-mcp-ci==2.4.1`. See
 | Glama, awesome-mcp-servers (`punkpeye`), Context7 | listed |
 | Cline marketplace | to do (test with Cline first) |
 | Docker MCP Catalog | to do |
-| Cursor Marketplace | to do (owner login) |
-| Anthropic plugin directory | to do (owner login, paid Claude plan) |
+| Cursor Marketplace | submitted 2026-11-08, in review |
+| Anthropic plugin directory | submitted 2026-11-08, in review (auto-publish and push webhook on) |
 | mcp.so, mcpservers.org | to do (web forms) |
 
 ## One-line blurb
@@ -128,6 +128,22 @@ Validation on 2026-11-08 passed with 3 warnings and 2 policy holds:
 - **Script warning:** it comes from the `uvx nexus-mcp-ci` instructions in the skills and the
   agent. They are instructions, not a script that the plugin runs, so nothing changes.
 - **Local (stdio) server:** it runs in Claude Code and Cowork, not on claude.ai.
+
+Submitted on 2026-11-08 from `main` @ `8a4c45a`, with these choices:
+
+- **Warnings:** 7. The 4 more than above are the listing fields (`documentationUrl`,
+  `supportUrl`, `privacyPolicyUrl`, `termsOfServiceUrl`). Only the directory reads them, so they
+  stay.
+- **Listed on:** Claude Code and Cowork. Not the Claude apps: they do not run local MCP servers
+  or agents, so only the skills would install.
+- **Data handling:** personal data "No"; data to other services "Yes — listed in README"
+  (`plugin/README.md`: the opt-in agent tier and share steps); retention "Not retained";
+  under 18 "No".
+- **Reviewer note:** the name note above, and: "The evaluate skill and the nexus-evaluator agent
+  run the same package's CLI (`uvx nexus-mcp-ci eval`) through Bash, only when the user asks.
+  They run no other code."
+- **New versions:** auto-publish on, GitHub push webhook on. Follow the release order in
+  [RELEASING.md](RELEASING.md), so the plugin pin never reaches `main` before PyPI has it.
 
 ## Codex, GitHub Copilot, Gemini CLI
 

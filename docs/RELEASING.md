@@ -32,20 +32,38 @@ again. It names the version that the benchmark measured.
 3. Move the `Unreleased` entries of `CHANGELOG.md` under the new version and date.
 4. If the benchmark ran again, edit `benchmarks/published/results.json`, then run
    `python scripts/publish_results.py`.
-5. Merge to `main`.
-6. Create a GitHub release with the tag `vX.Y.Z`. `publish.yml` then:
+5. Push the release branch and open its PR. Do not merge it yet. See "Why PyPI comes before
+   `main`" below.
+6. Create a GitHub release with the tag `vX.Y.Z` and **the release branch as its target**.
+   `publish.yml` then:
    - builds the wheel and the sdist and publishes them to PyPI (trusted publishing);
    - publishes `server.json` to the official MCP Registry (GitHub OIDC). The registry checks
      that the PyPI README holds `mcp-name: io.github.jaggernaut007/nexus-mcp`;
    - builds `nexus-mcp.mcpb` (the Claude Desktop extension) after PyPI has the version, and
      attaches it to the release;
    - pushes `ghcr.io/jaggernaut007/nexus-mcp:<version>` and `:latest`.
-7. `pages.yml` deploys the site from `main`.
-8. Check Glama: it rebuilds from the repository. Re-claim the server if the listing is stale.
-9. Do the owner steps in [DISTRIBUTION.md](DISTRIBUTION.md): tick "Publish to Marketplace" for
+7. Check that `https://pypi.org/project/nexus-mcp-ci/X.Y.Z/` exists.
+8. Merge the PR with **"Create a merge commit"**, not a squash. A squash makes a new commit, so
+   the tag would point at a commit that is not in the history of `main`.
+9. `pages.yml` deploys the site from `main`.
+10. Check Glama: it rebuilds from the repository. Re-claim the server if the listing is stale.
+11. Do the owner steps in [DISTRIBUTION.md](DISTRIBUTION.md): tick "Publish to Marketplace" for
    the Action, and open the Cline issue.
+
+## Why PyPI comes before `main`
+
+The Anthropic plugin directory follows `main` and has auto-publish on, with a GitHub push
+webhook. A push to `main` that passes its checks goes live in minutes. The Claude Code
+marketplace (`/plugin marketplace add`) also installs from `main`, and so can the Cursor
+Marketplace listing.
+
+`plugin/.mcp.json` pins `nexus-mcp-ci==X.Y.Z`. If that pin reaches `main` before PyPI has the
+version, every new plugin install fails until PyPI catches up, or for good if the release
+fails. So publish to PyPI from the release branch first, then merge.
 
 ## After the release
 
 - `pip install -U nexus-mcp-ci` in a clean environment, then `nexus-mcp-ci eval --example`.
 - Check the listing at `https://registry.modelcontextprotocol.io`.
+- Check that the Anthropic plugin directory shows the new version. If a check held it, the
+  directory page says why.

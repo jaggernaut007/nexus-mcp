@@ -14,8 +14,9 @@ call graph and project memory. Install it for the client that you run in. Follow
    The command adds the server entry and the skill text to that client. It starts an index of
    the folder in the background. To see the changes first, add `--dry-run`.
 3. Tell the user to reload the client, or to start a new session. New tools appear only after that.
-4. In the new session, the tools are `index`, `status`, `search`, `find_symbol`, `graph`,
-   `analyze`, `map` and `memory`. If a tool answers "No codebase indexed", call `index` once
+4. In the new session, the tools are `index`, `search`, `find_symbol`, `graph` and `map`.
+   The server shows `status`, `analyze` and `memory` only when the environment variable
+   `NEXUS_EXTRA_TOOLS=all` is set. If a tool answers "No codebase indexed", call `index` once
    with the absolute project path.
 
 To remove it: `uvx nexus-mcp-ci setup --client <client> --uninstall --yes`.

@@ -17,7 +17,7 @@ GitHub release. Every install route pins `nexus-mcp-ci==2.4.1`. See
 | Cline marketplace | to do (test with Cline first) |
 | Docker MCP Catalog | to do |
 | Cursor Marketplace | submitted 2026-11-08, in review |
-| Anthropic plugin directory | submitted 2026-11-08, in review (auto-publish and push webhook on) |
+| Anthropic plugin directory | refused 2026-11-08: local MCP servers only from a Verified organization (see below) |
 | mcp.so, mcpservers.org | to do (web forms) |
 
 ## One-line blurb
@@ -144,6 +144,14 @@ Submitted on 2026-11-08 from `main` @ `8a4c45a`, with these choices:
   They run no other code."
 - **New versions:** auto-publish on, GitHub push webhook on. Follow the release order in
   [RELEASING.md](RELEASING.md), so the plugin pin never reaches `main` before PyPI has it.
+
+Result on 2026-11-08: the security scan passed, but the policy check refused the version. The
+directory accepts MCP servers that run on the user's computer only from a Verified
+organization. It asks to remove every local MCP server, or to use a server at a public URL.
+Nexus-MCP must run locally to read the user's code, so a public URL server cannot replace it.
+Do not remove the server from `plugin/`: the Claude Code marketplace
+(`/plugin marketplace add jaggernaut007/Nexus-MCP`) installs the same folder. Resubmit after the
+organization is verified.
 
 ## Codex, GitHub Copilot, Gemini CLI
 

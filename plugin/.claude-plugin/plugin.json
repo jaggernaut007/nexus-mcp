@@ -7,9 +7,13 @@
     "name": "Shreyas Jagannath",
     "url": "https://github.com/jaggernaut007"
   },
-  "homepage": "https://github.com/jaggernaut007/Nexus-MCP",
+  "homepage": "https://jaggernaut007.github.io/nexus-mcp/",
   "repository": "https://github.com/jaggernaut007/Nexus-MCP",
   "license": "MIT",
+  "documentationUrl": "https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/README.md",
+  "supportUrl": "https://github.com/jaggernaut007/Nexus-MCP/issues",
+  "privacyPolicyUrl": "https://github.com/jaggernaut007/Nexus-MCP/blob/main/docs/PRIVACY.md",
+  "termsOfServiceUrl": "https://github.com/jaggernaut007/Nexus-MCP/blob/main/LICENSE",
   "keywords": [
     "code-search",
     "call-graph",

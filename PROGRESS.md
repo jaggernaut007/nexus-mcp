@@ -35,9 +35,11 @@ removed; ADR-023 is superseded. The default install is "ask your agent" or `uvx 
   Desktop app. None of them is installed on the dev machine.
 - [x] Released 2.3.0 (2026-11-06) and 2.4.1 (2026-11-08). Checked 2026-11-08: PyPI, the MCP
   Registry, GHCR and the `.mcpb` asset are all at 2.4.1. Star prompt merged (PR #30).
-- [ ] **Todo:** submit to Cline, Cursor, the Anthropic directory, the Docker
-  catalog, mcp.so and mcpservers.org with the text in [docs/SUBMISSIONS.md](docs/SUBMISSIONS.md).
-  Add Codex, Copilot and Antigravity support first if wanted (formats not checked yet).
+- [ ] **Todo:** submit to Cline (test with Cline first) and the Docker catalog with the text in
+  [docs/SUBMISSIONS.md](docs/SUBMISSIONS.md). Done on 2026-11-08: Cursor (in review),
+  mcpservers.org (listed). The Anthropic directory refused it (Verified organization rule).
+  mcp.so is skipped, because a listing costs money. Add Codex, Copilot and Antigravity support
+  first if wanted (formats not checked yet).
 - [ ] **Todo:** `mcpb/manifest.json` lists 8 tools, but 2.4.0 and later show 5 by default
   (`NEXUS_EXTRA_TOOLS` adds 3). Make the manifest list match in the next release.
 

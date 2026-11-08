@@ -18,7 +18,8 @@ GitHub release. Every install route pins `nexus-mcp-ci==2.4.1`. See
 | Docker MCP Catalog | to do |
 | Cursor Marketplace | submitted 2026-11-08, in review |
 | Anthropic plugin directory | refused 2026-11-08: local MCP servers only from a Verified organization (see below) |
-| mcp.so, mcpservers.org | to do (web forms) |
+| mcpservers.org | listed 2026-11-08: `https://mcpservers.org/servers/glama-ai-mcp-servers-jaggernaut007-nexus-mcp` |
+| mcp.so | skipped: a listing costs money |
 
 ## One-line blurb
 
@@ -170,5 +171,5 @@ organization is verified.
 |---|---|
 | Official MCP Registry | automatic on release (`publish.yml`) |
 | Glama, awesome-mcp-servers (`punkpeye`) | already listed |
-| mcp.so | web form or issue. Use the short description. |
-| mcpservers.org | web form. Use the short description. |
+| mcpservers.org | listed 2026-11-08 |
+| mcp.so | skipped: a listing costs money |

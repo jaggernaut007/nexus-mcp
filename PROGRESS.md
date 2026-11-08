@@ -14,7 +14,7 @@ Lower token use for an agent, with the same accuracy. Set by the owner on 2026-1
 - Keep a change only when it lowers the measure and passes the gate. Record the two
   numbers, before and after, in `CHANGELOG.md`.
 
-## MIT licence and install channels — 2026-11-06 (branch, not released)
+## MIT licence and install channels — released in 2.3.0 (2026-11-06)
 
 Decisions: MIT for every new release ([ADR-024](docs/adr/ADR-024-mit-licence.md)), for adoption. A
 paid licence key (Polar, $5 per developer per month) was built and tested in the sandbox, then
@@ -33,10 +33,13 @@ removed; ADR-023 is superseded. The default install is "ask your agent" or `uvx 
   `setup` for all 8 clients against a fake home.
 - [ ] **Todo:** install and test on the real clients: Gemini CLI, Cursor, VS Code and the Claude
   Desktop app. None of them is installed on the dev machine.
-- [ ] **Todo:** release 2.3.0 (version files are bumped; merge, then create the GitHub release).
-- [ ] **Todo, after the release:** submit to Cline, Cursor, the Anthropic directory, the Docker
+- [x] Released 2.3.0 (2026-11-06) and 2.4.1 (2026-11-08). Checked 2026-11-08: PyPI, the MCP
+  Registry, GHCR and the `.mcpb` asset are all at 2.4.1. Star prompt merged (PR #30).
+- [ ] **Todo:** submit to Cline, Cursor, the Anthropic directory, the Docker
   catalog, mcp.so and mcpservers.org with the text in [docs/SUBMISSIONS.md](docs/SUBMISSIONS.md).
   Add Codex, Copilot and Antigravity support first if wanted (formats not checked yet).
+- [ ] **Todo:** `mcpb/manifest.json` lists 8 tools, but 2.4.0 and later show 5 by default
+  (`NEXUS_EXTRA_TOOLS` adds 3). Make the manifest list match in the next release.
 
 ## Phase 1: Scaffold + Port Core Modules — COMPLETE
 - [x] Project structure created

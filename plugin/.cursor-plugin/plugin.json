@@ -1,6 +1,6 @@
 {
   "name": "nexus-mcp",
-  "description": "Code search, call graph and project memory for Cursor. Runs the nexus-mcp-ci server through uvx, so it needs uv (https://docs.astral.sh/uv/) and no pip install. It also teaches the agent when to use the tools.",
+  "description": "Fewer tokens for Cursor on large codebases. Local hybrid code search, a call graph for 10 languages and the code of any symbol, so the agent reads fewer files. In the 2.4.1 benchmark it used 27% to 49% fewer tokens than Grep and Read on Django and Home Assistant. Runs on your machine through uv: no API key, no telemetry.",
   "version": "2.4.1",
   "author": {
     "name": "Shreyas Jagannath"
@@ -10,10 +10,22 @@
   "license": "MIT",
   "keywords": [
     "code-search",
+    "call-graph",
     "code-graph",
     "semantic-search",
+    "code-intelligence",
+    "token-efficiency",
     "mcp",
-    "code-intelligence"
+    "local-first",
+    "python",
+    "typescript",
+    "javascript",
+    "go",
+    "java",
+    "rust",
+    "cpp",
+    "csharp",
+    "php"
   ],
   "logo": "assets/logo.png",
   "mcpServers": "./.mcp.json"

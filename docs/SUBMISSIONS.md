@@ -106,7 +106,28 @@ Give the repository URL. The repository has `.cursor-plugin/marketplace.json` at
 ## Anthropic plugin directory (`claude.ai/directory/manage`)
 
 Needs a paid Claude plan. Give the repository URL, the short description, the logo and the
-license. The plugin is `plugin/` (manifest `plugin/.claude-plugin/plugin.json`).
+license.
+
+- **Plugin path:** `plugin` (the folder, not the manifest file).
+- **Branch or tag:** leave it empty, so the listing follows `main`.
+- The listing text comes from `plugin/.claude-plugin/plugin.json` (`description`, `keywords`).
+
+Validation on 2026-11-08 passed with 3 warnings and 2 policy holds:
+
+- **Name hold:** "nexus-mcp" is close to the "Nexus" connector of nexus-fitness. A person
+  reviews it. Reviewer note: "Nexus-MCP is a code-search MCP server for developers. It is not
+  related to the Nexus fitness connector. The package has been on PyPI as `nexus-mcp-ci` since
+  2025 and is in the official MCP Registry as `io.github.jaggernaut007/nexus-mcp`."
+- **Verified organizations:** later, the directory will accept local servers only from a
+  Verified organization. This is not a refusal today.
+- **No lockfile next to the manifest:** the Verified badge needs `pyproject.toml` and `uv.lock`
+  in `plugin/`. A lock for `nexus-mcp-ci==2.4.1` on Python 3.12 only is about 205 KB, under the
+  256 KiB file limit (all Python versions: 487 KB, over the limit). Add it only together with
+  organization verification: it changes the launch command for every plugin user, and Cursor
+  shares `plugin/.mcp.json` but does not expand `${CLAUDE_PLUGIN_ROOT}`.
+- **Script warning:** it comes from the `uvx nexus-mcp-ci` instructions in the skills and the
+  agent. They are instructions, not a script that the plugin runs, so nothing changes.
+- **Local (stdio) server:** it runs in Claude Code and Cowork, not on claude.ai.
 
 ## Codex, GitHub Copilot, Gemini CLI
 

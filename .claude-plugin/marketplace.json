@@ -4,12 +4,12 @@
     "name": "Shreyas Jagannath",
     "url": "https://github.com/jaggernaut007"
   },
-  "description": "Code search, call graph and project memory MCP server, packaged with a routing skill",
+  "description": "Nexus-MCP: local code search and call graph for Claude Code, with a skill that tells Claude which tool answers which question",
   "plugins": [
     {
       "name": "nexus-mcp",
       "source": "./plugin",
-      "description": "Registers the nexus-mcp-ci MCP server and a short skill that tells Claude which tool answers which question about a codebase"
+      "description": "Local code search and a call graph for 10 languages. Claude reads fewer files and uses fewer tokens: 27% to 49% fewer than Grep and Read on Django and Home Assistant (2.4.1 benchmark)."
     }
   ]
 }

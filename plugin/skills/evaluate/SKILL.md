@@ -1,6 +1,6 @@
 ---
 name: evaluate
-description: Measure whether Nexus-MCP helps on the user's own project before they adopt it. Runs the free offline `nexus-mcp-ci eval` check, explains the verdict, and offers the paid agent tier and the optional share step. Use when the user asks to try, test, evaluate, benchmark or compare Nexus-MCP, or asks whether it is worth installing.
+description: Measure whether Nexus-MCP helps on the user's own project before they adopt it. Runs the free offline `nexus-mcp-ci eval` check, explains the verdict, and offers the agent tier (which spends the user's own LLM API tokens) and the optional share step. Use when the user asks to try, test, evaluate, benchmark or compare Nexus-MCP, or asks whether it is worth installing.
 model: sonnet
 ---
 

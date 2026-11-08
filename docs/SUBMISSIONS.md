@@ -1,21 +1,21 @@
 # Submission texts
 
-Ready-to-paste text for each listing. Release 2.4.1 is live on every automatic channel
+Ready-to-paste text for each listing. Release 2.4.2 is live on every automatic channel
 (checked 2026-11-08): PyPI, the official MCP Registry, the GHCR image and the `.mcpb` file on the
-GitHub release. Every install route pins `nexus-mcp-ci==2.4.1`. See
+GitHub release. Every `uvx` route runs `uvx --python 3.12 nexus-mcp-ci==2.4.2`. See
 [DISTRIBUTION.md](DISTRIBUTION.md) for the steps and the order.
 
 ## Status of each listing
 
 | Listing | Status |
 |---|---|
-| PyPI (`nexus-mcp-ci`) | 2.4.1, automatic on release |
-| Official MCP Registry (`io.github.jaggernaut007/nexus-mcp`) | 2.4.1 is the latest, automatic on release |
-| GHCR image `ghcr.io/jaggernaut007/nexus-mcp` | tags `2.4.1`, `2.3.0` and `latest`, public |
+| PyPI (`nexus-mcp-ci`) | 2.4.2, automatic on release |
+| Official MCP Registry (`io.github.jaggernaut007/nexus-mcp`) | 2.4.2 is the latest (with `--python 3.12`), automatic on release |
+| GHCR image `ghcr.io/jaggernaut007/nexus-mcp` | tags `2.4.2`, `2.4.1`, `2.3.0` and `latest`, public |
 | Claude Desktop extension (`nexus-mcp.mcpb`) | attached to the GitHub release |
 | Glama, awesome-mcp-servers (`punkpeye`), Context7 | listed |
-| Cline marketplace | to do (test with Cline first) |
-| Docker MCP Catalog | to do |
+| Cline marketplace | to do: the first test (2026-11-08) failed on Python 3.14, fixed in 2.4.2; test again |
+| Docker MCP Catalog | entry in `docker/mcp-registry/`, pull request to `docker/mcp-registry` |
 | Cursor Marketplace | submitted 2026-11-08, in review |
 | Anthropic plugin directory | refused 2026-11-08: local MCP servers only from a Verified organization (see below) |
 | mcpservers.org | listed 2026-11-08: `https://mcpservers.org/servers/glama-ai-mcp-servers-jaggernaut007-nexus-mcp` |
@@ -93,11 +93,20 @@ Cline." Test with Cline first. Cline asks for that test.
 
 ## Docker MCP Catalog (`docker/mcp-registry`, a pull request)
 
-See the steps in [DISTRIBUTION.md](DISTRIBUTION.md). Category: `devops` or `developer-tools`
-(read the current category list in the registry first). PR title: `Add nexus-mcp`. Use the
-image `ghcr.io/jaggernaut007/nexus-mcp:2.4.1`. Put the 5 default tools in `tools.json`
-(`index`, `search`, `find_symbol`, `graph`, `map`). Name `NEXUS_EXTRA_TOOLS` as an optional
-setting for the other 3.
+The entry is in `docker/mcp-registry/`: copy `server.yaml` and `tools.json` to
+`servers/nexus-mcp/` in a fork of `docker/mcp-registry`. PR title: `Add nexus-mcp`.
+
+- Docker builds `docker/Dockerfile.stdio` at the commit in `server.yaml` and hosts the image as
+  `mcp/nexus-mcp` (with Docker's signature and SBOM). Set the commit to the new release commit
+  after each release.
+- The project is mounted at `/workspace`. `NEXUS_WORKSPACE=/workspace` in the image tells the
+  agent to index that path (2.4.2 and later). The index and the model stay in the
+  `nexus-mcp-data` volume.
+- `tools.json` lists the 5 default tools. It comes from the server, so the build does not have
+  to start it.
+- Tested with Colima on 2026-11-08: the image builds from GitHub, answers over stdio, indexes
+  `/workspace` and reuses the index in a new container. Colima shares only the home folder with
+  its VM, so a project outside `~` is empty in the container.
 
 ## Cursor Marketplace (`cursor.com/marketplace/publish`)
 

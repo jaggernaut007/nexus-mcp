@@ -33,15 +33,19 @@ removed; ADR-023 is superseded. The default install is "ask your agent" or `uvx 
   `setup` for all 8 clients against a fake home.
 - [ ] **Todo:** install and test on the real clients: Gemini CLI, Cursor, VS Code and the Claude
   Desktop app. None of them is installed on the dev machine.
-- [x] Released 2.3.0 (2026-11-06) and 2.4.1 (2026-11-08). Checked 2026-11-08: PyPI, the MCP
-  Registry, GHCR and the `.mcpb` asset are all at 2.4.1. Star prompt merged (PR #30).
+- [x] Released 2.3.0 (2026-11-06), 2.4.1 and 2.4.2 (2026-11-08). Checked 2026-11-08: PyPI, the
+  MCP Registry, GHCR and the `.mcpb` asset are all at 2.4.2. 2.4.2 pins Python 3.12 in every
+  `uvx` launch (the Cline test failed on Python 3.14) and adds `NEXUS_WORKSPACE` for Docker.
 - [ ] **Todo:** submit to Cline (test with Cline first) and the Docker catalog with the text in
   [docs/SUBMISSIONS.md](docs/SUBMISSIONS.md). Done on 2026-11-08: Cursor (in review),
   mcpservers.org (listed). The Anthropic directory refused it (Verified organization rule).
   mcp.so is skipped, because a listing costs money. Add Codex, Copilot and Antigravity support
   first if wanted (formats not checked yet).
-- [ ] **Todo:** `mcpb/manifest.json` lists 8 tools, but 2.4.0 and later show 5 by default
-  (`NEXUS_EXTRA_TOOLS` adds 3). Make the manifest list match in the next release.
+- [x] `mcpb/manifest.json` lists the 5 default tools (2.4.2). A test compares it with the server.
+- [ ] **Todo:** a two-stage `docker/Dockerfile.stdio` without the C compilers (the image is
+  3.2 GB; the compilers are 362 MB of it).
+- [ ] **Todo:** move off `tree-sitter-languages` (no wheels after Python 3.12), so the package
+  installs on 3.13 and 3.14 without the `--python 3.12` pin.
 
 ## Phase 1: Scaffold + Port Core Modules — COMPLETE
 - [x] Project structure created

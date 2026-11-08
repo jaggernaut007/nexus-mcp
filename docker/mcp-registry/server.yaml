@@ -9,7 +9,7 @@ meta:
     - code-graph
     - developer-tools
 about:
-  title: Nexus-MCP
+  title: Nexus Code Search
   description: Local code search and call graph for AI coding agents. Hybrid search, the code of any symbol, and callers and callees for 10 languages, so the agent reads fewer files. No API key and no telemetry.
   icon: https://raw.githubusercontent.com/jaggernaut007/Nexus-MCP/main/site/logo-400.png
 source:

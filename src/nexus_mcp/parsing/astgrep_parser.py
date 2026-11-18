@@ -25,6 +25,7 @@ from nexus_mcp.core.graph_models import (
     UniversalNode,
     UniversalRelationship,
 )
+from nexus_mcp.parsing.http_extractor import MAX_HTTP_FACTS, extract_http
 from nexus_mcp.parsing.language_registry import (
     ASTGREP_LANGUAGES,
     get_language_for_file,
@@ -289,6 +290,16 @@ ASTGREP_LANG_IDS: Dict[str, str] = {
 }
 
 
+def _add_http_fact(node: UniversalNode, key: str, method: str, path: str) -> None:
+    """Add `{method, path}` to `node.metadata[key]`, once. A function takes up to MAX_HTTP_FACTS;
+    a module node, which holds the routes of inline handlers, takes up to 10 times as many."""
+    facts = node.metadata.setdefault(key, [])
+    entry = {"method": method, "path": path}
+    cap = MAX_HTTP_FACTS * (10 if node.node_type == NodeType.MODULE else 1)
+    if entry not in facts and len(facts) < cap:
+        facts.append(entry)
+
+
 class AstGrepParser:
     """Structural code parser using ast-grep for graph building."""
 
@@ -303,6 +314,7 @@ class AstGrepParser:
         # ids from an earlier parser, and a new parser that restarted its counter would
         # reuse them, so add_node() would silently drop the new nodes.
         self._id_token = uuid.uuid4().hex[:8]
+        self._file_functions: List[UniversalNode] = []  # function nodes of the file in parse
 
     def can_parse(self, filepath: str) -> bool:
         """True when ast-grep has structure rules for the language of this file."""
@@ -366,6 +378,7 @@ class AstGrepParser:
             logger.warning("ast-grep parse failed for %s: %s", filepath, e)
             return nodes_added
 
+        self._file_functions = []
         # Extract functions
         nodes_added += self._extract_functions(
             sg_node, filepath, language, module_id, graph
@@ -376,6 +389,8 @@ class AstGrepParser:
         )
         # Extract imports
         self._extract_imports(sg_node, filepath, language, module_id, graph)
+        # Routes and HTTP client calls (ADR-027): metadata for the service resolver
+        self._attach_http(sg_node, filepath, language, content, module_node)
 
         return nodes_added
 
@@ -468,6 +483,7 @@ class AstGrepParser:
                     metadata=self._function_metadata(match, language, scope),
                 )
                 graph.add_node(func_node)
+                self._file_functions.append(func_node)
 
                 # Add CONTAINS relationship from module
                 graph.add_relationship(UniversalRelationship(
@@ -524,6 +540,43 @@ class AstGrepParser:
                 break
         text = "\n".join(line.strip() for line in text.strip().splitlines())
         return text[:MAX_DOCSTRING_CHARS] or None
+
+    def _attach_http(
+        self, sg_node, filepath: str, language: str, content: str, module_node: UniversalNode
+    ) -> None:
+        """Put `routes` and `http_calls` on the nodes of the file (ADR-027).
+
+        A route goes on its handler function. A client call goes on the innermost function that
+        holds it. What has no function node (an arrow function, a call at module level) goes
+        on the module node, so the resolver still sees it.
+        """
+        try:
+            facts = extract_http(sg_node, language, filepath, content)
+        except Exception as e:  # noqa: BLE001 - an addition to the graph, never a failure
+            logger.debug("HTTP extraction failed for %s: %s", filepath, e)
+            return
+        funcs = self._file_functions
+        for route in facts.routes:
+            target = None
+            if route.def_line is not None:
+                target = next(
+                    (f for f in funcs
+                     if f.location.start_line == route.def_line
+                     and (route.handler_name is None or f.name == route.handler_name)),
+                    None,
+                )
+            if target is None and route.handler_name:
+                named = [f for f in funcs if f.name == route.handler_name]
+                target = named[0] if len(named) == 1 else None
+            _add_http_fact(target or module_node, "routes", route.method, route.path)
+        for call in facts.calls:
+            holding = [
+                f for f in funcs if f.location.start_line <= call.line <= f.location.end_line
+            ]
+            target = min(
+                holding, key=lambda f: f.location.end_line - f.location.start_line, default=None
+            )
+            _add_http_fact(target or module_node, "http_calls", call.method, call.path)
 
     def _function_metadata(
         self, match, language: str, scope: Optional[List[str]] = None

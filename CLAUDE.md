@@ -87,6 +87,7 @@ src/nexus_mcp/
 ├── parsing/
 │   ├── treesitter_parser.py   # Symbol extraction → embeddings
 │   ├── astgrep_parser.py      # Structural analysis → graph
+│   ├── http_extractor.py      # Routes and HTTP client calls → node metadata (ADR-027)
 │   ├── language_registry.py   # Merged language support (25+ langs)
 │   └── file_watcher.py        # Debounced watchdog
 ├── engines/
@@ -168,7 +169,7 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 - Adopter evaluation in the package (`eval`), ground truth from the parser — [ADR-020](docs/adr/ADR-020-adopter-evaluation.md)
 - One source for published numbers; opt-in sharing, no telemetry — [ADR-021](docs/adr/ADR-021-results-publishing-and-sharing.md)
 - Server lifecycle: idle timeout (3 h), orphan exit, `os._exit` after a bounded cleanup — [ADR-022](docs/adr/ADR-022-server-lifecycle-and-exit.md)
-- Linked repos: one index per repo, a user-level registry, service calls as the connection (draft, phases 2.1 and 2.2) — [ADR-027](docs/adr/ADR-027-linked-repos.md)
+- Linked repos: one index per repo, a user-level registry, service calls as the connection (draft, phases 2.1 to 2.3) — [ADR-027](docs/adr/ADR-027-linked-repos.md)
 - MIT licence, commercial licence key removed again — [ADR-023](docs/adr/ADR-023-commercial-licence-check.md) (superseded by [ADR-024](docs/adr/ADR-024-mit-licence.md))
 
 ## Gotchas

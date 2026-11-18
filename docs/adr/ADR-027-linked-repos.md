@@ -1,6 +1,6 @@
 # ADR-027: Linked Repos: One Index per Repo, a User-Level Registry, Service Calls as the Connection
 
-## Status: Draft (Part 2, phases 2.1 and 2.2 of 5)
+## Status: Draft (Part 2, phases 2.1 to 2.3 of 5)
 ## Date: 2026-11-17
 
 ## Context
@@ -64,6 +64,33 @@ The owner decided on 2026-11-17:
   files of every linked repo again and saves the graph after the metadata.
 - **A linked store is read-only for the server.** Staleness is reported, not fixed. The
   person runs `link --refresh`.
+- **Routes and client calls are extracted per file** (phase 2.3, `parsing/http_extractor.py`).
+  A route is `metadata["routes"] = [{method, path}]` on its handler function node. A client call
+  is `metadata["http_calls"] = [{method, path}]` on the innermost function that holds it. A route
+  or a call with no function node (an arrow function, a call at module level) goes on the module
+  node of the file. A path is normalised: no scheme, host or base-URL variable, each parameter
+  `{}`, no query string, no trailing slash. A path that is not a literal, or does not start with
+  `/`, is left out (precision first, ADR-019). Covered: Python (FastAPI and Starlette-style
+  decorators, Flask, `requests`, `httpx`, `client.<verb>`, `session.<verb>`; a prefix set in the
+  same file by `APIRouter(prefix=)`, `Blueprint(url_prefix=)`, `include_router` or
+  `register_blueprint`), JavaScript and TypeScript (Express-style `app.get("/x", handler)` with
+  `use("/p", router)` in the same file, NestJS controllers, Next.js route files, `fetch`,
+  `axios`, `ky`, `$fetch`). Not covered: Django `path()`, Go, Java, C#, PHP, gRPC, a prefix set
+  in another file (the route path stays relative, and the resolver of 2.4 matches the end of the
+  path), a path built by a function, `requests.request("GET", url)`, a `url=` keyword, a prefix
+  or a NestJS path that is not a literal. A route needs a receiver that a known factory makes in
+  the file (`express()`, `Router()`, `new Hono()`, `APIRouter()`, `Flask()`, ...) or one named
+  `app`, `router`, `bp` or `blueprint`; `api.post("/orders", body)` is a client call, not a
+  route. A path with no literal segment (`/{}`) is left out, because it would match every route
+  of that depth. Known limits, left for later: a router that two files mount keeps one prefix;
+  the Next.js path comes from the folders after the last `app` folder of the absolute path, so a
+  repo below a folder named `app` can get extra segments; client calls in test files
+  (`TestClient`) are not marked, and the resolver of 2.4 must leave test files out.
+  `EXTRACTOR_VERSION` is 2. An index of version 1 has no
+  routes: `link` and `link --refresh` build its graph again with `IndexingPipeline.rebuild_graph`
+  (no embedding model runs, the vectors stay). An incremental reindex keeps the stored version,
+  because it parses only the changed files; a full index writes the current one. The primary
+  project is not rebuilt by a call: its routes appear after the next full index.
 - **Service calls are the connection** (phases 2.3 and 2.4): routes and HTTP client calls are
   extracted per repo, and a resolver makes bridge edges between graphs, with precision first
   (ADR-019). Each repo keeps its own graph, because `resolve_calls` rebuilds the CALLS edges

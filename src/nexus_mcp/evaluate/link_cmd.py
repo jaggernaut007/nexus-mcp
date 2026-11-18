@@ -68,8 +68,6 @@ def _index_reason(path: Path, pipeline) -> Optional[str]:
 
     Raises LinksError when a store exists for other roots: a full index would replace it.
     """
-    from nexus_mcp.indexing.pipeline import EXTRACTOR_VERSION
-
     meta = _read_meta(path)
     if meta is None or not isinstance(meta.get("mtimes"), dict):
         return "no usable index metadata"
@@ -79,8 +77,9 @@ def _index_reason(path: Path, pipeline) -> Optional[str]:
             "replaced. Delete that .nexus folder if you want it replaced, then link again."
         )
     version = meta.get("extractor_version")
-    if not isinstance(version, int) or version < EXTRACTOR_VERSION:
+    if not isinstance(version, int) or isinstance(version, bool) or version < 1:
         return "its index is from an older version"
+    # An older number: the graph is built again from the files (`rebuild_graph`), the vectors stay.
     if not pipeline._validate_index():
         return "its index cannot be used (another model, an old format or damage)"
     return None
@@ -92,7 +91,7 @@ def build_index(path: Path) -> Tuple[str, int]:
     Full index when there is no usable index; otherwise only the changed files. The graph
     is saved after the metadata, because a restore rejects a graph file that is older.
     """
-    from nexus_mcp.indexing.pipeline import IndexingPipeline, discover_files
+    from nexus_mcp.indexing.pipeline import EXTRACTOR_VERSION, IndexingPipeline, discover_files
 
     settings = links.settings_for(path)
     # Check first: a pipeline creates the store folder, and an empty repo must get none.
@@ -107,6 +106,9 @@ def build_index(path: Path) -> Tuple[str, int]:
         _say(f"Indexing {path} ({reason}). This can take a while...")
         pipeline.index(path)
     else:
+        if (_read_meta(path) or {}).get("extractor_version", 0) < EXTRACTOR_VERSION:
+            _say(f"Building the graph of {path} again (routes and calls). No embedding runs.")
+            pipeline.rebuild_graph()
         result = pipeline.incremental_index(path)
         if not result.unchanged:
             pipeline._persist_graph()

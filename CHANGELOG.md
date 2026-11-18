@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added (linked repos, phase 2.3)
+
+- **Routes and HTTP client calls in the graph** (`parsing/http_extractor.py`). A route is
+  `metadata["routes"]` on its handler function, a client call is `metadata["http_calls"]` on the
+  function that makes it (the module node when there is no function node). Python: FastAPI and
+  Starlette-style decorators, Flask, `requests`, `httpx`, `client.<verb>`, `session.<verb>`.
+  JavaScript and TypeScript: Express-style routes, NestJS controllers, Next.js route files,
+  `fetch`, `axios`, `ky`, `$fetch`. Paths are normalised (`/orders/{}`). No new tool and no new
+  parameter: nothing reads the facts until phase 2.4, which connects the repos.
+- **`IndexingPipeline.rebuild_graph()`** parses the indexed files again for the graph only, with
+  no embedding model. `EXTRACTOR_VERSION` is 2, so `link` and `link --refresh` use it for a
+  store of version 1. An incremental reindex keeps the stored version.
+- Not covered: Django `path()`, Go, Java, C#, PHP, gRPC, a prefix set in another file.
+- **Audit fixes.** A route needs a known router receiver (`api.post("/orders", body)` is a client
+  call). `await axios.get<T>(...)` is read. A path of parameters only, a method that is not a
+  literal and a NestJS path that is not a literal are left out. `rebuild_graph` refuses a
+  read-only pipeline. An incremental reindex does not stamp a store that has no version.
+- **North-star gate, no link (2026-11-18, `python -m evals.retrieval.run`, `bge-small-en`).**
+  Hybrid hit@1 on the 2.3 checkout: `nexus_mcp` 0.667 (24 queries; 0.708 on 2.2), `shop_repo`
+  0.750 (8 queries; 0.750 on 2.2). The `nexus_mcp` suite indexes `src/nexus_mcp`, which now has
+  one more file (`http_extractor.py`), so the corpus changed. Control: the 2.3 code on the corpus
+  of the 2.2 checkout gives `nexus_mcp` hybrid 0.708, the same as 2.2. So the drop of one query
+  comes from the new file in the corpus, not from the code. `shop_repo` hybrid moves between
+  0.625 and 0.750 with the checkout path (chunk ids use absolute paths). Not run: the live
+  benchmark (needs a login and API money), the flask, language and jobscout suites (clones and a
+  private file). Cost of the extractor: one regex test for each file, and one walk of the tree
+  for a file with a candidate; the reviewer measured about 14% more ast-grep time on 2,000
+  library files before the stricter text test. Tokens with no link: no tool output changes, since
+  nothing reads `routes` and `http_calls` before phase 2.4.
+
 ### Added (linked repos, phase 2.2)
 
 - **`search` and `find_symbol` look in the linked repos.** The query is embedded one time.

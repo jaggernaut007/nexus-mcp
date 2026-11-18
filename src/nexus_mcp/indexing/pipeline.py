@@ -58,7 +58,8 @@ CHUNK_FORMAT = 9
 # repo is trusted only when its index has this version or a newer one (ADR-027). An index
 # with no version was built before links existed. Raise it when the extractor starts to
 # write a new kind of fact, so that `nexus-mcp-ci link` builds the older indexes again.
-EXTRACTOR_VERSION = 1
+# Version 2: routes and HTTP client calls in the node metadata (phase 2.3).
+EXTRACTOR_VERSION = 2
 
 
 @dataclass
@@ -206,6 +207,7 @@ class IndexingPipeline:
         """``read_only`` is for a linked repo (ADR-027): the BM25 engine then never writes
         its full-text index. The caller must not call the index methods of such a pipeline."""
         self._settings = settings or get_settings()
+        self._read_only = read_only
         self._embedding_service = get_embedding_service(
             self._settings.embedding_model,
             batch_size=self._settings.embedding_batch_size,
@@ -326,7 +328,7 @@ class IndexingPipeline:
                 self._bm25_engine.ensure_fts_index()
 
             # Save metadata, then the graph: the graph file must be the newer of the two.
-            self._save_metadata(codebase_path, files)
+            self._save_metadata(codebase_path, files, full=True)
             self._persist_graph()
         finally:
             # Always unload model to free RAM
@@ -363,22 +365,70 @@ class IndexingPipeline:
         if isinstance(repo_id, str) and repo_id:
             self._kept_repo_id = repo_id
 
-    def _identity_metadata(self, primary_root: Path) -> Dict[str, Any]:
+    def _identity_metadata(self, primary_root: Path, full: bool = False) -> Dict[str, Any]:
         """The identity of this store: a repo_id made one time, the name, the extractor version.
 
         The repo_id stays the same through every reindex of the store (ADR-027). A link
         in the registry names it, so that a link to a folder that now holds another repo
         is found. The name is the folder name of the first root.
+
+        A full build writes the current extractor version. An incremental reindex keeps the
+        stored one: it parses only the changed files, so the graph of the others is still
+        from the older extractor until `rebuild_graph` or a full index runs.
         """
-        repo_id = (self._load_metadata_raw() or {}).get("repo_id")
+        stored = self._load_metadata_raw() or {}
+        version = stored.get("extractor_version")
+        if full:
+            version = EXTRACTOR_VERSION
+        elif not isinstance(version, int) or isinstance(version, bool):
+            version = 0  # a store with no version stays "older": `link` builds it again
+        version = min(version, EXTRACTOR_VERSION)
+        repo_id = stored.get("repo_id")
         if not (isinstance(repo_id, str) and repo_id):
             repo_id = self._kept_repo_id or uuid.uuid4().hex
         self._kept_repo_id = repo_id
         return {
             "repo_id": repo_id,
             "repo_name": Path(primary_root).name,
-            "extractor_version": EXTRACTOR_VERSION,
+            "extractor_version": version,
         }
+
+    def rebuild_graph(self) -> int:
+        """Parse the indexed files again with ast-grep, for the graph only (ADR-027).
+
+        Use it when `extractor_version` is older than `EXTRACTOR_VERSION`: the graph gets the
+        new facts (routes, HTTP calls) and no embedding model runs. The vectors, the full-text
+        index and the file list of the metadata stay as they are. A file that is gone is left
+        out. The metadata is written first and the graph after it, because a restore rejects a
+        graph file that is older than the metadata. Returns the number of files parsed, or 0
+        when there is no index.
+        """
+        if self._read_only:
+            raise RuntimeError("rebuild_graph writes the store: not allowed when read-only")
+        meta = self._load_metadata_raw()
+        if not meta or not isinstance(meta.get("mtimes"), dict):
+            return 0
+        files = [Path(p) for p in meta["mtimes"] if Path(p).is_file()]
+        self._graph_engine.clear()
+        parsed = 0
+        batch = max(1, self._settings.index_file_batch_size)
+        for start in range(0, len(files), batch):
+            universal_graph = UniversalGraph()
+            for filepath in files[start : start + batch]:
+                if not self._astgrep.can_parse(str(filepath)):
+                    continue
+                try:
+                    self._astgrep.parse_file(str(filepath), universal_graph)
+                    parsed += 1
+                except Exception as e:  # noqa: BLE001 - one bad file must not stop the rebuild
+                    logger.warning("ast-grep failed for %s: %s", filepath, e)
+            _transfer_graph(universal_graph, self._graph_engine)
+            del universal_graph
+        resolve_calls(self._graph_engine)
+        meta["extractor_version"] = EXTRACTOR_VERSION
+        self._metadata_path.write_text(json.dumps(meta))
+        self._persist_graph()
+        return parsed
 
     def _persist_graph(self) -> None:
         """Save the graph after a full build, so a restart can load it.
@@ -817,7 +867,7 @@ class IndexingPipeline:
                 self._bm25_engine.ensure_fts_index()
 
             # Save metadata for all roots
-            self._save_multi_metadata(resolved_paths, all_indexed_files)
+            self._save_multi_metadata(resolved_paths, all_indexed_files, full=True)
         finally:
             # Always unload model to free RAM
             self._embedding_service.unload()
@@ -841,7 +891,9 @@ class IndexingPipeline:
             time_seconds=elapsed,
         )
 
-    def _save_multi_metadata(self, codebase_paths: List[Path], files: List[Path]) -> None:
+    def _save_multi_metadata(
+        self, codebase_paths: List[Path], files: List[Path], full: bool = False
+    ) -> None:
         """Save file mtimes for multi-root incremental reindex."""
         mtimes = {}
         for f in files:
@@ -855,12 +907,12 @@ class IndexingPipeline:
             "codebase_path": str(codebase_paths[0]),
             "mtimes": mtimes,
             **self._embedding_metadata(),
-            **self._identity_metadata(codebase_paths[0]),
+            **self._identity_metadata(codebase_paths[0], full),
         }
         self._metadata_path.parent.mkdir(parents=True, exist_ok=True)
         self._metadata_path.write_text(json.dumps(metadata))
 
-    def _save_metadata(self, codebase_path: Path, files: List[Path]) -> None:
+    def _save_metadata(self, codebase_path: Path, files: List[Path], full: bool = False) -> None:
         """Save file mtimes for incremental reindex."""
         mtimes = {}
         for f in files:
@@ -873,7 +925,7 @@ class IndexingPipeline:
             "codebase_path": str(codebase_path),
             "mtimes": mtimes,
             **self._embedding_metadata(),
-            **self._identity_metadata(codebase_path),
+            **self._identity_metadata(codebase_path, full),
         }
         self._metadata_path.parent.mkdir(parents=True, exist_ok=True)
         self._metadata_path.write_text(json.dumps(metadata))

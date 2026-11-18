@@ -4,6 +4,41 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added (linked repos, phase 2.4)
+
+- **`graph` follows HTTP calls between repos** (`indexing/service_resolver.py`). The resolver
+  matches each client call with the route that serves it, between the repos of a session and
+  inside one repo. Precision first: an edge needs exactly one fitting route (tier `exact`:
+  method and full path, strength 1.0; tier `suffix`: the route path ends the client path,
+  strength 0.8). Calls and routes in test files are left out. The edges are
+  `RelationshipType.HTTP_CALLS` in a `ServiceBridge` in memory (`state.bridge`): no graph and no
+  saved graph holds them. The bridge is built again at attach and after a reindex.
+- **`graph` callers, callees and `transitive=true` cross repos.** The symbol is looked up in the
+  primary project and in each linked repo. A hop over an HTTP edge ends with `via GET /orders/{}`
+  (compact), or has `via`, `resolution` and `repo` (full). A path of a linked repo starts with
+  the repo name. No new tool and no new parameter. With no linked repo and no HTTP edge the
+  answer is the same as before.
+- **Audit fixes.** The suffix tier cuts a prefix only when it is all literal (`/users/{}/orders`
+  no longer matches `/orders`). A call to a host outside the project (`https://api.stripe.com/...`)
+  is marked `external` by the extractor and gets no edge; `EXTRACTOR_VERSION` is 3, so `link` builds
+  an older store again. A self match at the exact tier stops the search. A hop of a repo that a
+  parallel `index()` detached no longer crashes `graph`. The transitive list keeps names with no
+  `:line`, as before.
+- Not done: `find_symbol` does not list the HTTP hops. The server instructions are not changed,
+  because a new line costs tokens in every project (phase 2.5 decides). The plugin skill and
+  `gemini-context.md` get two lines (they load on demand).
+- **North-star gate, no link (2026-11-18, `python -m evals.retrieval.run`, `bge-small-en`).**
+  Hybrid hit@1 on the 2.4 checkout: `nexus_mcp` 0.708 (24 queries; 0.667 on 2.3), `shop_repo`
+  0.750 (8 queries; 0.750 on 2.3). `src/nexus_mcp` has one more file (`service_resolver.py`), so
+  the corpus changed again, and the one query that 2.3 lost came back. Control: the 2.4 code on
+  the corpus of the 2.3 checkout, at another path, gives `nexus_mcp` 0.667 and `shop_repo` 0.625.
+  So hit@1 does not fall with the 2.4 code; the moves come from the corpus and from the checkout
+  path (chunk ids use absolute paths, so ties order differently). Not run: the live benchmark
+  (needs a login and API money), the flask, language and jobscout suites, and any eval for a
+  project with links. Tokens with no link: with no linked repo and no HTTP edge the `graph`
+  answer is the same as before; the existing graph tests (compact, caps, transitive) check it.
+  One regression was found and fixed on the way: the transitive list had gained `:line`.
+
 ### Added (linked repos, phase 2.3)
 
 - **Routes and HTTP client calls in the graph** (`parsing/http_extractor.py`). A route is

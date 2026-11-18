@@ -1,6 +1,6 @@
 # ADR-027: Linked Repos: One Index per Repo, a User-Level Registry, Service Calls as the Connection
 
-## Status: Draft (Part 2, phases 2.1 to 2.3 of 5)
+## Status: Draft (Part 2, phases 2.1 to 2.4 of 5)
 ## Date: 2026-11-17
 
 ## Context
@@ -86,7 +86,7 @@ The owner decided on 2026-11-17:
   the Next.js path comes from the folders after the last `app` folder of the absolute path, so a
   repo below a folder named `app` can get extra segments; client calls in test files
   (`TestClient`) are not marked, and the resolver of 2.4 must leave test files out.
-  `EXTRACTOR_VERSION` is 2. An index of version 1 has no
+  `EXTRACTOR_VERSION` is 3 (2 added routes and calls; 3, in phase 2.4, marks a call to a host outside the project). An index of version 1 has no
   routes: `link` and `link --refresh` build its graph again with `IndexingPipeline.rebuild_graph`
   (no embedding model runs, the vectors stay). An incremental reindex keeps the stored version,
   because it parses only the changed files; a full index writes the current one. The primary
@@ -96,6 +96,35 @@ The owner decided on 2026-11-17:
   (ADR-019). Each repo keeps its own graph, because `resolve_calls` rebuilds the CALLS edges
   of one graph and its unique-name tier must not see the names of another repo. Bridge edges
   live in memory and are not persisted.
+- **The service resolver and `graph` across repos** (phase 2.4, `indexing/service_resolver.py`).
+  `resolve_services` matches the client calls and the routes of all graphs of a session: the
+  primary project, each attached linked repo, and inside one graph (a monorepo with a front end
+  and a back end folder). An edge is a `RelationshipType.HTTP_CALLS` relationship from the client
+  node to the route handler, with `via` (`GET /orders/{}`), `resolution` and `strength`. Precision
+  first: an edge exists only when exactly one route fits at the first tier that has a candidate.
+  Tier `exact` (strength 1.0): method and full path are equal; an `ANY` route fits every method;
+  two fitting routes give no edge and the next tier is not tried. Tier `suffix` (0.8): a route
+  path equals the end of the client path at a segment border (`/api/v1/orders` and `/orders`),
+  and the part that is cut off has literal segments only (`/users/{}/orders` is not matched to
+  `/orders`); a route with no literal segment never fits this way. A call whose URL starts with
+  a literal host that has a dot (`https://api.stripe.com/v1/charges`) has `external: true`, set by
+  the extractor, and gets no edge: `localhost`, a host with no dot (a container service name) and
+  a URL that starts with a variable are not external. If the only exact fit is the client itself,
+  the suffix tier does not run. A function never gets an edge to itself.
+  Calls and routes in test files are left out; the path is taken inside the repo root, so a
+  repo below a folder named `tests` is not left out. The edges live in a `ServiceBridge` in
+  `state.bridge`. No graph holds them, `resolve_calls` does not see them and the saved graph
+  has none. The bridge is built again in `_attach_linked` (restore and `index`) and after a
+  background reindex. A failure leaves `state.bridge` empty and `graph` answers from the
+  CALLS edges. `graph` looks for the symbol in the primary project and in each linked repo, as
+  `find_symbol` does, and follows CALLS and HTTP_CALLS: `callers`, `callees` and
+  `transitive=true` all cross repos. A hop over an HTTP edge ends with `via METHOD /path` in
+  the compact answer; `detail="full"` adds `via`, `resolution` and, for a linked repo, `repo`.
+  The paths of a linked repo start with its name. Overrides and text references are those of
+  the primary project, so a symbol that only a linked repo holds has none. With no linked repo
+  and no HTTP edge the answer is the same as before 2.4. Not done in 2.4: `find_symbol` does
+  not list the HTTP hops, and the server instructions are not changed (a line would add tokens
+  for every project, also with no link; phase 2.5 measures and decides).
 
 ## Consequences
 

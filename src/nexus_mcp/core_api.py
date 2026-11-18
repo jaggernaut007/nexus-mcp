@@ -71,6 +71,7 @@ def _trigger_background_reindex(
             state.bm25_engine = _pipeline.bm25_engine
             state.graph_engine = _pipeline.graph_engine
             state._staleness_cache = None  # force a fresh check on next status()/search()
+            _rebuild_bridge(state)
             logger.info("Background reindex complete for %s", codebase_path)
         except Exception as e:
             logger.warning("Background reindex failed for %s: %s", codebase_path, e)
@@ -319,6 +320,28 @@ def _attach_linked(state, settings) -> None:
     except Exception as e:  # noqa: BLE001 - the primary project must keep working
         logger.warning("Could not attach the linked repos: %s", e)
         state.linked = []
+    _rebuild_bridge(state)
+
+
+def _rebuild_bridge(state) -> None:
+    """Match the client calls and the routes of the session again (ADR-027, phase 2.4).
+
+    The edges stay in memory: no graph holds them and none is saved with them. Run it after
+    the repos are attached and after a reindex of the primary project. A failure leaves the
+    session with no HTTP edge, and `graph` then answers from the CALLS edges as before.
+    """
+    from nexus_mcp.indexing.service_resolver import PRIMARY, resolve_services
+
+    try:
+        graphs = {PRIMARY: state.graph_engine}
+        roots = {PRIMARY: list(state.codebase_paths or [state.codebase_path])}
+        for repo in _attached_linked(state):
+            graphs[repo.name] = repo.graph_engine
+            roots[repo.name] = [repo.path]
+        state.bridge = resolve_services(graphs, roots)
+    except Exception as e:  # noqa: BLE001 - HTTP edges are an addition, never a failure
+        logger.warning("Could not match the client calls with the routes: %s", e)
+        state.bridge = None
 
 
 def _restore_locked(state, settings, roots) -> bool:
@@ -1802,42 +1825,173 @@ def find_symbol(symbol_name: str, exact: bool = True, detail: str = "compact") -
     return result
 
 
+def _graph_scopes(state) -> list[tuple[str, Any]]:
+    """(repo key, scope) of the primary project and of each attached linked repo.
+
+    The key of the primary project is `service_resolver.PRIMARY`. A scope has a
+    `graph_engine` and a `codebase_path`: the session state, or a `LinkedRepo`.
+    """
+    from nexus_mcp.indexing.service_resolver import PRIMARY
+
+    return [(PRIMARY, state), *((repo.name, repo) for repo in _attached_linked(state))]
+
+
+def _scope_of(state, key: str):
+    for scope_key, scope in _graph_scopes(state):
+        if scope_key == key:
+            return scope
+    return None
+
+
+def _graph_starts(state, symbol_name: str) -> list[tuple[str, UniversalNode]]:
+    """The graph nodes that a `graph` call starts from, as (repo key, node).
+
+    The primary project first, then each linked repo, as for `find_symbol`. With no linked
+    repo this is the nodes of the primary graph, as it was before linked repos.
+    """
+    return [
+        (key, node)
+        for key, scope in _graph_scopes(state)
+        for node in _resolve_in_scope(state, scope, symbol_name, True)
+    ]
+
+
+def _neighbours(state, key: str, node_id: str, direction: str) -> list[tuple[str, Any, Any]]:
+    """The nodes next to a node, as (repo key, node, edge).
+
+    First its CALLS neighbours in its own graph (edge None), then the nodes at the other
+    end of its HTTP_CALLS edges (ADR-027, phase 2.4): the client nodes for `callers`, the
+    route handlers for `callees`. An HTTP edge can end in another repo.
+    """
+    scope = _scope_of(state, key)
+    if scope is None:
+        return []
+    graph = scope.graph_engine
+    related = graph.get_callers(node_id) if direction == "callers" else graph.get_callees(node_id)
+    hops: list[tuple[str, Any, Any]] = [(key, n, None) for n in related]
+    bridge = getattr(state, "bridge", None)
+    if bridge:
+        if direction == "callers":
+            edges = [(e.client_repo, e.client_id, e) for e in bridge.callers_of(key, node_id)]
+        else:
+            edges = [(e.route_repo, e.route_id, e) for e in bridge.callees_of(key, node_id)]
+        for other_key, other_id, edge in edges:
+            other_scope = _scope_of(state, other_key)
+            other = other_scope.graph_engine.get_node(other_id) if other_scope else None
+            if other is not None:
+                hops.append((other_key, other, edge))
+    return hops
+
+
+def _root_of(state, key: str) -> Optional[Path]:
+    """The root of a repo of the session, or None when it is not attached any more.
+
+    A parallel `index()` replaces `state.linked`, so a hop that was found a moment ago can
+    name a repo that is gone. Its paths are then shown as the graph holds them.
+    """
+    scope = _scope_of(state, key)
+    return scope.codebase_path if scope is not None else None
+
+
+def _repo_path(key: str, path: str) -> str:
+    """A path of a linked repo starts with the repo name, as in `search` (`backend/api.py`)."""
+    from nexus_mcp.indexing.service_resolver import PRIMARY
+
+    return path if key == PRIMARY or path.startswith("/") else f"{key}/{path}"
+
+
+def _compact_hop(state, hop: tuple[str, Any, Any], line: bool = True) -> tuple[str, str]:
+    """(file, `name:line`) of a hop, or (file, `name`) with line=False (the transitive list).
+
+    A hop over an HTTP edge ends with `via METHOD /path`.
+    """
+    key, node, edge = hop
+    short = _serialize_node_compact(node, _root_of(state, key))
+    label = f"{short['name']}:{short['start_line']}" if line else short["name"]
+    if edge is not None:
+        label += f" via {edge.rel.metadata['via']}"
+    return _repo_path(key, short["file"]), label
+
+
+def _group_hops(state, hops: list[tuple[str, Any, Any]]) -> dict[str, list[str]]:
+    """Hops as `file -> ["name:line", ...]`, in the order given, with no file cut."""
+    grouped: dict[str, list[str]] = {}
+    for hop in hops:
+        file, label = _compact_hop(state, hop)
+        grouped.setdefault(file, []).append(label)
+    return grouped
+
+
+def _serialize_hop(state, hop: tuple[str, Any, Any]) -> dict[str, Any]:
+    """The `detail="full"` entry of a hop: the node, and the repo and edge when they matter."""
+    from nexus_mcp.indexing.service_resolver import PRIMARY
+
+    key, node, edge = hop
+    out = _serialize_node(node, _root_of(state, key))
+    if key != PRIMARY:
+        out["location"]["file"] = _repo_path(key, out["location"]["file"])
+        out["repo"] = key
+    if edge is not None:
+        out["via"] = edge.rel.metadata["via"]
+        out["resolution"] = edge.rel.metadata["resolution"]
+    return out
+
+
+def _defined_in_starts(state, starts: list[tuple[str, UniversalNode]]) -> Optional[dict]:
+    """`defined_in` for the start nodes of a `graph` call, a linked repo's files with its name."""
+    from nexus_mcp.indexing.service_resolver import PRIMARY
+
+    if all(key == PRIMARY for key, _ in starts):
+        return _defined_in(state, [n for _, n in starts])
+    if len(starts) > MAX_DEFINED_IN:
+        return None
+    grouped: dict[str, list[str]] = {}
+    for key, node in starts:
+        file, label = _compact_hop(state, (key, node, None))
+        owner = (node.metadata or {}).get("parent_class")
+        name = f"{owner}.{label}" if owner else label
+        grouped.setdefault(file, []).append(name)
+    return grouped
+
+
 def _graph_immediate(
     state, symbol_name: str, direction: str, detail: str = "compact"
 ) -> dict[str, Any]:
-    matches = _resolve_symbol(state.graph_engine, symbol_name, exact=True)
-    if not matches:
-        return _references_only(state, symbol_name, direction)
+    from nexus_mcp.indexing.service_resolver import PRIMARY
 
-    get_related = (
-        state.graph_engine.get_callers if direction == "callers" else state.graph_engine.get_callees
-    )
-    related_nodes = []
-    seen: set[str] = set()
-    for node in matches:
-        for related in get_related(node.id):
-            if related.id not in seen:
-                seen.add(related.id)
-                related_nodes.append(related)
+    starts = _graph_starts(state, symbol_name)
+    if not starts:
+        return _references_only(state, symbol_name, direction)
+    matches = [node for key, node in starts if key == PRIMARY]
+
+    related: list[tuple[str, Any, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for key, node in starts:
+        for hop in _neighbours(state, key, node.id, direction):
+            if (hop[0], hop[1].id) not in seen:
+                seen.add((hop[0], hop[1].id))
+                related.append(hop)
 
     result: dict[str, Any] = {"symbol": symbol_name}
-    defined_in = _defined_in(state, matches)
+    defined_in = _defined_in_starts(state, starts)
     if defined_in:
         result["defined_in"] = defined_in
     omitted = None
     if detail == "compact":
-        listed, omitted = _cap_files(_group_names(related_nodes, state.codebase_path))
+        listed, omitted = _cap_files(_group_hops(state, related))
     else:
-        listed = [_serialize_node(n, state.codebase_path) for n in related_nodes[:MAX_FULL_NODES]]
-    result |= {"direction": direction, "total": len(related_nodes), direction: listed}
+        listed = [_serialize_hop(state, hop) for hop in related[:MAX_FULL_NODES]]
+    result |= {"direction": direction, "total": len(related), direction: listed}
     if omitted:
         result[f"{direction}_not_listed"] = omitted
-    if detail != "compact" and len(related_nodes) > MAX_FULL_NODES:
+    if detail != "compact" and len(related) > MAX_FULL_NODES:
         result["truncated"] = (
-            f"The first {MAX_FULL_NODES} of {len(related_nodes)} are shown. "
+            f"The first {MAX_FULL_NODES} of {len(related)} are shown. "
             'detail="compact" lists them by file, with a count of the files past its cap.'
         )
-    if direction == "callers":
+    # Overrides and text references are those of the primary project: a symbol that only a
+    # linked repo defines has none of them here.
+    if direction == "callers" and matches:
         _add_overrides(result, state, matches)
         _add_references(result, state, symbol_name, matches)
     return result
@@ -1950,38 +2104,69 @@ def _add_references(
     )
 
 
+def _walk_callers(
+    state, key: str, node_id: str, max_depth: int
+) -> list[tuple[str, Any, Any]]:
+    """The callers of a node, level by level, over CALLS edges and HTTP_CALLS edges.
+
+    The same walk as `RustworkxCodeGraph.get_transitive_callers`, but it can leave a graph
+    over an HTTP edge (ADR-027, phase 2.4). A hop is (repo key, node, edge).
+    """
+    visited: set[tuple[str, str]] = set()
+    found: list[tuple[str, Any, Any]] = []
+    queue = [(key, node_id)]
+    depth = 0
+    while queue and depth < max_depth:
+        next_queue = []
+        for current in queue:
+            if current in visited:
+                continue
+            visited.add(current)
+            for hop in _neighbours(state, current[0], current[1], "callers"):
+                if (hop[0], hop[1].id) not in visited:
+                    found.append(hop)
+                    next_queue.append((hop[0], hop[1].id))
+        queue = next_queue
+        depth += 1
+    return found
+
+
 def _graph_transitive_impact(
     state, symbol_name: str, max_depth: int, detail: str = "compact"
 ) -> dict[str, Any]:
+    from nexus_mcp.indexing.service_resolver import PRIMARY
+
     max_depth = max(1, min(max_depth, 50))
 
-    matches = _resolve_symbol(state.graph_engine, symbol_name, exact=True)
-    if not matches:
+    starts = _graph_starts(state, symbol_name)
+    if not starts:
         return _references_only(state, symbol_name, "callers")
+    matches = [node for key, node in starts if key == PRIMARY]
 
     compact = detail == "compact"
-    serialize = _serialize_node_compact if compact else _serialize_node
     all_impacted = []
     by_file: dict[str, list[str]] = {}
-    seen: set[str] = set()
-    for node in matches:
-        for caller in state.graph_engine.get_transitive_callers(node.id, max_depth=max_depth):
-            if caller.id not in seen:
-                seen.add(caller.id)
-                all_impacted.append(serialize(caller, state.codebase_path))
-                short = _serialize_node_compact(caller, state.codebase_path)
-                by_file.setdefault(short["file"], []).append(short["name"])
+    seen: set[tuple[str, str]] = set()
+    for key, node in starts:
+        for hop in _walk_callers(state, key, node.id, max_depth):
+            if (hop[0], hop[1].id) not in seen:
+                seen.add((hop[0], hop[1].id))
+                all_impacted.append(hop)
+                file, label = _compact_hop(state, hop, line=False)
+                by_file.setdefault(file, []).append(label)
 
     result: dict[str, Any] = {"symbol": symbol_name}
-    defined_in = _defined_in(state, matches)
+    defined_in = _defined_in_starts(state, starts)
     if defined_in:
         result["defined_in"] = defined_in
+    # `impacted_files` already names every symbol, so a compact answer builds no per-symbol list.
+    impacted = [] if compact else [_serialize_hop(state, hop) for hop in all_impacted]
     result |= {
         "direction": "callers",
         "transitive": True,
         "max_depth": max_depth,
         "total_impacted": len(all_impacted),
-        "impacted_symbols": all_impacted,
+        "impacted_symbols": impacted,
         "impacted_files": by_file,
     }
     # `impacted_files` already names every symbol, so the compact result leaves the
@@ -1992,13 +2177,14 @@ def _graph_transitive_impact(
         if omitted:
             result["impacted_not_listed"] = omitted
     elif len(all_impacted) > MAX_FULL_NODES:
-        result["impacted_symbols"] = all_impacted[:MAX_FULL_NODES]
+        result["impacted_symbols"] = impacted[:MAX_FULL_NODES]
         result["truncated"] = (
             f"impacted_symbols shows the first {MAX_FULL_NODES} of {len(all_impacted)}. "
             "impacted_files names all of them."
         )
-    _add_overrides(result, state, matches)
-    _add_references(result, state, symbol_name, matches)
+    if matches:
+        _add_overrides(result, state, matches)
+        _add_references(result, state, symbol_name, matches)
     return result
 
 

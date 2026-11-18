@@ -290,11 +290,16 @@ ASTGREP_LANG_IDS: Dict[str, str] = {
 }
 
 
-def _add_http_fact(node: UniversalNode, key: str, method: str, path: str) -> None:
+def _add_http_fact(
+    node: UniversalNode, key: str, method: str, path: str, external: bool = False
+) -> None:
     """Add `{method, path}` to `node.metadata[key]`, once. A function takes up to MAX_HTTP_FACTS;
-    a module node, which holds the routes of inline handlers, takes up to 10 times as many."""
+    a module node, which holds the routes of inline handlers, takes up to 10 times as many.
+    A call to a host outside the project also has `external: True`."""
     facts = node.metadata.setdefault(key, [])
-    entry = {"method": method, "path": path}
+    entry: Dict[str, Any] = {"method": method, "path": path}
+    if external:
+        entry["external"] = True
     cap = MAX_HTTP_FACTS * (10 if node.node_type == NodeType.MODULE else 1)
     if entry not in facts and len(facts) < cap:
         facts.append(entry)
@@ -576,7 +581,9 @@ class AstGrepParser:
             target = min(
                 holding, key=lambda f: f.location.end_line - f.location.start_line, default=None
             )
-            _add_http_fact(target or module_node, "http_calls", call.method, call.path)
+            _add_http_fact(
+                target or module_node, "http_calls", call.method, call.path, call.external
+            )
 
     def _function_metadata(
         self, match, language: str, scope: Optional[List[str]] = None

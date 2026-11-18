@@ -766,3 +766,55 @@ def test_the_module_node_keeps_more_facts_than_a_function(tmp_path):
     )
     graph = parse(tmp_path, "big.js", src)
     assert len(module(graph).metadata["routes"]) == 120
+
+
+# --- calls to a host outside the project (ADR-027, 2.4 audit) -------------------------------
+
+
+def _call_entries(graph, name):
+    return func(graph, name).metadata["http_calls"]
+
+
+@pytest.mark.parametrize(
+    "url,external",
+    [
+        ("https://api.stripe.com/v1/charges", True),
+        ("http://partner.example.org/orders", True),
+        ("//cdn.example.com/app.js", True),
+        ("http://localhost:8000/orders", False),
+        ("http://127.0.0.1:8000/orders", False),
+        ("http://backend:8000/orders", False),
+        ("/orders", False),
+    ],
+)
+def test_a_python_call_to_a_host_with_a_dot_is_marked_external(tmp_path, url, external):
+    graph = parse(
+        tmp_path, "c.py", f'import requests\n\n\ndef c():\n    return requests.get("{url}")\n'
+    )
+    [entry] = _call_entries(graph, "c")
+    assert entry.get("external", False) is external
+
+
+def test_a_js_call_to_an_outside_host_is_marked_external(tmp_path):
+    graph = parse(
+        tmp_path, "c.ts", 'function c() { return fetch("https://api.stripe.com/v1/charges"); }\n'
+    )
+    [entry] = _call_entries(graph, "c")
+    assert entry == {"method": "GET", "path": "/v1/charges", "external": True}
+
+
+def test_a_base_url_variable_is_not_marked_external(tmp_path):
+    graph = parse(tmp_path, "c.ts", "function c() { return fetch(`${API}/orders`); }\n")
+    [entry] = _call_entries(graph, "c")
+    assert "external" not in entry
+
+
+def test_a_call_that_is_not_external_keeps_the_two_keys_only(tmp_path):
+    graph = parse(tmp_path, "c.ts", 'function c() { return fetch("/orders"); }\n')
+    assert _call_entries(graph, "c") == [{"method": "GET", "path": "/orders"}]
+
+
+def test_the_extractor_version_is_three_or_more():
+    from nexus_mcp.indexing.pipeline import EXTRACTOR_VERSION
+
+    assert EXTRACTOR_VERSION >= 3

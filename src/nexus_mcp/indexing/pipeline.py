@@ -59,7 +59,8 @@ CHUNK_FORMAT = 9
 # with no version was built before links existed. Raise it when the extractor starts to
 # write a new kind of fact, so that `nexus-mcp-ci link` builds the older indexes again.
 # Version 2: routes and HTTP client calls in the node metadata (phase 2.3).
-EXTRACTOR_VERSION = 2
+# Version 3: a client call to a host outside the project has `external: True` (phase 2.4).
+EXTRACTOR_VERSION = 3
 
 
 @dataclass

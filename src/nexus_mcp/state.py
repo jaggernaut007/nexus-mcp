@@ -22,6 +22,9 @@ class SessionState:
     # Linked repos of the project, attached read-only (see linked.py, ADR-027). A link that
     # could not be attached stays in the list, with its `skip_reason`.
     linked: list = field(default_factory=list)
+    # HTTP_CALLS edges between the graphs of the session, in memory only (ADR-027, phase 2.4).
+    # A `ServiceBridge`, rebuilt at attach and after a reindex; None before the first build.
+    bridge: Any = None
     started_at: float = field(default_factory=time.time)
 
     # Engine references (populated during indexing)

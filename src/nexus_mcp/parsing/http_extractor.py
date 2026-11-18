@@ -60,6 +60,7 @@ class CallFact:
     method: str
     path: str
     line: int
+    external: bool = False  # the URL names a host outside the project (`https://api.stripe.com`)
 
 
 @dataclass
@@ -95,6 +96,28 @@ def _normalize_once(raw: str) -> str:
     if text != "/" and not re.search(r"[^/{}]", text):
         return ""
     return text
+
+
+_URL_HOST = re.compile(r"^(?:[A-Za-z][A-Za-z0-9+.\-]*:)?//([^/?#]*)")
+_LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "0.0.0.0", "::1"})
+
+
+def is_external_url(raw: str) -> bool:
+    """True when the URL starts with a literal host that is probably outside the project.
+
+    `https://api.stripe.com/v1/charges` is. `http://localhost:8000/x` and `http://backend/x`
+    (a container service name: no dot) are not, and neither is a URL that starts with a
+    variable (`${API}/x`, `{}/x`). The path of an outside call must not match a route of the
+    project: the resolver of phase 2.4 leaves such calls out (precision first, ADR-019).
+    """
+    match = _URL_HOST.match(raw.strip())
+    if not match:
+        return False
+    host = match.group(1).rsplit("@", 1)[-1]
+    if "{" in host or "$" in host:
+        return False
+    host = re.sub(r":\d*$", "", host).strip("[]").lower()
+    return host not in _LOCAL_HOSTS and "." in host
 
 
 def normalize_path(raw: str) -> str:
@@ -340,7 +363,7 @@ def _py_calls(root, facts: HttpFacts) -> None:
         raw = _literal(args[0]) if args else None
         path = normalize_path(raw) if raw is not None else ""
         if path:
-            facts.calls.append(CallFact(verb.upper(), path, _line(call)))
+            facts.calls.append(CallFact(verb.upper(), path, _line(call), is_external_url(raw)))
 
 
 # --- JavaScript and TypeScript ------------------------------------------------------------
@@ -572,7 +595,7 @@ def _js_calls(root, facts: HttpFacts) -> None:
         raw = _literal(url_node) if url_node is not None else None
         path = normalize_path(raw) if raw is not None else ""
         if path and method:
-            facts.calls.append(CallFact(method, path, _line(call)))
+            facts.calls.append(CallFact(method, path, _line(call), is_external_url(raw)))
 
 
 # --- entry point --------------------------------------------------------------------------

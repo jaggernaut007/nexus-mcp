@@ -68,6 +68,8 @@ class RelationshipType(Enum):
     OVERRIDES = "overrides"
     EXTENDS = "extends"
     USES = "uses"
+    # A client call to a route, between repos or inside one (ADR-027). Held in memory only.
+    HTTP_CALLS = "http_calls"
 
 
 @dataclass(frozen=True, slots=True)

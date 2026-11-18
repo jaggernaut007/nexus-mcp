@@ -1,0 +1,26 @@
+# Hand labels for the edge eval of linked repos (ADR-027). Each suite names its repos and
+# lists EVERY call of a repo that reaches a route of another (or the same) repo. A predicted
+# edge that is not in the list counts as a false positive, so the list must be complete.
+#
+# A node is written `repo:path#name`: the repo key, the file below the repo root, and the
+# function name. `via` is the call as the extractor reads it (method and normalised path).
+# `known_miss: true` marks a true call that the extractor cannot see today: it counts for
+# the recall and shows the limit, and the resolver must not be changed to find it by luck.
+
+suites:
+  linked_fixture:
+    description: tests/fixtures/linked, a FastAPI backend and a TypeScript frontend (offline)
+    repos:
+      frontend: tests/fixtures/linked/frontend
+      backend: tests/fixtures/linked/backend
+    edges:
+      - {client: "frontend:src/api/client.ts#listOrders", route: "backend:app/routers/orders.py#list_orders"}
+      - {client: "frontend:src/api/client.ts#fetchOrder", route: "backend:app/routers/orders.py#get_order"}
+      - {client: "frontend:src/api/client.ts#createOrder", route: "backend:app/routers/orders.py#create_order"}
+      - {client: "frontend:src/api/client.ts#cancelOrder", route: "backend:app/routers/orders.py#cancel_order"}
+      - {client: "frontend:src/api/client.ts#chargeCard", route: "backend:app/routers/payments.py#charge_card"}
+      - {client: "frontend:src/api/client.ts#loadPayment", route: "backend:app/routers/payments.py#get_payment"}
+      - {client: "frontend:src/api/client.ts#currentUser", route: "backend:app/routers/users.py#current_user"}
+      - {client: "frontend:src/api/client.ts#ordersOfUser", route: "backend:app/routers/users.py#user_orders"}
+      - {client: "frontend:src/api/client.ts#checkHealth", route: "backend:app/main.py#health"}
+      - {client: "frontend:src/api/client.ts#listOrdersFromTable", route: "backend:app/routers/orders.py#list_orders", known_miss: true}

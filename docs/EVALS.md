@@ -1,6 +1,6 @@
 # Evals
 
-Three evals measure what nexus-mcp claims. Run them before you change a tool description,
+Four evals measure what nexus-mcp claims. Run them before you change a tool description,
 the ranking or the embedding model.
 
 | Eval | Question | Code | Cost |
@@ -8,6 +8,7 @@ the ranking or the embedding model.
 | Routing | Does Claude call the right nexus tool without being told? | `evals/routing` | Claude usage (small) |
 | Retrieval | Does a model rank the right files first? | `evals/retrieval` | CPU time only |
 | Benchmark | Does nexus-mcp cut tokens on a large repository? | `benchmarks/` | Claude usage (large) |
+| Linked repos | Are the HTTP edges between repos right? Does a link make `search` worse? | `evals/linked` | CPU time only |
 
 ## Routing eval
 
@@ -417,3 +418,28 @@ The cost did not fall, so the change was discarded. What the traces show:
   found" (5 of 9 calls over the last three django runs). With the default `exact=True` a dotted
   name resolves through the chunk table, but that fallback is skipped when `exact` is false. The
   agent then goes on with Grep and Read on the question that takes about 15 turns.
+
+## Linked repos evals (ADR-027, phase 2.5)
+
+Two evals, both free. Run them before you change `service_resolver.py`, `http_extractor.py` or the
+merge of `search` across linked repos.
+
+**Edge eval** (`python -m evals.linked.run`). It parses the repos of a suite with the real parser,
+runs the service resolver and compares the HTTP edges with a list that a person wrote by hand
+(`evals/linked/labels.yaml`). The list must hold every call that reaches a route, so an edge that is
+not in it counts as a false positive. Precision is the share of predicted edges that are labelled;
+recall is the share of labelled edges that are predicted. The gate is precision >= 0.9: a wrong edge
+costs more than a missing one (ADR-019). Recall is reported. A label with `known_miss: true` is a
+true call that the extractor cannot see today; it lowers the recall and shows the limit. The suite
+`linked_fixture` is `tests/fixtures/linked`: a FastAPI backend and a TypeScript frontend, with
+decoys (a call to a host outside the project, a call to a route that does not exist, calls in test
+files). A suite whose repos are not on disk is skipped.
+
+**With-link retrieval eval** (`python -m evals.linked.with_link`). It indexes the `shop_repo`
+fixture, runs the 8 queries of its retrieval suite through `core_api.search` with no link and then
+with the bookshop backend linked, and compares hit@1. The bookshop shares words with the shop
+(orders, payments), so it is a hard distractor. Gate: hit@1 with the link is not lower than without.
+It also reports `linked_side`: four queries about the backend, which must find a file of the linked
+repo. A merge that always put the project first would pass the gate and fail there. Near-equal
+vector scores make one query move with the path of the temporary folder, so read the result over
+several runs, not one.

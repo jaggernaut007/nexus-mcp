@@ -14,6 +14,25 @@ Lower token use for an agent, with the same accuracy. Set by the owner on 2026-1
 - Keep a change only when it lowers the measure and passes the gate. Record the two
   numbers, before and after, in `CHANGELOG.md`.
 
+## Linked repos with service-call edges (ADR-027) — BUILT, PRs 54 to 58 are drafts
+
+Owner decision 2026-11-17: repos connect by service calls (HTTP), not by package imports; each
+repo keeps its own index; a person links repos with the CLI.
+
+- [x] 2.1 Repo identity, link registry (`~/.nexus-mcp/links.json`), `link`/`links`/`unlink`, read-only attach (PR 54)
+- [x] 2.2 `search` and `find_symbol` across linked repos, read-only BM25 (PR 55)
+- [x] 2.3 Route and client-call extraction, `rebuild_graph`, `EXTRACTOR_VERSION` (PR 56)
+- [x] 2.4 Service resolver, `HTTP_CALLS` edges in memory, `graph` across repos (PR 57)
+- [x] 2.5 Fixture `tests/fixtures/linked`, edge eval (`evals/linked/run.py`), with-link retrieval
+  eval (`evals/linked/with_link.py`), BM25 merge fix, final docs (PR 58)
+- [ ] **Owner:** review and merge the stack in order, 54 first
+- [ ] **Todo:** label the HTTP edges of one public full-stack project by hand (needs a clone), run
+  the edge eval on it, and add it as a suite in `evals/linked/labels.yaml`
+- [ ] **Todo:** the live benchmark with a linked repo (needs a login and API money); the routing eval
+- [ ] **Later:** package-import edges across repos, a background refresh with a lock between
+  processes, more frameworks and languages (Django, Go, Java, gRPC), `find_symbol` HTTP hops, a line in
+  the server instructions (measure the tokens first)
+
 ## MIT licence and install channels — released in 2.3.0 (2026-11-06)
 
 Decisions: MIT for every new release ([ADR-024](docs/adr/ADR-024-mit-licence.md)), for adoption. A

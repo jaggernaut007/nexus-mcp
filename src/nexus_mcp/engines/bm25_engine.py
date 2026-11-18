@@ -97,13 +97,17 @@ class LanceDBBM25Engine(IEngine):
                 return False
 
     def search(
-        self, query: str, limit: int = 10, **kwargs
+        self, query: str, limit: int = 10, keep_raw: bool = False, **kwargs
     ) -> List[Dict[str, Any]]:
         """Full-text search for chunks matching query.
 
         Args:
             query: Search text.
             limit: Max results.
+            keep_raw: Keep the raw BM25 score in `_raw_score`. `score` is the raw score divided
+                by the best score of this search, so the best hit always has the score 1. A
+                caller that merges the results of several stores (linked repos, ADR-027) needs
+                the raw score to scale the lists together.
             **kwargs: Optional filters — language, symbol_type.
 
         Returns:
@@ -140,6 +144,8 @@ class LanceDBBM25Engine(IEngine):
                     raw_score = r.pop("_score", 0.0)
                     r.pop("_distance", None)
                     r["score"] = raw_score / max_score
+                    if keep_raw:
+                        r["_raw_score"] = raw_score
 
             return results
         except Exception as e:

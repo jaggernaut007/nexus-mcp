@@ -1041,9 +1041,9 @@ def _merge_by_score(lists: list[list[dict]]) -> list[dict]:
     """One list from the lists of several stores, best score first.
 
     The score is the same kind in every store: the vector score is 1 / (1 + distance) of
-    one model, and the BM25 score is divided by the best score of its store, so the best
-    keyword result of each store has the score 1. The sort is stable: on a tie the
-    primary project comes first. One list is returned as it is.
+    one model. A BM25 list is scaled by `_merge_bm25` first, because a store divides its BM25
+    scores by its own best one. The sort is stable: on a tie the primary project comes first.
+    One list is returned as it is.
     """
     if len(lists) == 1:
         return lists[0]
@@ -1061,6 +1061,31 @@ def _merge_by_score(lists: list[list[dict]]) -> list[dict]:
             seen.add(rid)
         unique.append(r)
     return unique
+
+
+def _merge_bm25(lists: list[list[dict]]) -> list[dict]:
+    """One BM25 list from the lists of several stores, scaled together.
+
+    A store divides its scores by its own best score, so the best hit of each store has the
+    score 1 however weak it is, and a weak linked match outranked the second result of the
+    project (the 2.5 eval, `evals/linked/with_link.py`). Here every list is divided by the
+    best raw score of all lists. The raw scores of two stores are not equal for one text: the
+    IDF term of BM25 grows with the number of chunks of the store (one document scored 0.85
+    alone, 6.4 among 10, 13.0 among 100 and 20.0 among 1000), so a bigger store scores a
+    little higher for the same match, and a large linked repo next to a small project can
+    outrank it. The effect is much smaller than two scores of 1, and a rule that corrects the
+    size (ln of the chunk count) kept a result of the project worse in one run of six. A hit
+    with no raw score keeps its score. One list is returned as it is.
+    """
+    if len(lists) == 1:
+        return lists[0]
+    top = max((r.get("_raw_score", 0.0) for found in lists for r in found), default=0.0)
+    if top > 0:
+        for found in lists:
+            for r in found:
+                if "_raw_score" in r:
+                    r["score"] = r["_raw_score"] / top
+    return _merge_by_score(lists)
 
 
 def _search_linked(
@@ -1084,7 +1109,7 @@ def _search_linked(
                 logger.warning("Vector search of linked repo %r failed: %s", repo.name, e)
         if mode in ("hybrid", "bm25") and repo.bm25_engine:
             try:
-                found = repo.bm25_engine.search(query, limit=limit, **kwargs)
+                found = repo.bm25_engine.search(query, limit=limit, keep_raw=True, **kwargs)
                 if found:
                     bm25_lists.append(_tag_repo(found, repo))
             except Exception as e:  # noqa: BLE001
@@ -1214,7 +1239,9 @@ def search(
     bm25_lists: list[list[dict]] = []
     if mode in ("hybrid", "bm25") and state.bm25_engine:
         try:
-            bm25_results = state.bm25_engine.search(query, limit=overfetch, **kwargs)
+            bm25_results = state.bm25_engine.search(
+                query, limit=overfetch, keep_raw=bool(linked_repos), **kwargs
+            )
             if bm25_results:
                 bm25_lists.append(bm25_results)
         except Exception as e:
@@ -1231,7 +1258,7 @@ def search(
         ranked_lists["vector"] = _merge_by_score(vector_lists)[:overfetch]
         engines_used.append("vector")
     if bm25_lists:
-        ranked_lists["bm25"] = _merge_by_score(bm25_lists)[:overfetch]
+        ranked_lists["bm25"] = _merge_bm25(bm25_lists)[:overfetch]
         engines_used.append("bm25")
 
     # Each list: source before tests, then the same length that fusion always got. A
@@ -1336,6 +1363,7 @@ def search(
     linked_changed: dict[str, set] = {}  # a linked repo is checked once, if it has a result
     for rank, r in enumerate(results):
         r.pop("vector", None)
+        r.pop("_raw_score", None)
         repo = repo_by_name.get(r.pop("_repo", None))
         if repo is not None and repo.name not in linked_changed:
             from nexus_mcp import linked

@@ -1,6 +1,6 @@
 # ADR-027: Linked Repos: One Index per Repo, a User-Level Registry, Service Calls as the Connection
 
-## Status: Draft (Part 2, phases 2.1 to 2.4 of 5)
+## Status: Draft (Part 2, built in phases 2.1 to 2.5; the PRs are drafts)
 ## Date: 2026-11-17
 
 ## Context
@@ -41,9 +41,10 @@ The owner decided on 2026-11-17:
 - **`search` and `find_symbol` look in the linked repos** (phase 2.2). `search` embeds the
   query one time (`embed_query`, then `query_vector`) and runs the vector and BM25 search in
   each attached store. It merges the vector lists by score and the BM25 lists by score, then
-  uses the same RRF, test-file order and exact-name rule as before. The BM25 score is divided
-  by the best score of its store, so the best keyword result of each store has the score 1:
-  the stores are interleaved, not ranked against each other. A result of a linked repo has the
+  uses the same RRF, test-file order and exact-name rule as before. A store divides its BM25
+  scores by its own best score, so the first version gave the best hit of every store the
+  score 1 and a weak linked match outranked the second result of the project; phase 2.5
+  scales the BM25 lists of all stores by the best raw score of all (`_merge_bm25`). A result of a linked repo has the
   repo name first in its path (`backend/src/app.py`). `find_symbol` resolves a name in the
   graph of each repo, the primary project first, and applies the same sort and the same cap
   (`MAX_MATCHES_PER_NAME`) to all matches. With `detail="full"` an entry has a `repo` field.
@@ -124,7 +125,27 @@ The owner decided on 2026-11-17:
   the primary project, so a symbol that only a linked repo holds has none. With no linked repo
   and no HTTP edge the answer is the same as before 2.4. Not done in 2.4: `find_symbol` does
   not list the HTTP hops, and the server instructions are not changed (a line would add tokens
-  for every project, also with no link; phase 2.5 measures and decides).
+  for every project, also with no link). Decision of 2.5: they stay as they are; the plugin skill
+  and `gemini-context.md` carry the two lines, and a line in the instructions waits for a
+  measurement of the tokens with the live benchmark.
+- **Evals and the BM25 merge** (phase 2.5). The fixture `tests/fixtures/linked` (a FastAPI
+  backend, a TypeScript frontend, decoys) and the labels in `evals/linked/labels.yaml` are the
+  edge eval: `python -m evals.linked.run` gives precision and recall of the HTTP edges against a
+  list that a person wrote by hand. The gate is precision >= 0.9, no edge missing that is not a
+  `known_miss`, and at least one edge when labels exist. On the fixture: precision 1.0, recall
+  0.9 (the one miss is a path in a table, `axios.get(ENDPOINTS.orders)`). A public full-stack
+  project is not labelled yet. `python -m evals.linked.with_link` measures `search` with a link:
+  it found that the per-store BM25 scaling lowered hit@1 of `shop_repo` from 0.75 to 0.625 (2
+  runs of 4, 3 of 6 in a second check) when a bookshop backend was linked. The BM25 lists are
+  now scaled together: hit@1 stays at 0.75 in all 6 runs. The cost is on the other side: four
+  queries about the backend found a file of the linked repo first in 0.79 of the cases before
+  and 0.54 after (mean of 6 runs). Two of the four ("cancel an order", "charge a card") are
+  ambiguous with the shop's own code, and now go to the project. The raw BM25 score is not
+  equal for one text in two stores: it grows with the log of the number of chunks, so a large
+  linked repo next to a small project can outrank it. A correction by `ln(1 + chunks)` was
+  tried and kept the linked side but lost the project side in one run of six, so it was not
+  adopted. The decision is the owner's: a rule that prefers the project in ambiguous cases was
+  chosen because the north-star gate is the accuracy for the project.
 
 ## Consequences
 

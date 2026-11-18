@@ -406,7 +406,10 @@ def test_search_linked_passes_the_filters_to_the_engines():
     bm25 = _Engine([{"id": "k"}])
     repo = _Repo("r", vector=vector, bm25=bm25)
     core_api._search_linked([repo], "q", 5, {"language": "go"}, "hybrid", [0.1])
-    assert vector.calls[0]["language"] == "go" and bm25.calls[0] == {"language": "go"}
+    # Requirement changed in 2.5: a linked BM25 search also asks for the raw score, so that
+    # the lists of several stores are scaled together (`_merge_bm25`).
+    assert vector.calls[0]["language"] == "go"
+    assert bm25.calls[0] == {"language": "go", "keep_raw": True}
 
 
 def test_linked_definitions_tags_the_repo_and_swallows_an_error():

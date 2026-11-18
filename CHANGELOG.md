@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added (linked repos, phase 2.5)
+
+- **Edge eval** (`python -m evals.linked.run`, free). It scores the HTTP edges that the resolver makes
+  against hand labels (`evals/linked/labels.yaml`). Fixture `tests/fixtures/linked`: a FastAPI
+  backend and a TypeScript frontend, with decoys (a call to an outside host, a call to a route
+  that does not exist, calls in test files). Result: precision 1.0, recall 0.9 (9 of 10 labelled
+  edges; the miss is a path held in a table, a labelled `known_miss`). Gate: precision >= 0.9, no
+  edge missing that is not a known miss, at least one edge when labels exist. A public full-stack
+  project is not labelled yet (needs a clone).
+- **With-link retrieval eval** (`python -m evals.linked.with_link`, CPU only). `shop_repo` queries
+  through `search` with no link and with a bookshop backend linked, plus four queries about the
+  backend (`linked_side`).
+- **Fix: BM25 scores of linked stores are scaled together.** A store divides its BM25 scores by its
+  own best, so the best hit of each store had the score 1 and a weak linked match outranked the
+  second result of the project. `search` now divides every BM25 list by the best raw score of all
+  (`_merge_bm25`; the BM25 engine returns it with `keep_raw=True`; with no linked repo nothing
+  changes). Before and after, hit@1 of `shop_repo` with a link, over 6 runs with different temp
+  paths: before 0.75, 0.75, 0.625, 0.625, 0.5, 0.75; after 0.75 in all 6 (no link: 0.75). The cost,
+  `linked_side` (four queries about the backend, first result in the linked repo): mean 0.79 before,
+  0.54 after. Two of the four are ambiguous with the shop's own code and now go to the project.
+  The raw BM25 score grows with the log of the number of chunks of a store (one text: 0.85 alone,
+  6.4 among 10, 13.0 among 100, 20.0 among 1000), so a large linked repo next to a small project can
+  still outrank it. A correction by `ln(1 + chunks)` lost a project result in one run of six, so it
+  was not adopted. The owner decides whether the project should come first in ambiguous cases.
+  A test changed with the requirement: a linked BM25 call also passes `keep_raw`.
+- **North-star gate, no link (2026-11-18, `python -m evals.retrieval.run`, `bge-small-en`).** Hybrid
+  hit@1 on the 2.5 checkout: `nexus_mcp` 0.667 (24 queries; 0.708 on 2.4), `shop_repo` 0.750 (8
+  queries; 0.750 on 2.4). The eval ranks with the pipeline directly, which the 2.5 code does not
+  change, and the corpus `src/nexus_mcp` changed. Control: the 2.5 code on the 2.4 corpus, at
+  another path, gives `nexus_mcp` 0.750 and `shop_repo` 0.625. So the values move by one query with
+  the corpus and the checkout path (chunk ids use absolute paths), not with the code. Not run: the
+  live benchmark and the routing eval (login and API money), the flask, language and jobscout
+  suites, and the benchmark with a linked repo. Tokens with no link: `search` with no link is
+  the same code path as in 2.4 (one BM25 list, no `keep_raw`).
+- **Docs.** ADR-027, `docs/EVALS.md`, `docs/USAGE_GUIDE.md`, `docs/FUTURE_CONTRIBUTIONS.md` (items 4
+  and 5), `PROGRESS.md`, `CLAUDE.md`, `AGENTS.md`.
+
 ### Added (linked repos, phase 2.4)
 
 - **`graph` follows HTTP calls between repos** (`indexing/service_resolver.py`). The resolver

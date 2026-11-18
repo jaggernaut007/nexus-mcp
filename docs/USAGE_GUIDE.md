@@ -111,7 +111,9 @@ nexus-mcp-ci link --refresh                   # index the changed files of every
 nexus-mcp-ci unlink backend                   # remove the link; the index stays on disk
 ```
 
-`search` and `find_symbol` also look in the linked repos. A result of a linked repo shows the link name first in its path (`backend/src/app.py`). `find_symbol` with `detail="full"` adds a `repo` field. If a file of a linked repo changed after its index, the result has no snippet for it and the `warning` tells you to run `nexus-mcp-ci link --refresh`. `graph` does not cross repos yet.
+`search` and `find_symbol` also look in the linked repos. A result of a linked repo shows the link name first in its path (`backend/src/app.py`). `find_symbol` with `detail="full"` adds a `repo` field. If a file of a linked repo changed after its index, the result has no snippet for it and the `warning` tells you to run `nexus-mcp-ci link --refresh`.
+
+`graph` follows HTTP calls (phase 2.4). The symbol is looked up in the project and in each linked repo. A call from a client to a route has an edge, between the repos or inside one repo (a monorepo with a front end folder and a back end folder). `callers`, `callees` and `transitive=true` cross it. A hop over such an edge ends with `via GET /orders/{}`; with `detail="full"` it has `via`, `resolution` (`exact` or `suffix`) and, for a linked repo, `repo`. An edge exists only when exactly one route fits, so the list is a lower bound. Covered: Python (FastAPI, Flask, `requests`, `httpx`) and JavaScript and TypeScript (Express-style routes, NestJS, Next.js, `fetch`, `axios`). Calls in test files and calls to a host outside the project get no edge. The edges are in memory: nothing is saved with them, and they are built again after a reindex.
 
 The links are in `~/.nexus-mcp/links.json` (`NEXUS_LINKS_FILE`). Each repo keeps its own index in `<repo>/.nexus`. See [ADR-027](adr/ADR-027-linked-repos.md).
 

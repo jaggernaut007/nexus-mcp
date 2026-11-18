@@ -119,7 +119,7 @@ src/nexus_mcp/
 │   └── store.py               # SQLite graph persistence
 └── evaluate/                  # `nexus-mcp-ci eval` (quick + agent tier), `data`, `share` (ADR-020, ADR-021)
 benchmarks/                # Token-efficiency benchmark harness (ADR-018)
-evals/                     # routing/ (does the agent pick the right tool), retrieval/ (hit@1); docs/EVALS.md
+evals/                     # routing/ (does the agent pick the right tool), retrieval/ (hit@1), linked/ (HTTP edge precision, search with a link); docs/EVALS.md
 self_test/
 ├── demo_mcp.py            # End-to-end demo exercising the 8 tools and the Python API
 └── README.md              # Usage, sample project, troubleshooting
@@ -170,7 +170,7 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 - Adopter evaluation in the package (`eval`), ground truth from the parser — [ADR-020](docs/adr/ADR-020-adopter-evaluation.md)
 - One source for published numbers; opt-in sharing, no telemetry — [ADR-021](docs/adr/ADR-021-results-publishing-and-sharing.md)
 - Server lifecycle: idle timeout (3 h), orphan exit, `os._exit` after a bounded cleanup — [ADR-022](docs/adr/ADR-022-server-lifecycle-and-exit.md)
-- Linked repos: one index per repo, a user-level registry, service calls as the connection (draft, phases 2.1 to 2.4) — [ADR-027](docs/adr/ADR-027-linked-repos.md)
+- Linked repos: one index per repo, a user-level registry, service calls as the connection (draft, built in phases 2.1 to 2.5) — [ADR-027](docs/adr/ADR-027-linked-repos.md)
 - MIT licence, commercial licence key removed again — [ADR-023](docs/adr/ADR-023-commercial-licence-check.md) (superseded by [ADR-024](docs/adr/ADR-024-mit-licence.md))
 
 ## Gotchas
@@ -203,7 +203,7 @@ claude mcp add nexus-mcp -- nexus-mcp-ci  # Add to Claude Code
 20. `NEXUS_AUTO_WATCH` (default `true`) starts a debounced file watcher per indexed root after `index()` completes; on change it triggers a background incremental reindex (skipped, not queued, if one is already in flight)
 21. `status()`/`search()` run a throttled staleness check (`NEXUS_STALENESS_CHECK_INTERVAL`, default 15s) and surface `stale`/`staleness_warning`/`warning` fields; a stale result still returns immediately and kicks a background reindex rather than blocking
 22. `multi_index()` is now incremental-aware: it only does a full rebuild the first time or when the set of indexed roots changes; otherwise it mtime-diffs like `incremental_index()`
-23. Linked repos (ADR-027): `nexus-mcp-ci link <path>` writes `~/.nexus-mcp/links.json` (`NEXUS_LINKS_FILE`), keyed by the root of the project that you run it in. The server attaches each linked store read-only into `state.linked` (restore and `index`), never writes to it, and trusts nothing in it: roots and `repo_id` must match the registry. A bad link is skipped with a `skip_reason` that `status` shows. A linked store is always `<repo>/.nexus`; `NEXUS_STORAGE_DIR` does not apply to it. `search` and `find_symbol` also look in each attached linked repo (phase 2.2): the query is embedded once, results show `<name>/<path>`, and the linked BM25 engine is read-only (`IndexingPipeline(read_only=True)`), so a search never writes to a linked store. `graph` crosses repos (phase 2.4): it looks for the symbol in each attached repo and follows CALLS and HTTP_CALLS (`state.bridge`, built by `service_resolver`, in memory, never saved); a hop over an HTTP edge shows `via GET /path`
+23. Linked repos (ADR-027): `nexus-mcp-ci link <path>` writes `~/.nexus-mcp/links.json` (`NEXUS_LINKS_FILE`), keyed by the root of the project that you run it in. The server attaches each linked store read-only into `state.linked` (restore and `index`), never writes to it, and trusts nothing in it: roots and `repo_id` must match the registry. A bad link is skipped with a `skip_reason` that `status` shows. A linked store is always `<repo>/.nexus`; `NEXUS_STORAGE_DIR` does not apply to it. `search` and `find_symbol` also look in each attached linked repo (phase 2.2): the query is embedded once, results show `<name>/<path>`, and the linked BM25 engine is read-only (`IndexingPipeline(read_only=True)`), so a search never writes to a linked store. `search` scales the BM25 lists of all stores by the best raw score of all (`_merge_bm25`), not by the best of each store (phase 2.5). `graph` crosses repos (phase 2.4): it looks for the symbol in each attached repo and follows CALLS and HTTP_CALLS (`state.bridge`, built by `service_resolver`, in memory, never saved); a hop over an HTTP edge shows `via GET /path`
 
 ## Embedding Models
 

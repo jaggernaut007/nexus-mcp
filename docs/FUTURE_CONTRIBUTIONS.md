@@ -73,7 +73,12 @@ Optimize how indexes are stored, cached, and scaled.
 
 ## 4. Multi-Repository & Cross-Repo Support
 
-**Priority: High** | **Difficulty: Hard**
+**Priority: High** | **Difficulty: Hard** | **Status: first version built** ([ADR-027](adr/ADR-027-linked-repos.md))
+
+Done: one index for each repo, a link registry (`nexus-mcp-ci link`), `search`, `find_symbol` and
+`graph` across linked repos, and HTTP calls as the connection between repos. Not done: package
+imports across repos (manifest name to repo), a background refresh of a linked repo with a lock
+between processes, memory shared across linked repos, a shared embedding cache.
 
 Index and search across multiple codebases simultaneously.
 
@@ -90,7 +95,13 @@ Index and search across multiple codebases simultaneously.
 
 ## 5. Cross-Service API Linking
 
-**Priority: Medium** | **Difficulty: Hard**
+**Priority: Medium** | **Difficulty: Hard** | **Status: first version built** ([ADR-027](adr/ADR-027-linked-repos.md))
+
+Done: routes and client calls for Python (FastAPI, Flask) and JavaScript and TypeScript (Express,
+NestJS, Next.js, `fetch`, `axios`), matched on method and path with a strength (`exact` 1.0,
+`suffix` 0.8), precision first; `python -m evals.linked.run` measures precision and recall. Not
+done: Django, Go, Java, C#, PHP, gRPC and message queues; a path built by a function or a table;
+a prefix set in another file for a router that two files mount; breaking-change detection.
 
 Automatically discover and link REST/gRPC endpoints across microservices.
 

@@ -1,7 +1,7 @@
 {
   "name": "nexus-mcp",
   "description": "Fewer tokens for Cursor on large codebases. Local hybrid code search, a call graph for 10 languages and the code of any symbol, so the agent reads fewer files. Measured against Grep and Read: 95% fewer tokens to reach the right file (median of 10 open-source repos), and a lower cost per task on 8 of 11 repos in live agent runs. Runs on your machine through uv: no API key, no telemetry.",
-  "version": "2.4.6",
+  "version": "3.0.0",
   "author": {
     "name": "Shreyas Jagannath"
   },

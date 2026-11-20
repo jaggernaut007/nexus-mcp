@@ -1,6 +1,6 @@
 [project]
 name = "nexus-mcp-desktop"
-version = "2.4.6"
+version = "3.0.0"
 description = "Claude Desktop extension wrapper for nexus-mcp-ci"
 requires-python = ">=3.10,<3.13"
-dependencies = ["nexus-mcp-ci==2.4.6"]
+dependencies = ["nexus-mcp-ci==3.0.0"]

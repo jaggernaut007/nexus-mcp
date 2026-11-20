@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "nexus-mcp",
   "display_name": "Nexus-MCP",
-  "version": "2.4.6",
+  "version": "3.0.0",
   "description": "Your coding agent reads less code to find the right file. Local code search and call graph. No API keys, no telemetry.",
   "long_description": "Nexus-MCP indexes your code on your machine and gives the agent hybrid search, a static call graph and the code of any symbol in one call, so it reads less code: 95% fewer tokens to reach the right file (median of 10 open-source repos). It needs uv. The first start downloads the Python packages and the embedding model, so it takes a few minutes. Free and open source under the MIT licence.",
   "author": {

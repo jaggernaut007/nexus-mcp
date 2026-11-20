@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-11-20
+
 ### Added (linked repos, phase 2.2)
 
 - **`search` and `find_symbol` look in the linked repos.** The query is embedded one time.

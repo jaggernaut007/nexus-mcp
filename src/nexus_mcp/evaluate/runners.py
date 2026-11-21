@@ -1,4 +1,4 @@
-"""Build and run one agent call for the agent tier: Claude Code or Codex, one condition.
+"""Build and run one agent call for the agent tier: Claude Code, Codex or agy, one condition.
 
 The argv builders and the output parsers are pure, so tests check them without a CLI.
 ``run`` is the only function that starts a process. Each run sends the prompt and the
@@ -7,6 +7,7 @@ code the agent reads to the model provider, through the user's own CLI and login
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -192,6 +193,111 @@ def parse_codex(lines: Iterable[str], model: str) -> Dict[str, Any]:
     }
 
 
+AGY_SERVER = "nexus-mcp"
+AGY_HOME_BIN = Path.home() / ".gemini" / "bin" / "agy"
+AGY_ALLOWED_TOOLS = ("search", "find_symbol", "graph", "map", "index")
+
+
+def agy_binary() -> str:
+    """The agy executable: on PATH, else the default install folder, else the bare name."""
+    return shutil.which("agy") or (str(AGY_HOME_BIN) if AGY_HOME_BIN.is_file() else "agy")
+
+
+def agy_settings(condition: str) -> Dict[str, Any]:
+    """Session settings for agy. Allow the Nexus-MCP tools: headless agy cannot ask."""
+    allow = [f"mcp({AGY_SERVER}/{tool})" for tool in AGY_ALLOWED_TOOLS]
+    return {"permissions": {"allow": allow if condition in ("mcp", "nexus") else []}}
+
+
+def agy_argv(model: str, condition: str, prompt: str, settings_file: Path) -> List[str]:
+    """argv for ``agy -p --output-format stream-json`` in plan mode (the read-only mode).
+
+    agy has no per-session MCP setting. The server comes from ``agy mcp add``, and ``run``
+    switches it on or off for the condition.
+    """
+    if condition == "nexus":
+        prompt = skill_text() + "\n\n---\n\n" + prompt
+    return [
+        agy_binary(),
+        "-p",
+        prompt,
+        "--output-format",
+        "stream-json",
+        "--model",
+        model,
+        "--mode",
+        "plan",
+        "--settings",
+        str(settings_file),
+    ]
+
+
+def agy_mcp_toggle(condition: str, runner=subprocess.run) -> bool:
+    """Enable the registered Nexus-MCP server for mcp and nexus, disable it for baseline.
+
+    Returns False when agy refused (for example, the server was never added). The state is
+    global to the user's agy config, so ``run`` puts it back after each call.
+    """
+    action = "enable" if condition in ("mcp", "nexus") else "disable"
+    try:
+        done = runner(
+            [agy_binary(), "mcp", action, AGY_SERVER], capture_output=True, text=True, timeout=30
+        )
+    except (subprocess.SubprocessError, OSError):
+        return False
+    return done.returncode == 0
+
+
+def parse_agy(lines: Iterable[str]) -> Dict[str, Any]:
+    """Usage, tool calls and the final answer from ``agy --output-format stream-json`` events.
+
+    agy reports tokens, not USD, so cost_usd is None (not measured). Tokens are input plus
+    output plus thinking. Cache reads are not counted, as in the agy total.
+    """
+    answer, usage, result_seen, status, error = "", None, False, "", ""
+    names: Dict[str, int] = {}
+    for line in lines:
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("event") == "step_update":
+            step = event.get("step_update") or {}
+            if step.get("step_type") == "tool" and step.get("state") in ("DONE", "ERROR"):
+                info = step.get("tool_info") or {}
+                name = step.get("tool_name") or info.get("name") or "tool"
+                if name == "call_mcp_tool":
+                    name = f"mcp:{(info.get('parameters') or {}).get('ToolName', '?')}"
+                names[name] = names.get(name, 0) + 1
+        elif event.get("event") == "result":
+            result = event.get("result") or {}
+            result_seen = True
+            answer = result.get("response", "") or answer
+            usage = result.get("usage") or usage
+            status = result.get("status", "")
+            error = result.get("error", "") or error
+    tokens = None
+    if usage:
+        keys = ("input_tokens", "output_tokens", "thinking_tokens")
+        tokens = sum(int(usage.get(k, 0) or 0) for k in keys)
+    is_error = not result_seen or status != "SUCCESS" or bool(error)
+    out: Dict[str, Any] = {
+        "answer": answer,
+        "tokens": tokens,
+        "cost_usd": None,
+        "turns": None,
+        "tool_calls": sum(names.values()),
+        "tools": names,
+        "is_error": is_error,
+    }
+    if is_error:
+        out["error"] = (error or answer or "no result event").strip()[:300]
+    return out
+
+
 def _last_assistant_text(lines: Iterable[str]) -> str:
     """The text of the last assistant message: where the CLI puts a login or API error."""
     text = ""
@@ -242,6 +348,20 @@ def run(
             config.write_text(json.dumps(claude_mcp_config(storage)))
             argv = claude_argv(spec.model, condition, prompt, config, bare)
             env = claude_env(condition)
+        elif spec.runner == "agy":
+            settings_file = Path(tmp) / "settings.json"
+            settings_file.write_text(json.dumps(agy_settings(condition)))
+            argv = agy_argv(spec.model, condition, prompt, settings_file)
+            # agy starts the registered server with its own environment: pass the index.
+            env = {**os.environ, **server_env(storage)}
+            if not agy_mcp_toggle(condition):
+                return {
+                    "answer": "", "tokens": None, "cost_usd": None, "turns": None,
+                    "tool_calls": 0, "tools": {}, "is_error": True, "seconds": 0.0,
+                    "isolation": "shared-config",
+                    "error": f"agy could not switch the '{AGY_SERVER}' server. "
+                    f"Run: agy mcp add {AGY_SERVER} <python> -m nexus_mcp",
+                }
         else:
             argv = codex_argv(spec.model, condition, prompt, root, storage)
             env = dict(os.environ)
@@ -264,10 +384,19 @@ def run(
             note = type(exc).__name__
         else:
             note = (proc.stderr or "").strip()[-300:] if failed else ""
+    if spec.runner == "agy":
+        agy_mcp_toggle("nexus")  # put the registered server back on, its normal state
     lines = out.splitlines()
-    parsed = parse_claude(lines) if spec.runner == "claude" else parse_codex(lines, spec.model)
+    if spec.runner == "claude":
+        parsed = parse_claude(lines)
+    elif spec.runner == "agy":
+        parsed = parse_agy(lines)
+    else:
+        parsed = parse_codex(lines, spec.model)
     parsed["seconds"] = round(time.time() - started, 1)
     parsed["isolation"] = "bare" if bare and spec.runner == "claude" else "reduced"
+    if spec.runner == "agy":
+        parsed["isolation"] = "shared-config"  # the agy MCP config is global to the user
     if failed and not parsed["answer"]:
         parsed["is_error"] = True
         parsed["error"] = note

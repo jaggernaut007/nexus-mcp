@@ -70,7 +70,7 @@ def _eval_parser() -> argparse.ArgumentParser:
         "--agent",
         metavar="SPECS",
         help="runner[:model] list, for example claude, claude:haiku,claude:sonnet or "
-        "codex:gpt-5-codex (Codex is experimental)",
+        "codex:gpt-5-codex or agy:gemini-3.8-flash-medium (Codex and agy are experimental)",
     )
     agent.add_argument(
         "--preset",

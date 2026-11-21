@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added (eval infra for 3.0.0)
+
+- **`agy` runner for `nexus-mcp-ci eval --agent`.** The Antigravity CLI joins `claude` and
+  `codex`. It runs `agy -p --output-format stream-json --mode plan`, allows only the five nexus
+  tools through a per-run `--settings` file, and switches the server that `agy mcp add`
+  registered for each condition. agy reports tokens, not USD, so its cost is "not measured".
+  Tests use a recorded stream. `eval doctor` checks for the `agy` CLI. See `docs/EVALS.md`.
+- **Tests from the pre-run audit.** `check` has tests for an empty or corrupt stored graph (exit 3)
+  and for a failed git call. The no-client setup test no longer depends on the CLIs on `PATH`.
+- **Not run for this entry:** the live benchmark, change safety, routing and the cross-agent
+  eval. No hit@1 or token number changed, because no ranking or tool code changed.
+
 ### Added (linked repos, phases 2.3 to 2.5, on the boundary facts of ADR-026)
 
 - **One extractor.** The first build of phase 2.3 had its own extractor of routes and client

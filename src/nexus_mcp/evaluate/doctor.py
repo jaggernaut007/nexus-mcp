@@ -31,7 +31,11 @@ def checks(which: Callable[[str], str] = shutil.which, run=subprocess.run) -> Li
             str(model) if model.exists() else "not cached: the first run downloads it (~32MB)",
         )
     )
-    for cli, use in (("claude", "--agent claude"), ("codex", "--agent codex (experimental)")):
+    for cli, use in (
+        ("claude", "--agent claude"),
+        ("codex", "--agent codex (experimental)"),
+        ("agy", "--agent agy (experimental)"),
+    ):
         found = which(cli)
         version = _version(cli, run) if found else ""
         out.append((f"{cli} CLI", bool(found), version or f"not found: needed for {use}"))
@@ -52,6 +56,6 @@ def render(items: List[Check]) -> str:
     lines += [
         "",
         "The quick tier needs only Python and this package. The agent tier needs a logged-in",
-        "claude or codex CLI, and it sends prompts and code to that provider.",
+        "claude, codex or agy CLI, and it sends prompts and code to that provider.",
     ]
     return "\n".join(lines)

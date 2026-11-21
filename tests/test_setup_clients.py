@@ -206,8 +206,9 @@ def test_setup_claude_code_falls_back_to_claude_json(env):
     assert cfg["mcpServers"]["nexus-mcp"]["command"] == "uvx"
 
 
-def test_setup_no_client_found_exits_2(env, capsys):
+def test_setup_no_client_found_exits_2(env, capsys, monkeypatch):
     home, project = env
+    monkeypatch.setattr(sc.shutil, "which", lambda *a, **k: None)  # no CLI on this PATH
     assert _run(home, project) == 2
     assert "No MCP client found" in capsys.readouterr().err
 

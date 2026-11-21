@@ -8,7 +8,9 @@ the ranking or the embedding model.
 | Routing | Does Claude call the right nexus tool without being told? | `evals/routing` | Claude usage (small) |
 | Retrieval | Does a model rank the right files first? | `evals/retrieval` | CPU time only |
 | Benchmark | Does nexus-mcp cut tokens on a large repository? | `benchmarks/` | Claude usage (large) |
-| Linked repos | Are the edges between linked repos right? Does a link make `search` worse? | `evals/linked` | CPU time only |
+| Linked repos | Are the edges between linked repos right? Does a link make `search` worse? | `evals/linked` (`run`, `with_link`) | CPU time only |
+| Impact | Does `graph` find the files that a change breaks? Gate: `--min-recall`. | `evals/impact` (`run`, `--cases boundary_cases.yaml`) | CPU time only |
+| Agent tier | Does an agent use fewer tokens with nexus? Claude, Codex or agy. | `nexus-mcp-ci eval --agent` | Provider usage (opt-in) |
 
 ## Routing eval
 
@@ -444,3 +446,35 @@ It also reports `linked_side`: four queries about the backend, which must find a
 repo. A merge that always put the project first would pass the gate and fail there. Near-equal
 vector scores make one query move with the path of the temporary folder, so read the result over
 several runs, not one.
+
+## Agent tier on Claude, Codex and agy (experimental for Codex and agy)
+
+`nexus-mcp-ci eval --agent claude,codex,agy --preset efficient` runs the same tasks and
+conditions on three agents. Use the CPU ONNX build only: set `NEXUS_EMBEDDING_DEVICE=cpu`.
+
+| Runner | CLI | MCP wiring | Cost |
+|---|---|---|---|
+| `claude` | `claude -p` | per-run `--mcp-config` | USD from the CLI |
+| `codex` | `codex exec --json` | per-run `-c mcp_servers.nexus.*` | USD from tokens and `NEXUS_EVAL_PRICING` |
+| `agy` | `agy -p --output-format stream-json --mode plan` | the server added once with `agy mcp add` | tokens only, **not measured in USD** |
+
+Set up agy once:
+
+```bash
+agy mcp add -e NEXUS_EMBEDDING_DEVICE=cpu nexus-mcp "$(which python)" -- -m nexus_mcp
+```
+
+Limits of the agy runner (from a spike on agy 1.5.6):
+- agy has no per-session MCP setting. `--settings` rejects `mcpServers`. The runner switches
+  the registered server with `agy mcp enable` or `disable` for each condition, and enables it
+  again after each run. The result row shows `isolation: shared-config`.
+- Headless agy cannot ask for permission. The runner writes `permissions.allow` rules for the
+  five nexus tools into a per-run `--settings` file. It never uses a bypass flag.
+- The runner passes the index folder in the environment (`NEXUS_STORAGE_DIR`). It assumes that
+  agy starts the server with its own environment. **Not yet checked in a live run.**
+- The stream gives input, output and thinking tokens, but no cost. `cost_usd` is `None`, so
+  the `efficient` preset compares agy runs by tokens.
+- The first call needs an index. Index the target repo before the run, because a headless
+  `index` call on a large repo can run out of the time limit.
+
+Results: not yet measured. The infra is tested on a recorded stream (`tests/test_evaluate_agy.py`).

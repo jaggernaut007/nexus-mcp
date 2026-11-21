@@ -479,3 +479,43 @@ class TestCli:
         _commit_and_index(repo, PY_BASE)
         assert run_check([str(repo), "--base", "no-such-ref"]) == 2
         assert "error" in capsys.readouterr().err
+
+
+class TestIndexAndGitErrors:
+    """Exit code 3 for a bad stored graph, and a CheckError for a failed git call."""
+
+    def test_load_graph_corrupt_file_exits_3(self, tmp_path):
+        db = tmp_path / "graph.db"
+        db.write_bytes(b"not a database")
+        with pytest.raises(check.CheckError, match="Cannot read the stored graph") as err:
+            check._load_graph(db)
+        assert err.value.code == 3
+
+    def test_load_graph_empty_graph_exits_3(self, tmp_path):
+        db = tmp_path / "graph.db"
+        GraphPersistence(str(db)).save(RustworkxCodeGraph())
+        with pytest.raises(check.CheckError, match="empty") as err:
+            check._load_graph(db)
+        assert err.value.code == 3
+
+    def test_git_nonzero_raises_with_truncated_stderr(self, tmp_path):
+        class Done:
+            returncode, stdout, stderr = 128, "", "x" * 500
+
+        with pytest.raises(check.CheckError) as err:
+            check._git(tmp_path, "rev-parse", "HEAD", run=lambda *a, **k: Done())
+        assert err.value.code == 2
+        assert len(str(err.value)) < 340
+
+    def test_git_oserror_raises_checkerror(self, tmp_path):
+        def boom(*a, **k):
+            raise FileNotFoundError("git")
+
+        with pytest.raises(check.CheckError, match="git failed"):
+            check._git(tmp_path, "status", run=boom)
+
+    def test_git_nonzero_with_check_false_gives_empty(self, tmp_path):
+        class Done:
+            returncode, stdout, stderr = 1, "out", "err"
+
+        assert check._git(tmp_path, "x", run=lambda *a, **k: Done(), check=False) == ""

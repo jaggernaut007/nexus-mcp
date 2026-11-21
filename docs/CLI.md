@@ -35,7 +35,8 @@ agent tier (paid, opt-in):
   code the agent reads to the provider, through your own CLI and login.
 
   --agent SPECS         runner[:model] list, for example claude, claude:haiku,claude:sonnet or
-                        codex:gpt-5-codex (Codex is experimental)
+                        codex:gpt-5-codex or agy:gemini-3.8-flash-medium (Codex and agy are
+                        experimental)
   --preset {efficient,matrix,quick}
                         quick: claude:sonnet, 4 tasks. matrix: every --agent model. efficient:
                         also the mcp condition, then the cheapest setup at the same accuracy
